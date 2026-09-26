@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FFFFFF">
+<title>Sign in — MedLink KE</title>
+<script src="theme.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="auth-page">
+<div class="auth-wrap">
+  <a href="index.html" class="brand auth-brand">
+    <span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></span>
+    MedLink KE
+  </a>
+  <div id="clerk-mount" class="clerk-mount"></div>
+</div>
+
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+  MedLink.run({ auth: "guest-only", profile: "optional", shell: false }, async ({ clerk }) => {
+    const target = MedLink.safeRedirect(param("redirect")) || "dashboard.html";
+    clerk.mountSignIn(qs("#clerk-mount"), {
+      signUpUrl: new URL("sign-up.html", location.href).href,
+      forceRedirectUrl: new URL(target, location.href).href,
+      signUpForceRedirectUrl: new URL("onboarding.html", location.href).href,
+    });
+  });
+</script>
+</body>
+</html>

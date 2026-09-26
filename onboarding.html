@@ -4,20 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#FFFFFF">
-<title>Create your profile — MedLink KE</title>
+<title>Set up your profile — MedLink KE</title>
 <script src="theme.js"></script>
-<!-- Supabase: UMD build (no bundler in this project), then config, then the shared client. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
-<script src="config.js" defer></script>
-<script src="supabase.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="onboard-wrap fade-in">
+<div class="onboard-wrap fade-in" id="page" hidden>
   <div class="onboard-top">
-    <a href="index.html" class="btn btn-ghost">‹ Back to home</a>
+    <a href="index.html" class="btn btn-ghost" id="topBack">‹ Back to home</a>
     <button class="icon-btn theme-toggle" data-theme-toggle aria-label="Switch theme">
       <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>
@@ -36,8 +32,8 @@
         <div class="welcome-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></div>
         <h3 class="disp" style="font-size:20px;margin:0 0 8px;">Welcome to MedLink KE</h3>
         <p class="muted" style="max-width:400px;margin:0 auto;line-height:1.6;font-size:14px;">
-          Your medical school, all in one place. Let's set up your identity — the profile
-          your classmates will recognise, follow and message across MedLink.
+          Your account is ready. Now let's set up your study profile — the identity your classmates will
+          recognise, follow and message across MedLink.
         </p>
       </div>
     </div>
@@ -45,68 +41,53 @@
     <!-- Step 1 -->
     <div class="onboard-step" data-step="1">
       <div class="field" id="f-name">
-        <label>Full Name <span class="req">*</span></label>
-        <input type="text" id="in-name" placeholder="e.g. Gabriel Mwangi" autocomplete="name">
+        <label for="in-name">Full Name <span class="req">*</span></label>
+        <input type="text" id="in-name" placeholder="e.g. Gabriel Mwangi" autocomplete="name" maxlength="80">
         <div class="field-error hidden" id="err-name">Please enter your full name.</div>
       </div>
 
       <div class="field" id="f-username">
-        <label>Username <span class="req">*</span></label>
+        <label for="in-username">Username <span class="req">*</span></label>
         <div class="username-wrap">
           <span class="at">@</span>
-          <input type="text" id="in-username" placeholder="gabrielmed" autocomplete="off" spellcheck="false">
+          <input type="text" id="in-username" placeholder="gabrielmed" autocomplete="off" spellcheck="false" maxlength="20">
           <span class="status-icon hidden" id="username-icon"></span>
         </div>
         <div class="field-ok hidden" id="ok-username">✓ Username available</div>
         <div class="field-error hidden" id="err-username"></div>
-        <div class="suggestion-row hidden" id="suggestion-row"></div>
         <div class="field-hint" id="username-hint">3–20 characters: lowercase letters, numbers, periods and underscores only.</div>
       </div>
 
-      <div class="two-col">
-        <div class="field" id="f-email">
-          <label>Email <span class="req">*</span></label>
-          <input type="email" id="in-email" placeholder="you@student.ac.ke" autocomplete="email">
-          <div class="field-error hidden" id="err-email">Please enter a valid email address.</div>
-        </div>
-        <div class="field" id="f-password">
-          <label>Password <span class="req">*</span></label>
-          <input type="password" id="in-password" placeholder="At least 6 characters" autocomplete="new-password">
-          <div class="field-error hidden" id="err-password">Password must be at least 6 characters.</div>
-        </div>
-      </div>
-
       <div class="field" id="f-photo">
-        <label>Profile Photo <span class="req">*</span></label>
+        <label>Profile Colour <span class="req">*</span></label>
         <div class="row-gap">
-          <div class="avatar md" id="photo-preview" style="border:1.5px dashed var(--line);background:transparent;"></div>
+          <div class="avatar md" id="photo-preview"></div>
           <div class="avatar-color-row" id="color-row"></div>
         </div>
-        <div class="field-error hidden" id="err-photo">Please choose a profile photo colour.</div>
       </div>
     </div>
 
     <!-- Step 2 -->
     <div class="onboard-step" data-step="2">
       <div class="field">
-        <label>Course / Program <span class="req">*</span></label>
+        <label for="in-course">Course / Program <span class="req">*</span></label>
         <select id="in-course"></select>
         <div class="field-hint">Pick this first — not every university offers every programme.</div>
       </div>
       <div class="field">
-        <label>University / School <span class="req">*</span></label>
+        <label for="in-university">University / School <span class="req">*</span></label>
         <select id="in-university"></select>
         <div class="field-hint" id="uni-context"></div>
       </div>
       <div class="field" style="margin-bottom:0;">
-        <label>Year of Study <span class="req">*</span></label>
+        <label for="in-year">Year of Study <span class="req">*</span></label>
         <select id="in-year"></select>
       </div>
     </div>
 
     <!-- Step 3 -->
     <div class="onboard-step" data-step="3">
-      <p class="muted" style="margin:0 0 4px;font-size:13.5px;">Pick the units you're taking this semester — each one gets its own study space.</p>
+      <p class="muted" style="margin:0 0 4px;font-size:13.5px;">Pick the units you're taking this semester — each one gets its own study group.</p>
       <p class="faint" style="margin:0 0 16px;font-size:12.5px;" id="units-context"></p>
       <div id="units-row"></div>
       <div class="field-error hidden" id="err-units">Please pick at least one unit.</div>
@@ -122,12 +103,12 @@
 
     <!-- Step 5 -->
     <div class="onboard-step" data-step="5">
-      <p class="muted" style="margin:0 0 18px;font-size:13.5px;">Here's your MedLink identity. You can always edit this later from Settings.</p>
+      <p class="muted" style="margin:0 0 18px;font-size:13.5px;" id="review-lede">Here's your MedLink identity. You can always edit this later from Settings.</p>
       <div class="row-gap" style="margin-bottom:18px;">
         <div class="avatar lg" id="review-avatar"></div>
         <div>
           <div style="font-weight:700;font-size:17px;" id="review-name">Your name</div>
-          <div style="font-size:13px;color:var(--violet-dark);" id="review-username">@username</div>
+          <div class="handle" style="font-size:13px;" id="review-username">@username</div>
           <div class="faint" style="font-size:12.5px;" id="review-meta"></div>
         </div>
       </div>
@@ -136,297 +117,273 @@
     </div>
 
     <div class="step-nav">
-      <button class="btn btn-ghost" id="backBtn">‹ Back</button>
-      <button class="btn btn-primary" id="nextBtn">Continue ›</button>
+      <button class="btn btn-ghost" id="backBtn" type="button">‹ Back</button>
+      <button class="btn btn-primary" id="nextBtn" type="button">Continue ›</button>
     </div>
   </div>
 </div>
 
+<script src="config.js"></script>
 <script src="data.js"></script>
+<script src="app.js"></script>
 <script>
+MedLink.run({ auth: "required", profile: "optional", shell: false }, async ({ api, clerk, me }) => {
+  const editing = param("edit") === "1" && !!me;
+  if (me && !editing) { MedLink.go("dashboard.html"); return; }
+  qs("#page").hidden = false;
+
   const STEPS = ["Welcome", "Your identity", "Your studies", "Current units", "Interests", "Review"];
-  let step = 0;
-  const data = {
-    name: "", username: "", email: "", password: "", photoColor: null,
+  const firstStep = editing ? 1 : 0;
+  let step = firstStep;
+  if (editing) {
+    const requested = Number(param("step"));
+    if (requested >= 1 && requested <= 4) step = requested;
+    qs("#topBack").textContent = "‹ Back to settings";
+    qs("#topBack").href = "settings.html";
+    qs("#review-lede").textContent = "Here's how your profile will look after saving.";
+  }
+
+  const cu = clerk.user;
+  const emailLocal = ((cu.primaryEmailAddress && cu.primaryEmailAddress.emailAddress) || "").split("@")[0];
+  const data = me ? {
+    name: me.full_name, username: me.username, photoColor: me.color,
+    universityId: me.university_id, courseId: me.course_id, year: me.year,
+    units: me.current_units.slice(), interests: me.interests.slice(),
+  } : {
+    name: cu.fullName || [cu.firstName, cu.lastName].filter(Boolean).join(" ") || "",
+    username: (cu.username || emailLocal || "").toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 20),
+    photoColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
     universityId: "uon", courseId: "mbchb", year: "Year 1",
     units: [], interests: [],
   };
   const touched = {};
   let usernameCheck = { checking: false, available: null, error: null };
+  let checkSeq = 0;
   let debounceHandle = null;
-  const takenSet = new Set(SEED_USERS.map(u => u.username.toLowerCase()));
 
-  const progressBar = document.getElementById("progressBar");
-  STEPS.forEach((_, i) => progressBar.appendChild(el("div", { class: "seg" + (i === 0 ? " on" : ""), "data-seg": i })));
+  const progressBar = qs("#progressBar");
+  STEPS.forEach((_, i) => progressBar.appendChild(el("div", { class: "seg", "data-seg": i })));
 
-  const uniSelect = document.getElementById("in-university");
+  // ---- studies ----
+  const uniSelect = qs("#in-university");
+  const courseSelect = qs("#in-course");
+  const yearSelect = qs("#in-year");
   function renderUniversityOptions() {
     const list = universitiesForCourse(data.courseId);
-    uniSelect.innerHTML = "";
-    list.forEach(u => uniSelect.appendChild(el("option", { value: u.id }, [`${u.name} (${u.abbreviation})`])));
-    // the previously chosen university may not offer the new course
+    uniSelect.replaceChildren(...list.map(u => el("option", { value: u.id }, [`${u.name} (${u.abbreviation})`])));
     if (!list.some(u => u.id === data.universityId)) data.universityId = list[0].id;
     uniSelect.value = data.universityId;
-    document.getElementById("uni-context").textContent =
-      `${list.length} institution${list.length === 1 ? "" : "s"} offer ${courseName(data.courseId)}.`;
+    qs("#uni-context").textContent = `${list.length} institution${list.length === 1 ? "" : "s"} offer ${courseName(data.courseId)}.`;
   }
-  const courseSelect = document.getElementById("in-course");
-  COURSES.forEach(c => courseSelect.appendChild(el("option", { value: c.id }, [c.name])));
-  courseSelect.value = data.courseId;
-  renderUniversityOptions();
-  const yearSelect = document.getElementById("in-year");
   function renderYearOptions() {
     const valid = yearsForCourse(data.courseId);
-    yearSelect.innerHTML = "";
-    valid.forEach(y => yearSelect.appendChild(el("option", { value: y }, [y])));
+    yearSelect.replaceChildren(...valid.map(y => el("option", { value: y }, [y])));
     if (!valid.includes(data.year)) data.year = valid[0];
     yearSelect.value = data.year;
   }
+  COURSES.forEach(c => courseSelect.appendChild(el("option", { value: c.id }, [c.name])));
+  courseSelect.value = data.courseId;
+  renderUniversityOptions();
   renderYearOptions();
 
-  const colorRow = document.getElementById("color-row");
+  // ---- colour ----
+  const colorRow = qs("#color-row");
   AVATAR_COLORS.forEach(c => {
-    const dot = el("button", { class: "color-dot", type: "button", "aria-label": "Choose avatar colour", style: `background:${c}` });
-    dot.dataset.color = c;
-    dot.addEventListener("click", () => {
-      data.photoColor = c; touched.photo = true;
-      renderColorRow(); renderPhotoPreview(); validateStep1();
-    });
-    colorRow.appendChild(dot);
+    colorRow.appendChild(el("button", {
+      class: "color-dot", type: "button", "aria-label": "Choose colour " + c, style: `background:${c}`, "data-color": c,
+      onclick: () => { data.photoColor = c; renderColorRow(); renderPhotoPreview(); },
+    }));
   });
-  function renderColorRow() {
-    qsa(".color-dot", colorRow).forEach(d => d.classList.toggle("selected", d.dataset.color === data.photoColor));
-  }
+  function renderColorRow() { qsa(".color-dot", colorRow).forEach(d => d.classList.toggle("selected", d.dataset.color === data.photoColor)); }
   function renderPhotoPreview() {
-    const p = document.getElementById("photo-preview");
-    if (data.photoColor) {
-      p.style.background = data.photoColor; p.style.border = "none";
-      p.textContent = initials(data.name) || "?";
-    } else {
-      p.style.background = "transparent"; p.style.border = "1.5px dashed var(--line)"; p.textContent = "";
-    }
+    const p = qs("#photo-preview");
+    p.style.background = safeColor(data.photoColor);
+    p.textContent = initials(data.name) || "?";
   }
 
-  // Grouped picker used for both units (by semester) and interests (by theme).
+  // ---- grouped pickers (units by semester, interests by theme) ----
   function renderPicker(containerId, groups, key, coral, onChange) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = "";
+    const container = qs("#" + containerId);
+    container.replaceChildren();
     Object.entries(groups).forEach(([label, options]) => {
       if (!options.length) return;
-      container.appendChild(el("div", {
-        class: "picker-group-label",
-        style: "font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin:14px 0 8px;",
-      }, [label]));
+      container.appendChild(el("div", { class: "picker-group-label" }, [label]));
       const row = el("div", { class: "wrap-gap" });
       options.forEach(opt => {
         const on = data[key].includes(opt);
-        const btn = el("button", { type: "button", class: "chip-toggle" + (coral ? " coral" : "") + (on ? " on" : "") }, [(on ? "✓ " : "") + opt]);
-        btn.addEventListener("click", () => {
-          const i = data[key].indexOf(opt);
-          if (i === -1) data[key].push(opt); else data[key].splice(i, 1);
-          renderPicker(containerId, groups, key, coral, onChange);
-          if (onChange) onChange();
-        });
-        row.appendChild(btn);
+        row.appendChild(el("button", {
+          type: "button", class: "chip-toggle" + (coral ? " coral" : "") + (on ? " on" : ""), "aria-pressed": String(on),
+          onclick: () => {
+            const i = data[key].indexOf(opt);
+            if (i === -1) data[key].push(opt); else data[key].splice(i, 1);
+            onChange();
+          },
+        }, [(on ? "✓ " : "") + opt]));
       });
       container.appendChild(row);
     });
-    if (container.firstChild) container.firstChild.style.marginTop = "0";
   }
-
   function renderUnits() {
-    const groups = unitsBySemester(data.courseId, data.year);
     const total = unitsForYear(data.courseId, data.year).length;
-    document.getElementById("units-context").textContent =
-      `${courseName(data.courseId)} · ${data.year} — ${total} units in your curriculum. ${data.units.length} selected.`;
-    renderPicker("units-row", groups, "units", false, renderUnits);
-    if (data.units.length) document.getElementById("err-units").classList.add("hidden");
+    qs("#units-context").textContent = `${courseName(data.courseId)} · ${data.year} — ${total} units in your curriculum. ${data.units.length} selected.`;
+    renderPicker("units-row", unitsBySemester(data.courseId, data.year), "units", false, renderUnits);
+    if (data.units.length) qs("#err-units").classList.add("hidden");
   }
-
   function renderInterests() {
-    document.getElementById("interests-context").textContent =
-      `Choose from ${ALL_INTERESTS.length} areas — pick as many as you like. ${data.interests.length} selected.`;
+    qs("#interests-context").textContent = `Choose from ${ALL_INTERESTS.length} areas — pick as many as you like. ${data.interests.length} selected.`;
     renderPicker("interests-row", INTEREST_CATALOG, "interests", true, renderInterests);
-    if (data.interests.length) document.getElementById("err-interests").classList.add("hidden");
+    if (data.interests.length) qs("#err-interests").classList.add("hidden");
   }
-
-  // A student's units only make sense for their own course and year — drop any
-  // selection that no longer belongs when either changes.
   function pruneUnits() {
     const valid = unitsForYear(data.courseId, data.year);
     data.units = data.units.filter(u => valid.includes(u));
   }
 
-  renderUnits();
-  renderInterests();
+  uniSelect.addEventListener("change", () => { data.universityId = uniSelect.value; });
+  courseSelect.addEventListener("change", () => {
+    data.courseId = courseSelect.value;
+    renderUniversityOptions(); renderYearOptions(); pruneUnits(); renderUnits();
+  });
+  yearSelect.addEventListener("change", () => { data.year = yearSelect.value; pruneUnits(); renderUnits(); });
 
-  const usernameInput = document.getElementById("in-username");
-  usernameInput.addEventListener("input", () => {
-    const clean = usernameInput.value.toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 20);
-    usernameInput.value = clean;
-    data.username = clean;
+  // ---- identity ----
+  const nameInput = qs("#in-name");
+  const usernameInput = qs("#in-username");
+  nameInput.value = data.name;
+  usernameInput.value = data.username;
+  nameInput.addEventListener("input", () => { data.name = nameInput.value; renderPhotoPreview(); });
+  nameInput.addEventListener("blur", () => { touched.name = true; validateName(); });
+
+  function validateName() {
+    const ok = !!data.name.trim();
+    const show = touched.name && !ok;
+    qs("#f-name").classList.toggle("error", show);
+    qs("#err-name").classList.toggle("hidden", !show);
+    return ok;
+  }
+
+  function checkUsername() {
+    const u = usernameInput.value;
+    data.username = u;
+    const seq = ++checkSeq;
     usernameCheck = { checking: true, available: null, error: null };
     renderUsernameStatus();
-    if (debounceHandle) clearTimeout(debounceHandle);
-    debounceHandle = setTimeout(() => {
-      const err = usernameFormatError(clean);
-      if (err) usernameCheck = { checking: false, available: null, error: err };
-      else if (RESERVED_USERNAMES.includes(clean) || takenSet.has(clean)) usernameCheck = { checking: false, available: false, error: null };
-      else usernameCheck = { checking: false, available: true, error: null };
+    clearTimeout(debounceHandle);
+    debounceHandle = setTimeout(async () => {
+      const formatErr = usernameFormatError(u);
+      let next;
+      if (formatErr) next = { checking: false, available: null, error: formatErr };
+      else if (RESERVED_USERNAMES.includes(u)) next = { checking: false, available: false, error: "That username is reserved." };
+      else if (me && u === me.username) next = { checking: false, available: true, error: null };
+      else {
+        try {
+          const taken = await api.usernameTaken(u);
+          next = { checking: false, available: !taken, error: taken ? "Username already taken." : null };
+        } catch (err) {
+          next = { checking: false, available: null, error: "Couldn't check that username — try again." };
+        }
+      }
+      if (seq !== checkSeq) return; // a newer keystroke superseded this check
+      usernameCheck = next;
       renderUsernameStatus();
-    }, 300);
+    }, 350);
+  }
+  usernameInput.addEventListener("input", () => {
+    const clean = usernameInput.value.toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 20);
+    if (clean !== usernameInput.value) usernameInput.value = clean;
+    checkUsername();
   });
   usernameInput.addEventListener("blur", () => { touched.username = true; renderUsernameStatus(); });
 
-  function applyUsername(name) {
-    usernameInput.value = name;
-    usernameInput.dispatchEvent(new Event("input"));
-  }
-
   function renderUsernameStatus() {
-    const field = document.getElementById("f-username");
-    const icon = document.getElementById("username-icon");
-    const ok = document.getElementById("ok-username");
-    const err = document.getElementById("err-username");
-    const hint = document.getElementById("username-hint");
-    const sug = document.getElementById("suggestion-row");
-
+    const field = qs("#f-username"), icon = qs("#username-icon"), ok = qs("#ok-username"), err = qs("#err-username");
     field.classList.remove("error", "ok");
-    icon.classList.add("hidden"); icon.classList.remove("ok", "bad");
+    icon.className = "status-icon hidden";
     ok.classList.add("hidden"); err.classList.add("hidden");
-    sug.classList.add("hidden"); sug.innerHTML = "";
-    hint.classList.toggle("hidden", !!data.username);
-
+    qs("#username-hint").classList.toggle("hidden", !!data.username);
     if (!data.username || usernameCheck.checking) return;
-
     if (usernameCheck.available === true) {
       field.classList.add("ok");
-      icon.textContent = "✓"; icon.classList.remove("hidden"); icon.classList.add("ok");
+      icon.textContent = "✓"; icon.className = "status-icon ok";
       ok.classList.remove("hidden");
     } else if ((usernameCheck.available === false || usernameCheck.error) && touched.username) {
       field.classList.add("error");
-      icon.textContent = "✕"; icon.classList.remove("hidden"); icon.classList.add("bad");
+      icon.textContent = "✕"; icon.className = "status-icon bad";
       err.textContent = usernameCheck.error || "Username already taken.";
       err.classList.remove("hidden");
-      if (usernameCheck.available === false) {
-        const list = suggestUsernames(data.username, takenSet);
-        if (list.length) {
-          sug.classList.remove("hidden");
-          sug.appendChild(el("div", { class: "field-hint", style: "width:100%;margin:0 0 2px;" }, ["Try one of these instead:"]));
-          list.forEach(s => {
-            const chip = el("button", { type: "button", class: "suggestion-chip" }, ["@" + s]);
-            chip.addEventListener("click", () => applyUsername(s));
-            sug.appendChild(chip);
-          });
-        }
+    }
+  }
+
+  // ---- navigation ----
+  const backBtn = qs("#backBtn"), nextBtn = qs("#nextBtn");
+  function renderStep() {
+    qsa(".onboard-step").forEach(s => s.classList.toggle("active", Number(s.dataset.step) === step));
+    qsa(".seg", progressBar).forEach(s => s.classList.toggle("on", Number(s.dataset.seg) <= step));
+    qs("#stepLabel").textContent = `Step ${step + 1} of ${STEPS.length}`;
+    qs("#stepTitle").textContent = STEPS[step];
+    backBtn.style.visibility = step === firstStep ? "hidden" : "visible";
+    nextBtn.textContent = step === STEPS.length - 1 ? (editing ? "Save changes" : "Create profile — enter MedLink") : "Continue ›";
+    if (step === 5) renderReview();
+  }
+  function renderReview() {
+    const a = qs("#review-avatar");
+    a.style.background = safeColor(data.photoColor);
+    a.textContent = initials(data.name) || "?";
+    qs("#review-name").textContent = data.name || "Your name";
+    qs("#review-username").textContent = "@" + (data.username || "username");
+    qs("#review-meta").textContent = `${courseName(data.courseId)} · ${data.year} · ${uniName(data.universityId)}`;
+    qs("#review-units").replaceChildren(...data.units.map(x => el("span", { class: "chip" }, [x])));
+    qs("#review-interests").replaceChildren(...data.interests.map(x => el("span", { class: "chip chip-coral" }, [x])));
+  }
+
+  backBtn.addEventListener("click", () => { if (step > firstStep) { step -= 1; renderStep(); } });
+  nextBtn.addEventListener("click", async () => {
+    if (step === 1) {
+      touched.name = true; touched.username = true;
+      const nameOk = validateName();
+      renderUsernameStatus();
+      if (usernameCheck.checking) { MedLink.toast("Still checking that username…"); return; }
+      if (!nameOk || usernameCheck.available !== true) return;
+    }
+    if (step === 3 && !data.units.length) { qs("#err-units").classList.remove("hidden"); return; }
+    if (step === 4 && !data.interests.length) { qs("#err-interests").classList.remove("hidden"); return; }
+    if (step === STEPS.length - 1) { await finish(); return; }
+    step += 1; renderStep();
+  });
+
+  async function finish() {
+    nextBtn.disabled = true;
+    nextBtn.textContent = "Saving…";
+    const fields = {
+      full_name: data.name.trim().slice(0, 80),
+      username: data.username,
+      color: safeColor(data.photoColor),
+      university_id: data.universityId,
+      course_id: data.courseId,
+      year: data.year,
+      current_units: data.units,
+      interests: data.interests,
+    };
+    try {
+      if (editing) await api.updateProfile(fields);
+      else await api.createProfile(fields);
+      MedLink.go(editing ? "settings.html?saved=1" : "dashboard.html");
+    } catch (err) {
+      nextBtn.disabled = false;
+      if (/duplicate key|profiles_username_key/i.test(err.message || "")) {
+        MedLink.toast("That username was just taken — pick another.", "error");
+        usernameCheck = { checking: false, available: false, error: "Username already taken." };
+        step = 1; renderStep(); renderUsernameStatus();
+      } else {
+        renderStep();
+        MedLink.reportError(err);
       }
     }
   }
 
-  const nameInput = document.getElementById("in-name");
-  const emailInput = document.getElementById("in-email");
-  const passwordInput = document.getElementById("in-password");
-  nameInput.addEventListener("input", () => { data.name = nameInput.value; renderPhotoPreview(); });
-  nameInput.addEventListener("blur", () => { touched.name = true; validateStep1(); });
-  emailInput.addEventListener("input", () => { data.email = emailInput.value; });
-  emailInput.addEventListener("blur", () => { touched.email = true; validateStep1(); });
-  passwordInput.addEventListener("input", () => { data.password = passwordInput.value; });
-  passwordInput.addEventListener("blur", () => { touched.password = true; validateStep1(); });
-
-  function markField(fieldId, errId, valid, touchKey) {
-    const field = document.getElementById(fieldId);
-    const err = document.getElementById(errId);
-    if (!touched[touchKey]) { field.classList.remove("error"); err.classList.add("hidden"); return; }
-    field.classList.toggle("error", !valid);
-    err.classList.toggle("hidden", valid);
-  }
-  function validateStep1() {
-    markField("f-name", "err-name", !!data.name.trim(), "name");
-    markField("f-email", "err-email", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email), "email");
-    markField("f-password", "err-password", data.password.length >= 6, "password");
-    const photoErr = document.getElementById("err-photo");
-    document.getElementById("f-photo").classList.toggle("error", touched.photo && !data.photoColor);
-    photoErr.classList.toggle("hidden", !touched.photo || !!data.photoColor);
-  }
-  function isStep1Valid() {
-    return data.name.trim() && data.username && usernameCheck.available === true &&
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && data.password.length >= 6 && data.photoColor;
-  }
-  function touchStep1() {
-    ["name", "username", "email", "password", "photo"].forEach(k => touched[k] = true);
-    validateStep1(); renderUsernameStatus();
-  }
-
-  uniSelect.addEventListener("change", () => data.universityId = uniSelect.value);
-  courseSelect.addEventListener("change", () => {
-    data.courseId = courseSelect.value;
-    renderUniversityOptions();  // not all universities offer the new course
-    renderYearOptions();        // programme length may differ
-    pruneUnits();
-    renderUnits();
-  });
-  yearSelect.addEventListener("change", () => {
-    data.year = yearSelect.value;
-    pruneUnits();
-    renderUnits();
-  });
-
-  const stepLabel = document.getElementById("stepLabel");
-  const stepTitle = document.getElementById("stepTitle");
-  const backBtn = document.getElementById("backBtn");
-  const nextBtn = document.getElementById("nextBtn");
-
-  function renderStep() {
-    qsa(".onboard-step").forEach(s => s.classList.toggle("active", Number(s.dataset.step) === step));
-    qsa(".seg", progressBar).forEach(s => s.classList.toggle("on", Number(s.dataset.seg) <= step));
-    stepLabel.textContent = `Step ${step + 1} of ${STEPS.length}`;
-    stepTitle.textContent = STEPS[step];
-    backBtn.style.visibility = step === 0 ? "hidden" : "visible";
-    nextBtn.textContent = step === STEPS.length - 1 ? "Create profile — enter MedLink" : "Continue ›";
-    if (step === 5) renderReview();
-  }
-
-  function renderReview() {
-    const a = document.getElementById("review-avatar");
-    a.style.background = data.photoColor || "#A66DF5";
-    a.textContent = initials(data.name) || "?";
-    document.getElementById("review-name").textContent = data.name || "Your name";
-    document.getElementById("review-username").textContent = "@" + (data.username || "username");
-    document.getElementById("review-meta").textContent = `${courseName(data.courseId)} · ${data.year} · ${uniName(data.universityId)}`;
-    const u = document.getElementById("review-units"); u.innerHTML = "";
-    data.units.forEach(x => u.appendChild(el("span", { class: "chip" }, [x])));
-    const i = document.getElementById("review-interests"); i.innerHTML = "";
-    data.interests.forEach(x => i.appendChild(el("span", { class: "chip chip-coral" }, [x])));
-  }
-
-  backBtn.addEventListener("click", () => { if (step > 0) { step -= 1; renderStep(); } });
-  nextBtn.addEventListener("click", () => {
-    if (step === 1 && !isStep1Valid()) { touchStep1(); return; }
-    if (step === 3 && !data.units.length) {
-      document.getElementById("err-units").classList.remove("hidden");
-      return;
-    }
-    if (step === 4 && !data.interests.length) {
-      document.getElementById("err-interests").classList.remove("hidden");
-      return;
-    }
-    if (step === STEPS.length - 1) { finish(); return; }
-    step += 1; renderStep();
-  });
-
-  function finish() {
-    setMe({
-      id: "me", fullName: data.name, username: data.username, email: data.email,
-      universityId: data.universityId, courseId: data.courseId, year: data.year,
-      bio: "", interests: data.interests, currentUnits: data.units,
-      color: data.photoColor || "#A66DF5", followingIds: [],
-    });
-    saveFollowing(new Set(["u_amina", "u_brian"]));
-    saveConversations(SEED_CONVERSATIONS);
-    window.location.href = "dashboard.html";
-  }
-
-  renderColorRow(); renderPhotoPreview(); renderStep();
+  renderColorRow(); renderPhotoPreview(); renderUnits(); renderInterests(); renderStep();
+  if (data.username) { touched.username = !!me; checkUsername(); }
+});
 </script>
 </body>
 </html>

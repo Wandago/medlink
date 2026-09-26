@@ -6,162 +6,115 @@
 <meta name="theme-color" content="#FFFFFF">
 <title>Profile — MedLink KE</title>
 <script src="theme.js"></script>
-<!-- Supabase: UMD build (no bundler in this project), then config, then the shared client. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
-<script src="config.js" defer></script>
-<script src="supabase.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<main id="page" hidden>
+<div class="fade-in" style="max-width:680px;" id="root"></div>
+</main>
+
+<script src="config.js"></script>
 <script src="data.js"></script>
-<script>requireSession();</script>
-
-<header class="topbar">
-  <div class="topbar-inner">
-    <a href="index.html" class="back-btn" aria-label="Back to home page">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-    </a>
-    <a href="dashboard.html" class="brand">
-      <span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></span> <span class="brand-text">MedLink KE</span>
-    </a>
-    <form class="topbar-search" id="topbarSearchForm" action="search.html" method="get">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" name="q" placeholder="Search resources, @usernames, communities…">
-    </form>
-    <button class="icon-btn theme-toggle" data-theme-toggle aria-label="Switch theme">
-      <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-      <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>
-    </button>
-    <button class="icon-btn notif-btn" aria-label="Notifications">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-    </button>
-    <a href="#" id="topbarAvatar" class="avatar avatar-link" data-profile-link></a>
-  </div>
-</header>
-
-<div class="shell-body">
-  <nav class="sidebar">
-    <a href="dashboard.html" class="nav-item">🏠 Home</a>
-    <a href="study.html" class="nav-item">📚 Study</a>
-    <a href="exams.html" class="nav-item">📝 Exam Bank</a>
-    <a href="units.html" class="nav-item">🩺 Current Units</a>
-    <a href="communities.html" class="nav-item">👥 Communities</a>
-    <a href="discover.html" class="nav-item">🧭 Discover</a>
-    <a href="news.html" class="nav-item">📰 News</a>
-    <a href="messages.html" class="nav-item">💬 Messages</a>
-    <div class="nav-divider"></div>
-    <a href="saved.html" class="nav-item">🔖 Saved</a>
-    <a href="profile.html" class="nav-item active" data-profile-link>👤 Profile</a>
-    <a href="settings.html" class="nav-item">⚙️ Settings</a>
-    <div class="medpoints-card">
-      <div class="title">🏅 420 MedPoints</div>
-      <div class="desc">Earned for sharing your Anatomy summary — keep helping classmates!</div>
-    </div>
-  </nav>
-
-  <main class="main-content">
-
-<div class="fade-in" style="max-width:640px;" id="root"></div>
-
-  </main>
-</div>
-
-<nav class="bottom-nav">
-  <a href="dashboard.html" class=""><span class="bn-icon">🏠</span>Home</a>
-  <a href="study.html" class=""><span class="bn-icon">📚</span>Study</a>
-  <a href="exams.html" class=""><span class="bn-icon">📝</span>Exams</a>
-  <a href="communities.html" class=""><span class="bn-icon">👥</span>Groups</a>
-  <a href="profile.html" class="active" data-profile-link><span class="bn-icon">👤</span>Profile</a>
-</nav>
-
+<script src="app.js"></script>
 <script>
-  const params = new URLSearchParams(location.search);
-  const me = getMe();
-  const user = getUserByUsername(params.get("u") || me.username);
-  const root = document.getElementById("root");
-
+MedLink.run({ page: "profile" }, async ({ api, me }) => {
+  const root = qs("#root");
+  root.appendChild(MedLink.loadingState());
+  const username = param("u") || me.username;
+  const user = username === me.username ? me : await api.profileByUsername(username);
   if (!user) {
-    root.innerHTML = `<p class="muted">That student profile doesn't exist. <a href="discover.html" style="color:var(--violet-dark);">Browse students →</a></p>`;
-  } else {
-    const isMe = user.id === me.id;
-    const isFollowing = getFollowing().has(user.id);
-    const posts = FEED.filter(p => p.authorId === user.id);
-    const resources = RESOURCES.filter(r => r.authorId === user.id);
-
-    root.innerHTML = `
-      <div class="card profile-header">
-        <div class="profile-top">
-          <div class="avatar xl" style="background:${user.color}">${initials(user.fullName)}</div>
-          <div style="flex:1;min-width:170px;">
-            <h1 class="disp" style="font-size:22px;">${escapeHtml(user.fullName)}</h1>
-            <div style="font-size:13.5px;color:var(--violet-dark);">@${escapeHtml(user.username)}</div>
-            <div class="faint" style="font-size:12.5px;">${escapeHtml(courseName(user.courseId))} · ${escapeHtml(user.year)} · ${escapeHtml(uniName(user.universityId))}</div>
-          </div>
-          <div id="actions"></div>
-        </div>
-        ${user.bio ? `<p class="muted" style="font-size:13.5px;line-height:1.5;margin:0 0 18px;">${escapeHtml(user.bio)}</p>` : ""}
-        <div class="profile-stats">
-          <span><strong id="followers">${getFollowerCount(user.id)}</strong> <span class="faint">Followers</span></span>
-          <span><strong>${getFollowingCount(user)}</strong> <span class="faint">Following</span></span>
-          ${isMe ? `<span><strong>420</strong> <span class="faint">MedPoints</span></span>` : ""}
-        </div>
-        <div style="margin-bottom:10px;">
-          <div style="font-size:12px;font-weight:700;color:var(--violet-dark);margin-bottom:8px;">CURRENTLY STUDYING</div>
-          <div class="wrap-gap">${(user.currentUnits || []).map(u => `<span class="chip">${escapeHtml(u)}</span>`).join("") || `<span class="faint" style="font-size:13px;">No units listed.</span>`}</div>
-        </div>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--coral);margin:12px 0 8px;">INTERESTS</div>
-          <div class="wrap-gap">${(user.interests || []).map(u => `<span class="chip chip-coral">${escapeHtml(u)}</span>`).join("") || `<span class="faint" style="font-size:13px;">No interests listed.</span>`}</div>
-        </div>
-      </div>
-      <div class="profile-tabs">
-        <button class="profile-tab active" data-tab="posts">Posts</button>
-        <button class="profile-tab" data-tab="resources">Resources</button>
-        <button class="profile-tab" data-tab="communities">Communities</button>
-      </div>
-      <div class="tab-panel active" data-panel="posts" id="pPosts" style="display:flex;flex-direction:column;gap:12px;"></div>
-      <div class="tab-panel" data-panel="resources" id="pRes"></div>
-      <div class="tab-panel wrap-gap" data-panel="communities" id="pComm"></div>`;
-
-    const actions = document.getElementById("actions");
-    if (isMe) {
-      actions.innerHTML = `<a href="settings.html" class="btn btn-ghost">Edit profile</a>`;
-    } else {
-      actions.innerHTML = `<div class="row-gap">
-        <button class="btn ${isFollowing ? "btn-ghost" : "btn-primary"}" id="followBtn">${isFollowing ? "Following" : "Follow"}</button>
-        <button class="btn btn-ghost" id="msgBtn">Message</button></div>`;
-      document.getElementById("followBtn").addEventListener("click", e => {
-        const now = toggleFollow(user.id).has(user.id);
-        e.target.textContent = now ? "Following" : "Follow";
-        e.target.className = "btn " + (now ? "btn-ghost" : "btn-primary");
-        document.getElementById("followers").textContent = getFollowerCount(user.id);
-      });
-      document.getElementById("msgBtn").addEventListener("click", () => goToMessage(user.id));
-    }
-
-    const pPosts = document.getElementById("pPosts");
-    if (posts.length) posts.forEach(p => pPosts.appendChild(feedPostNode(p)));
-    else pPosts.innerHTML = `<div class="faint" style="font-size:13.5px;padding:16px 0;">No posts yet.</div>`;
-
-    const pRes = document.getElementById("pRes");
-    if (resources.length) {
-      pRes.classList.add("grid", "grid-fill-220");
-      resources.forEach(r => pRes.appendChild(resourceCardNode(r)));
-    } else pRes.innerHTML = `<div class="faint" style="font-size:13.5px;padding:16px 0;">No shared resources yet.</div>`;
-
-    const pComm = document.getElementById("pComm");
-    COMMUNITIES.slice(0, 2).forEach(c => pComm.appendChild(el("a", { href: `communities.html?c=${c.id}`, class: "chip" }, [c.name])));
-
-    qsa(".profile-tab").forEach(tab => tab.addEventListener("click", () => {
-      qsa(".profile-tab").forEach(t => t.classList.remove("active"));
-      qsa(".tab-panel").forEach(p => p.classList.remove("active"));
-      tab.classList.add("active");
-      qs(`.tab-panel[data-panel="${tab.dataset.tab}"]`).classList.add("active");
-    }));
+    root.replaceChildren(MedLink.emptyState("That student profile doesn't exist.", el("a", { href: "discover.html", class: "btn btn-ghost btn-sm" }, ["Browse students"])));
+    return;
   }
-</script>
+  const isMe = user.id === me.id;
+  if (!isMe) qsa(".nav-item.active, .bottom-nav a.active").forEach(a => a.classList.remove("active"));
+  document.title = user.full_name + " — MedLink KE";
 
+  const [counts, points, following] = await Promise.all([api.followCounts(user.id), api.medPoints(user.id), api.followingIds()]);
+  let followers = counts.followers;
+  let isFollowing = following.has(user.id);
+  const followersEl = el("strong", {}, [String(followers)]);
+
+  const actions = el("div", { class: "row-gap" });
+  if (isMe) {
+    actions.append(el("a", { href: "settings.html", class: "btn btn-ghost" }, ["Edit profile"]));
+  } else {
+    const followBtn = el("button", { type: "button" });
+    const paint = () => { followBtn.className = "btn " + (isFollowing ? "btn-ghost" : "btn-primary"); followBtn.textContent = isFollowing ? "Following" : "Follow"; followersEl.textContent = String(followers); };
+    paint();
+    followBtn.addEventListener("click", async () => {
+      followBtn.disabled = true;
+      try { isFollowing = !isFollowing; followers += isFollowing ? 1 : -1; paint(); await api.setFollowing(user.id, isFollowing); }
+      catch (err) { isFollowing = !isFollowing; followers += isFollowing ? 1 : -1; paint(); MedLink.reportError(err); }
+      followBtn.disabled = false;
+    });
+    actions.append(followBtn, el("a", { class: "btn btn-ghost", href: "messages.html?to=" + encodeURIComponent(user.username) }, ["Message"]));
+  }
+
+  const chips = (list, cls, emptyText) => list.length
+    ? el("div", { class: "wrap-gap" }, list.map(x => el("span", { class: cls }, [x])))
+    : el("span", { class: "faint", style: "font-size:13px;" }, [emptyText]);
+
+  const header = el("div", { class: "card profile-header" }, [
+    el("div", { class: "profile-top" }, [
+      MedLink.avatarNode(user, "xl"),
+      el("div", { style: "flex:1;min-width:170px;" }, [
+        el("h1", { class: "disp", style: "font-size:22px;" }, [user.full_name]),
+        el("div", { class: "handle", style: "font-size:13.5px;" }, ["@" + user.username]),
+        el("div", { class: "faint", style: "font-size:12.5px;" }, [`${courseName(user.course_id)} · ${user.year} · ${uniName(user.university_id)}`]),
+      ]),
+      actions,
+    ]),
+    user.bio ? el("p", { class: "muted profile-bio" }, [user.bio]) : null,
+    el("div", { class: "profile-stats" }, [
+      el("span", {}, [followersEl, " ", el("span", { class: "faint" }, ["Followers"])]),
+      el("span", {}, [el("strong", {}, [String(counts.following)]), " ", el("span", { class: "faint" }, ["Following"])]),
+      el("span", {}, [el("strong", {}, [points.toLocaleString()]), " ", el("span", { class: "faint" }, ["MedPoints"])]),
+    ]),
+    el("div", { style: "margin-bottom:10px;" }, [
+      el("div", { class: "eyebrow-text", style: "margin-bottom:8px;" }, ["Currently studying"]),
+      chips(user.current_units, "chip", "No units listed."),
+    ]),
+    el("div", {}, [
+      el("div", { class: "eyebrow-text coral-text", style: "margin:12px 0 8px;" }, ["Interests"]),
+      chips(user.interests, "chip chip-coral", "No interests listed."),
+    ]),
+  ]);
+
+  const panels = { posts: el("div", { class: "feed-list" }), resources: el("div", { class: "grid grid-fill-220" }), communities: el("div", { class: "wrap-gap" }) };
+  const loaded = {};
+  const loaders = {
+    posts: async () => MedLink.renderPosts(panels.posts, await api.posts({ authorId: user.id, limit: 40 }), isMe ? "You haven't posted yet." : "No posts yet."),
+    resources: async () => {
+      const list = await api.resources({ authorId: user.id, limit: 60 });
+      panels.resources.replaceChildren(...(list.length ? list.map(MedLink.resourceCardNode) : [MedLink.emptyState("No shared resources yet.")]));
+    },
+    communities: async () => {
+      const [all, ids] = await Promise.all([api.communities(), api.myCommunityIds(user.id)]);
+      const mine = all.filter(c => ids.has(c.id));
+      panels.communities.replaceChildren(...(mine.length
+        ? mine.map(c => el("a", { href: "communities.html?c=" + encodeURIComponent(c.id), class: "chip", style: "font-size:13px;padding:8px 14px;" }, [c.name]))
+        : [MedLink.emptyState("Not in any communities yet.")]));
+    },
+  };
+  const tabs = el("div", { class: "profile-tabs", role: "tablist" });
+  const show = async (key) => {
+    qsa(".profile-tab", tabs).forEach(t => { const on = t.dataset.tab === key; t.classList.toggle("active", on); t.setAttribute("aria-selected", String(on)); });
+    Object.entries(panels).forEach(([k, p]) => { p.hidden = k !== key; });
+    if (!loaded[key]) {
+      loaded[key] = true;
+      panels[key].replaceChildren(MedLink.loadingState());
+      try { await loaders[key](); } catch (err) { loaded[key] = false; panels[key].replaceChildren(); MedLink.reportError(err); }
+    }
+  };
+  [["posts", "Posts"], ["resources", "Resources"], ["communities", "Communities"]].forEach(([k, label]) =>
+    tabs.appendChild(el("button", { type: "button", role: "tab", class: "profile-tab", "data-tab": k, onclick: () => show(k) }, [label])));
+
+  root.replaceChildren(...[header, tabs, panels.posts, panels.resources, panels.communities].filter(Boolean));
+  await show("posts");
+});
+</script>
 </body>
 </html>

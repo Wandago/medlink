@@ -1,24 +1,30 @@
 /* =========================================================
-   MEDLINK KE — Supabase configuration TEMPLATE
+   MEDLINK KE — runtime configuration TEMPLATE
    ---------------------------------------------------------
-   This file IS committed to version control. It contains no
-   real credentials — only the shape of the config.
+   This file IS committed. It contains no real credentials.
 
-   SETUP:
+   LOCAL SETUP:
      1. Copy this file to `config.js`  (config.js is gitignored)
-     2. Fill in the two values from your Supabase dashboard:
-          Project Settings > API
-     3. Reload the page
+     2. Fill in the three values below
+     3. Serve the folder (e.g. `npx serve .`) and open it
 
-   ONLY ever put the PUBLISHABLE (anon) key here.
-   It is safe in a browser: it is designed to be public and is
-   constrained by Row Level Security on the database.
+   ON VERCEL you don't need this file: set the same three
+   values as Environment Variables and `scripts/build.mjs`
+   writes config.js during the deploy.
 
-   NEVER put the service_role / secret key in this file, or in
-   any other file the browser downloads. It bypasses RLS and
-   would give anyone full read/write access to your data.
+   All three values are PUBLISHABLE keys — they are designed
+   to live in the browser. Access is enforced by Clerk
+   sessions + Supabase Row Level Security.
+
+   NEVER put a Clerk secret key (sk_...) or the Supabase
+   service_role / sb_secret_ key here. The app refuses to
+   start if it detects a Supabase secret key.
 ========================================================= */
 window.MEDLINK_CONFIG = {
+  // Clerk dashboard > Configure > API keys > Publishable key
+  CLERK_PUBLISHABLE_KEY: "pk_test_YOUR-CLERK-PUBLISHABLE-KEY",
+
+  // Supabase dashboard > Project Settings > API
   SUPABASE_URL: "https://YOUR-PROJECT-REF.supabase.co",
-  SUPABASE_PUBLISHABLE_KEY: "YOUR-PUBLISHABLE-ANON-KEY",
+  SUPABASE_PUBLISHABLE_KEY: "YOUR-SUPABASE-PUBLISHABLE-OR-ANON-KEY",
 };

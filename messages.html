@@ -6,182 +6,142 @@
 <meta name="theme-color" content="#FFFFFF">
 <title>Messages — MedLink KE</title>
 <script src="theme.js"></script>
-<!-- Supabase: UMD build (no bundler in this project), then config, then the shared client. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
-<script src="config.js" defer></script>
-<script src="supabase.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<script src="data.js"></script>
-<script>requireSession();</script>
-
-<header class="topbar">
-  <div class="topbar-inner">
-    <a href="index.html" class="back-btn" aria-label="Back to home page">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-    </a>
-    <a href="dashboard.html" class="brand">
-      <span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></span> <span class="brand-text">MedLink KE</span>
-    </a>
-    <form class="topbar-search" id="topbarSearchForm" action="search.html" method="get">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" name="q" placeholder="Search resources, @usernames, communities…">
-    </form>
-    <button class="icon-btn theme-toggle" data-theme-toggle aria-label="Switch theme">
-      <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-      <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>
-    </button>
-    <button class="icon-btn notif-btn" aria-label="Notifications">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-    </button>
-    <a href="#" id="topbarAvatar" class="avatar avatar-link" data-profile-link></a>
-  </div>
-</header>
-
-<div class="shell-body">
-  <nav class="sidebar">
-    <a href="dashboard.html" class="nav-item">🏠 Home</a>
-    <a href="study.html" class="nav-item">📚 Study</a>
-    <a href="exams.html" class="nav-item">📝 Exam Bank</a>
-    <a href="units.html" class="nav-item">🩺 Current Units</a>
-    <a href="communities.html" class="nav-item">👥 Communities</a>
-    <a href="discover.html" class="nav-item">🧭 Discover</a>
-    <a href="news.html" class="nav-item">📰 News</a>
-    <a href="messages.html" class="nav-item active">💬 Messages</a>
-    <div class="nav-divider"></div>
-    <a href="saved.html" class="nav-item">🔖 Saved</a>
-    <a href="profile.html" class="nav-item" data-profile-link>👤 Profile</a>
-    <a href="settings.html" class="nav-item">⚙️ Settings</a>
-    <div class="medpoints-card">
-      <div class="title">🏅 420 MedPoints</div>
-      <div class="desc">Earned for sharing your Anatomy summary — keep helping classmates!</div>
-    </div>
-  </nav>
-
-  <main class="main-content">
-
+<main id="page" hidden>
 <div class="fade-in card messages-shell">
   <div class="conv-list" id="convList">
     <div style="padding:16px;font-weight:700;font-size:15px;">Messages</div>
     <div class="msg-search-wrap">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="userSearch" placeholder="Find @username to message">
+      <input type="text" id="userSearch" placeholder="Find @username to message" aria-label="Find a student to message">
     </div>
     <div id="convItems"></div>
   </div>
   <div class="conv-thread" id="convThread"></div>
 </div>
+</main>
 
-  </main>
-</div>
-
-<nav class="bottom-nav">
-  <a href="dashboard.html" class=""><span class="bn-icon">🏠</span>Home</a>
-  <a href="study.html" class=""><span class="bn-icon">📚</span>Study</a>
-  <a href="exams.html" class=""><span class="bn-icon">📝</span>Exams</a>
-  <a href="communities.html" class=""><span class="bn-icon">👥</span>Groups</a>
-  <a href="profile.html" class="" data-profile-link><span class="bn-icon">👤</span>Profile</a>
-</nav>
-
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
 <script>
-  let conversations = getConversations();
-  let openId = sessionStorage.getItem("medlink_open_conv_hint");
-  sessionStorage.removeItem("medlink_open_conv_hint");
+MedLink.run({ page: "messages" }, async ({ api, me }) => {
+  const POLL_MS = 5000;
+  const listEl = qs("#convList"), threadEl = qs("#convThread"), itemsEl = qs("#convItems"), search = qs("#userSearch");
   const isMobile = () => window.innerWidth <= 860;
-  if (!openId && conversations.length && !isMobile()) openId = conversations[0].id;
+  let messages = [];
+  const people = new Map();       // id -> profile
+  let openId = null;
+  let signature = "";
 
-  const listEl = document.getElementById("convList");
-  const threadEl = document.getElementById("convThread");
-  const search = document.getElementById("userSearch");
+  const otherOf = m => (m.sender_id === me.id ? m.recipient_id : m.sender_id);
 
-  function renderItems() {
-    const box = document.getElementById("convItems");
-    box.innerHTML = "";
-    const q = search.value.trim().toLowerCase();
-    if (q) {
-      const me = getMe();
-      const found = allUsers().filter(u => u.id !== me.id &&
-        (u.username.toLowerCase().includes(q) || u.fullName.toLowerCase().includes(q))).slice(0, 6);
-      if (!found.length) box.appendChild(el("div", { class: "faint", style: "padding:10px 16px;font-size:12.5px;" }, [`No students match "${search.value}".`]));
-      found.forEach(u => {
-        const row = el("div", { style: "display:flex;gap:10px;padding:10px 16px;align-items:center;" });
-        row.innerHTML = `
-          <div class="avatar sm" style="background:${u.color}">${initials(u.fullName)}</div>
-          <a href="profile.html?u=${encodeURIComponent(u.username)}" style="flex:1;min-width:0;">
-            <div style="font-size:12.5px;font-weight:700;">${escapeHtml(u.fullName)}</div>
-            <div class="faint" style="font-size:11px;">@${escapeHtml(u.username)}</div>
-          </a>
-          <button class="btn btn-ghost btn-sm msgBtn">Message</button>`;
-        qs(".msgBtn", row).addEventListener("click", () => {
-          openId = startConversation(u.id);
-          conversations = getConversations();
-          search.value = "";
-          renderAll();
-        });
-        box.appendChild(row);
-      });
-      return;
-    }
-    conversations.forEach(c => {
-      const u = getUserById(c.userId);
-      if (!u) return;
-      const row = el("div", { class: "conv-item" + (c.id === openId ? " active" : "") });
-      row.innerHTML = `
-        <div class="avatar sm" style="background:${u.color}">${initials(u.fullName)}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;">${escapeHtml(u.fullName)}</div>
-          <div class="faint" style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(c.last || "Say hello 👋")}</div>
-        </div>
-        ${c.unread > 0 ? `<span style="background:var(--coral);color:#fff;font-size:10px;font-weight:700;border-radius:999px;padding:2px 6px;">${c.unread}</span>` : ""}`;
-      row.addEventListener("click", () => { openId = c.id; renderAll(); });
-      box.appendChild(row);
+  async function refresh() {
+    messages = await api.myMessages();
+    const missing = [...new Set(messages.map(otherOf))].filter(id => !people.has(id));
+    if (missing.length) (await api.profilesByIds(missing)).forEach(p => people.set(p.id, p));
+    const sig = messages.length + ":" + (messages[0] ? messages[0].id + messages.filter(m => !m.read_at).length : "");
+    const changed = sig !== signature;
+    signature = sig;
+    return changed;
+  }
+
+  function conversations() {
+    const byOther = new Map();
+    messages.forEach(m => {  // newest first
+      const o = otherOf(m);
+      if (!byOther.has(o)) byOther.set(o, { otherId: o, last: m, unread: 0 });
+      if (m.recipient_id === me.id && !m.read_at) byOther.get(o).unread += 1;
     });
+    if (openId && !byOther.has(openId)) byOther.set(openId, { otherId: openId, last: null, unread: 0 });
+    return [...byOther.values()].sort((a, b) => (b.last ? +new Date(b.last.created_at) : Infinity) - (a.last ? +new Date(a.last.created_at) : Infinity));
   }
 
-  function renderThread() {
-    threadEl.innerHTML = "";
-    const conv = conversations.find(c => c.id === openId);
-    const u = conv ? getUserById(conv.userId) : null;
-    if (!conv || !u) {
-      threadEl.appendChild(el("div", { class: "faint", style: "flex:1;display:flex;align-items:center;justify-content:center;font-size:13.5px;padding:20px;text-align:center;" },
-        ["Pick a conversation, or search a username to start a new one."]));
+  let searchSeq = 0;
+  async function renderItems() {
+    const q = search.value.trim();
+    if (q) {
+      const mySeq = ++searchSeq;
+      itemsEl.replaceChildren(MedLink.loadingState());
+      let found = [];
+      try { found = (await api.search(q)).profiles.slice(0, 8); } catch (err) { MedLink.reportError(err); }
+      if (mySeq !== searchSeq) return;
+      itemsEl.replaceChildren(...(found.length ? found.map(u => el("div", { class: "conv-item" }, [
+        MedLink.avatarNode(u, "sm"),
+        el("a", { href: profileHref(u), style: "flex:1;min-width:0;" }, [
+          el("div", { style: "font-size:12.5px;font-weight:700;" }, [u.full_name]),
+          el("div", { class: "faint", style: "font-size:11px;" }, ["@" + u.username]),
+        ]),
+        el("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: () => { people.set(u.id, u); search.value = ""; open(u.id); } }, ["Message"]),
+      ])) : [el("div", { class: "faint", style: "padding:10px 16px;font-size:12.5px;" }, [`No students match "${q}".`])]));
       return;
     }
-    const header = el("div", { class: "thread-header" });
-    header.innerHTML = `
-      <button class="icon-btn backToList" style="${isMobile() ? "" : "display:none;"}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <div class="avatar sm" style="background:${u.color}">${initials(u.fullName)}</div>
-      <a href="profile.html?u=${encodeURIComponent(u.username)}">${escapeHtml(u.fullName)}
-        <span class="faint" style="font-weight:400;font-size:12.5px;">@${escapeHtml(u.username)}</span></a>`;
-    qs(".backToList", header).addEventListener("click", () => { openId = null; renderAll(); });
-
-    const body = el("div", { class: "thread-body" });
-    conv.thread.forEach(m => body.appendChild(el("div", { class: "bubble " + (m.from === "me" ? "me" : "them") }, [m.text])));
-
-    const inputRow = el("div", { class: "thread-input" });
-    const input = el("input", { type: "text", placeholder: "Write a message…" });
-    const send = el("button", { class: "btn btn-primary" }, ["Send"]);
-    function doSend() {
-      if (!input.value.trim()) return;
-      conversations = sendMessage(conv.id, input.value.trim());
-      input.value = "";
-      renderAll();
+    const convs = conversations();
+    if (!convs.length) {
+      itemsEl.replaceChildren(el("div", { class: "faint", style: "padding:10px 16px;font-size:12.5px;line-height:1.5;" },
+        ["No conversations yet. Search a username above, or tap Message on someone's profile."]));
+      return;
     }
-    send.addEventListener("click", doSend);
-    input.addEventListener("keydown", e => { if (e.key === "Enter") doSend(); });
-    inputRow.appendChild(input); inputRow.appendChild(send);
-
-    threadEl.appendChild(header); threadEl.appendChild(body); threadEl.appendChild(inputRow);
-    body.scrollTop = body.scrollHeight;
+    itemsEl.replaceChildren(...convs.map(c => {
+      const u = people.get(c.otherId);
+      if (!u) return null;
+      return el("button", { type: "button", class: "conv-item" + (c.otherId === openId ? " active" : ""), onclick: () => open(c.otherId) }, [
+        MedLink.avatarNode(u, "sm"),
+        el("div", { style: "flex:1;min-width:0;text-align:left;" }, [
+          el("div", { style: "font-size:13px;font-weight:700;" }, [u.full_name]),
+          el("div", { class: "faint conv-last" }, [c.last ? (c.last.sender_id === me.id ? "You: " : "") + c.last.body : "Say hello 👋"]),
+        ]),
+        c.unread ? el("span", { class: "nav-badge" }, [String(c.unread)]) : null,
+      ]);
+    }).filter(Boolean));
   }
 
-  function renderAll() {
-    renderItems(); renderThread();
+  let draft = "";
+  function renderThread() {
+    const u = openId ? people.get(openId) : null;
+    if (!u) {
+      threadEl.replaceChildren(el("div", { class: "faint thread-empty" }, ["Pick a conversation, or search a username to start a new one."]));
+      return;
+    }
+    const prevInput = qs("input", threadEl);
+    if (prevInput) draft = prevInput.value;
+    const header = el("div", { class: "thread-header" }, [
+      el("button", { class: "icon-btn", type: "button", "aria-label": "Back to conversations", style: isMobile() ? "" : "display:none;", onclick: () => { openId = null; renderAll(); } }, ["‹"]),
+      MedLink.avatarNode(u, "sm", true),
+      el("a", { href: profileHref(u) }, [u.full_name + " ", el("span", { class: "faint", style: "font-weight:400;font-size:12.5px;" }, ["@" + u.username])]),
+    ]);
+    const thread = messages.filter(m => otherOf(m) === openId).slice().reverse();
+    const body = el("div", { class: "thread-body" }, thread.length
+      ? thread.map(m => el("div", { class: "bubble " + (m.sender_id === me.id ? "me" : "them"), title: new Date(m.created_at).toLocaleString() }, [m.body]))
+      : [el("div", { class: "faint", style: "margin:auto;font-size:13px;" }, [`Start your conversation with ${u.full_name.split(" ")[0]}.`])]);
+    const input = el("input", { type: "text", maxlength: "2000", placeholder: "Write a message…", "aria-label": "Write a message" });
+    input.value = draft;
+    const send = el("button", { class: "btn btn-primary", type: "submit" }, ["Send"]);
+    const form = el("form", { class: "thread-input" }, [input, send]);
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      send.disabled = true;
+      try {
+        const m = await api.sendMessage(openId, text);
+        messages.unshift(m);
+        draft = "";
+        renderAll(true);
+      } catch (err) { MedLink.reportError(err); send.disabled = false; }
+    });
+    threadEl.replaceChildren(header, body, form);
+    body.scrollTop = body.scrollHeight;
+    if (!isMobile() || openId) input.focus({ preventScroll: true });
+  }
+
+  function renderAll(skipItems) {
+    if (!skipItems || !search.value.trim()) renderItems();
+    renderThread();
     if (isMobile()) {
       listEl.style.display = openId ? "none" : "block";
       threadEl.style.display = openId ? "flex" : "none";
@@ -190,10 +150,50 @@
       threadEl.style.display = "flex";
     }
   }
-  search.addEventListener("input", renderItems);
-  window.addEventListener("resize", renderAll);
-  renderAll();
-</script>
 
+  async function open(id) {
+    openId = id;
+    draft = "";
+    const unread = messages.some(m => m.sender_id === id && m.recipient_id === me.id && !m.read_at);
+    renderAll();
+    if (unread) {
+      try {
+        await api.markRead(id);
+        const now = new Date().toISOString();
+        messages.forEach(m => { if (m.sender_id === id && m.recipient_id === me.id && !m.read_at) m.read_at = now; });
+        renderItems();
+      } catch (err) { console.warn(err); }
+    }
+  }
+
+  let searchTimer;
+  search.addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(renderItems, 250); });
+  window.addEventListener("resize", () => renderAll());
+
+  itemsEl.replaceChildren(MedLink.loadingState());
+  await refresh();
+  const to = param("to");
+  if (to && to !== me.username) {
+    const u = await api.profileByUsername(to);
+    if (u) { people.set(u.id, u); await open(u.id); }
+    else MedLink.toast("That user doesn't exist.", "error");
+  } else if (!isMobile()) {
+    const first = conversations()[0];
+    if (first) await open(first.otherId); else renderAll();
+  } else {
+    renderAll();
+  }
+
+  setInterval(async () => {
+    if (document.hidden) return;
+    try {
+      if (await refresh()) {
+        renderAll();
+        if (openId && messages.some(m => m.sender_id === openId && m.recipient_id === me.id && !m.read_at)) await open(openId);
+      }
+    } catch (err) { console.warn(err); }
+  }, POLL_MS);
+});
+</script>
 </body>
 </html>

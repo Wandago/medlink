@@ -1,8 +1,9 @@
 /* =========================================================
-   MEDLINK KE — shared mock data + helpers
-   Loaded before any page-specific <script> tag.
+   MEDLINK KE — static catalogue data
+   Curriculum, universities, interests and study content that
+   ships with the app. Everything users create (profiles, posts,
+   resources, messages) lives in Supabase — see app.js.
 ========================================================= */
-
 // The 13 institutions on the KUCCPS placement list for health-sciences
 // degrees. Every entry here is placed through KUCCPS.
 const UNIVERSITIES = [
@@ -217,72 +218,6 @@ function uniAbbr(id) { const u = UNIVERSITIES.find(x => x.id === id); return u ?
 function courseName(id) { const c = COURSES.find(x => x.id === id); return c ? c.name : ""; }
 function initials(name) { return (name || "").trim().split(/\s+/).map(n => n[0]).join("").slice(0, 2).toUpperCase(); }
 
-const SEED_USERS = [
-  { id: "u_amina", fullName: "Amina Rashid", username: "aminarashid", universityId: "uon", courseId: "mbchb", year: "Year 1",
-    bio: "Trying to survive anatomy block one mnemonic at a time.", interests: ["Neuroscience", "Research"], currentUnits: ["Anatomy", "Physiology"],
-    color: "#A66DF5", followingIds: ["u_david", "u_brian"] },
-  { id: "u_david", fullName: "David Kamau", username: "davidkmed", universityId: "moi", courseId: "mbchb", year: "Year 1",
-    bio: "Sharing my Anatomy notes so no one has to suffer through Netter's alone.", interests: ["Public Health"], currentUnits: ["Anatomy", "Biochemistry"],
-    color: "#FF8B72", followingIds: ["u_amina", "u_farah"] },
-  { id: "u_faith", fullName: "Faith Njeri", username: "faithnjeri", universityId: "ku", courseId: "nursing", year: "Year 2",
-    bio: "Nursing student, night-shift study group organiser.", interests: ["Public Health"], currentUnits: ["Physiology"],
-    color: "#F0B84C", followingIds: ["u_grace"] },
-  { id: "u_brian", fullName: "Brian Otieno", username: "brianotieno", universityId: "uon", courseId: "mbchb", year: "Year 2",
-    bio: "Future neurosurgeon, current caffeine addict.", interests: ["Neurosurgery", "Research"], currentUnits: ["Physiology"],
-    color: "#4FBE7E", followingIds: ["u_amina", "u_samuel", "u_farah"] },
-  { id: "u_grace", fullName: "Grace Wambui", username: "gracewambui", universityId: "ku", courseId: "nursing", year: "Year 3",
-    bio: "Community health placements taught me more than any textbook.", interests: ["Public Health"], currentUnits: ["Biochemistry"],
-    color: "#5EC8E0", followingIds: ["u_faith"] },
-  { id: "u_samuel", fullName: "Samuel Kones", username: "samkones", universityId: "moi", courseId: "clinmed", year: "Year 1",
-    bio: "Clinical medicine, aiming for emergency medicine.", interests: ["Emergency Medicine"], currentUnits: ["Anatomy"],
-    color: "#E07BD0", followingIds: [] },
-  { id: "u_farah", fullName: "Farah Hassan", username: "farahhassan", universityId: "pwani", courseId: "mbchb", year: "Year 2",
-    bio: "Neuroanatomy nerd. Ask me about cranial nerves.", interests: ["Neuroanatomy", "Radiology"], currentUnits: ["Anatomy"],
-    color: "#F5A3C7", followingIds: ["u_brian"] },
-  { id: "u_wanjiru", fullName: "Wanjiru Karanja", username: "wanjiruk", universityId: "uon", courseId: "mbchb", year: "Year 1",
-    bio: "High-yield summaries, made for revision week.", interests: ["Anatomy"], currentUnits: ["Anatomy"],
-    color: "#8E7CF0", followingIds: [] },
-  { id: "u_achieng", fullName: "Mercy Achieng", username: "achiengm", universityId: "uon", courseId: "mbchb", year: "Year 1",
-    bio: "Biochemistry doesn't have to be this hard.", interests: ["Research"], currentUnits: ["Biochemistry"],
-    color: "#F0925C", followingIds: [] },
-  { id: "u_kiptoo", fullName: "James Kiptoo", username: "jkiptoo", universityId: "ku", courseId: "mbchb", year: "Year 1",
-    bio: "Embryology enthusiast — yes, that's a thing.", interests: ["Research"], currentUnits: ["Embryology"],
-    color: "#63C2A6", followingIds: [] },
-  { id: "u_mutua", fullName: "Peter Mutua", username: "pmutua", universityId: "uon", courseId: "mbchb", year: "Year 2",
-    bio: "Practical guides and dissection-week survival tips.", interests: ["Anatomy"], currentUnits: ["Anatomy"],
-    color: "#C68CF0", followingIds: [] },
-  { id: "u_njeri", fullName: "Alice Njeri", username: "njeria", universityId: "moi", courseId: "mbchb", year: "Year 1",
-    bio: "Physiology MCQs are my love language.", interests: ["Physiology"], currentUnits: ["Physiology"],
-    color: "#5CA8F0", followingIds: [] },
-  { id: "u_odhiambo", fullName: "Kevin Odhiambo", username: "kevodhiambo", universityId: "maseno", courseId: "mbchb", year: "Year 2",
-    bio: "MBChB with IT at Maseno — building study tools on the side.", interests: ["Research", "Medical Technology"], currentUnits: ["Physiology"],
-    color: "#7C9CF5", followingIds: ["u_amina"] },
-  { id: "u_barasa", fullName: "Sharon Barasa", username: "sbarasa", universityId: "mmust", courseId: "mbchb", year: "Year 1",
-    bio: "Kakamega-based. Anatomy study group every Tuesday.", interests: ["Anatomy", "Public Health"], currentUnits: ["Anatomy", "Biochemistry"],
-    color: "#D98BE0", followingIds: ["u_wanjiru"] },
-];
-
-const CURRENT_UNITS = [
-  { id: "u1", name: "Anatomy", semester: "Semester 1", members: 214, color: "#A66DF5", unread: 6 },
-  { id: "u2", name: "Physiology", semester: "Semester 1", members: 198, color: "#FF8B72", unread: 2 },
-  { id: "u3", name: "Biochemistry", semester: "Semester 1", members: 176, color: "#F0B84C", unread: 0 },
-];
-const ARCHIVED_UNITS = [
-  { id: "a1", name: "Histology", term: "Year 1 · Sem 2, 2025", resourcesMoved: 41 },
-  { id: "a2", name: "Cell Biology", term: "Year 1 · Sem 1, 2025", resourcesMoved: 27 },
-];
-
-const RESOURCES = [
-  { id: "r1", title: "Brachial Plexus — High-Yield Summary", unit: "Anatomy", type: "Notes", authorId: "u_wanjiru", views: 1204, saves: 312, date: "3 days ago" },
-  { id: "r2", title: "Cardiac Cycle — Revision Notes", unit: "Physiology", type: "Summary", authorId: "u_brian", views: 980, saves: 265, date: "1 week ago" },
-  { id: "r3", title: "Glycolysis — Exam Review Pack", unit: "Biochemistry", type: "Summary", authorId: "u_achieng", views: 875, saves: 201, date: "2 weeks ago" },
-  { id: "r4", title: "Development of the Heart — Embryology", unit: "Embryology", type: "Notes", authorId: "u_kiptoo", views: 640, saves: 154, date: "4 days ago" },
-  { id: "r5", title: "Upper Limb Osteology — Practical Guide", unit: "Anatomy", type: "Practical Guide", authorId: "u_mutua", views: 512, saves: 133, date: "6 days ago" },
-  { id: "r6", title: "Renal Physiology — MCQ Set", unit: "Physiology", type: "MCQ", authorId: "u_njeri", views: 701, saves: 190, date: "5 days ago" },
-  { id: "r7", title: "Neuroanatomy — Cranial Nerves Made Simple", unit: "Anatomy", type: "Notes", authorId: "u_farah", views: 588, saves: 149, date: "2 days ago" },
-  { id: "r8", title: "Acid–Base Balance — One-Page Cheat Sheet", unit: "Physiology", type: "Summary", authorId: "u_odhiambo", views: 433, saves: 118, date: "1 day ago" },
-];
-
 const EXAM_SETS = [
   { id: "e1", title: "Anatomy — End of Semester 2024", unit: "Anatomy", questions: 60, university: "University of Nairobi" },
   { id: "e2", title: "Physiology CAT 1 — 2024", unit: "Physiology", questions: 25, university: "Moi University" },
@@ -302,30 +237,10 @@ const SAMPLE_QUIZ = [
     explain: "PFK-1 catalyses the conversion of fructose-6-phosphate to fructose-1,6-bisphosphate — the committed step of glycolysis." },
 ];
 
-const COMMUNITIES = [
-  { id: "c1", name: "Anatomy", members: 3120, desc: "High-yield discussions, mnemonics and dissection-week survival tips." },
-  { id: "c2", name: "Surgery", members: 1890, desc: "For students on surgical rotations and future surgeons-in-training." },
-  { id: "c3", name: "Public Health", members: 1420, desc: "Epidemiology, community health placements and research chats." },
-  { id: "c4", name: "Medical Students in Kenya", members: 6840, desc: "The general home base — announcements, opportunities, and banter." },
-];
-
-const FEED = [
-  { id: "p1", authorId: "u_amina", time: "2h", body: "Can someone explain the corticospinal tract in a way that isn't straight out of the textbook? Lost me at the internal capsule 😅", likes: 34, comments: 12 },
-  { id: "p2", authorId: "u_david", time: "5h", body: "Uploaded my full Anatomy summary for the upper limb — free for anyone who wants it before Friday's CAT.", likes: 58, comments: 9 },
-  { id: "p3", authorId: "u_faith", time: "1d", body: "Anyone studying tonight for Physiology? Thinking of opening a call around 8pm, cardiac cycle + renal physio.", likes: 21, comments: 15 },
-];
-
 const NEWS = [
   { id: "n1", title: "Kenya rolls out new national internship placement guidelines for MBChB graduates", src: "Ministry of Health", time: "Today" },
   { id: "n2", title: "WHO flags rising antimicrobial resistance across East Africa", src: "WHO Africa", time: "Yesterday" },
   { id: "n3", title: "New open-access physiology atlas released for African medical schools", src: "AfriMed Ed", time: "2 days ago" },
-];
-
-const SEED_CONVERSATIONS = [
-  { id: "m1", userId: "u_david", last: "Sent you the anatomy summary!", time: "10m", unread: 2,
-    thread: [{ from: "them", text: "Hey! Did you finish the anatomy summary?" }, { from: "me", text: "Almost — sending it over tonight." }, { from: "them", text: "Sent you the anatomy summary!" }] },
-  { id: "m3", userId: "u_grace", last: "Thank you so much, that really helped 🙏", time: "1d", unread: 0,
-    thread: [{ from: "me", text: "Here's the community health summary I mentioned." }, { from: "them", text: "Thank you so much, that really helped 🙏" }] },
 ];
 
 /* ---------------------------------------------------------------------
@@ -346,202 +261,4 @@ function suggestUsernames(base, takenSet) {
   return candidates.filter(c => !takenSet.has(c)).slice(0, 4);
 }
 
-/* ---------------------------------------------------------------------
-   PERSISTED STATE (localStorage) — stands in for a backend across pages
---------------------------------------------------------------------- */
-const STORE_KEYS = { me: "medlink_me", following: "medlink_following", conversations: "medlink_conversations" };
-
-function getMe() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEYS.me)); } catch (e) { return null; }
-}
-function setMe(user) { localStorage.setItem(STORE_KEYS.me, JSON.stringify(user)); }
-function clearSession() {
-  localStorage.removeItem(STORE_KEYS.me);
-  localStorage.removeItem(STORE_KEYS.following);
-  localStorage.removeItem(STORE_KEYS.conversations);
-}
-
-function getFollowing() {
-  try { return new Set(JSON.parse(localStorage.getItem(STORE_KEYS.following)) || []); } catch (e) { return new Set(); }
-}
-function saveFollowing(set) { localStorage.setItem(STORE_KEYS.following, JSON.stringify(Array.from(set))); }
-function toggleFollow(userId) {
-  const me = getMe();
-  if (!me || userId === me.id) return getFollowing();
-  const set = getFollowing();
-  set.has(userId) ? set.delete(userId) : set.add(userId);
-  saveFollowing(set);
-  return set;
-}
-
-function getConversations() {
-  try {
-    const stored = JSON.parse(localStorage.getItem(STORE_KEYS.conversations));
-    return stored && stored.length ? stored : SEED_CONVERSATIONS;
-  } catch (e) { return SEED_CONVERSATIONS; }
-}
-function saveConversations(list) { localStorage.setItem(STORE_KEYS.conversations, JSON.stringify(list)); }
-function startConversation(userId) {
-  const list = getConversations();
-  let convo = list.find(c => c.userId === userId);
-  if (!convo) {
-    convo = { id: `m_${userId}`, userId, last: "", time: "now", unread: 0, thread: [] };
-    list.unshift(convo);
-    saveConversations(list);
-  }
-  return convo.id;
-}
-function sendMessage(convId, text) {
-  const list = getConversations();
-  const idx = list.findIndex(c => c.id === convId);
-  if (idx === -1) return list;
-  list[idx] = { ...list[idx], thread: [...list[idx].thread, { from: "me", text }], last: text, time: "now", unread: 0 };
-  saveConversations(list);
-  return list;
-}
-function goToMessage(userId) {
-  const id = startConversation(userId);
-  sessionStorage.setItem("medlink_open_conv_hint", id);
-  window.location.href = "messages.html";
-}
-
-function allUsers() {
-  const me = getMe();
-  return me ? [...SEED_USERS, me] : SEED_USERS.slice();
-}
-function getUserByUsername(username) { return allUsers().find(u => u.username === username); }
-function getUserById(id) { return allUsers().find(u => u.id === id); }
-
-function getFollowerCount(userId) {
-  const me = getMe();
-  const users = allUsers();
-  const myFollowing = getFollowing();
-  let count = users.filter(u => u.id !== userId && (!me || u.id !== me.id) && (u.followingIds || []).includes(userId)).length;
-  if (me && userId !== me.id && myFollowing.has(userId)) count += 1;
-  return count;
-}
-function getFollowingCount(user) {
-  const me = getMe();
-  if (me && user.id === me.id) return getFollowing().size;
-  return (user.followingIds || []).length;
-}
-
-function requireSession() {
-  if (!getMe()) { window.location.href = "index.html"; return false; }
-  return true;
-}
-
-/* ---------------------------------------------------------------------
-   SMALL DOM HELPERS
---------------------------------------------------------------------- */
-function el(tag, attrs, children) {
-  const node = document.createElement(tag);
-  Object.entries(attrs || {}).forEach(([k, v]) => {
-    if (k === "class") node.className = v;
-    else if (k === "html") node.innerHTML = v;
-    else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2), v);
-    else node.setAttribute(k, v);
-  });
-  (children || []).forEach(c => node.appendChild(typeof c === "string" ? document.createTextNode(c) : c));
-  return node;
-}
-function qs(sel, root) { return (root || document).querySelector(sel); }
-function qsa(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
-function escapeHtml(str) {
-  return String(str == null ? "" : str).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
-}
-
-/* ---------------------------------------------------------------------
-   SHARED CHROME — top bar avatar + profile links, run on every app page
---------------------------------------------------------------------- */
-function initShellChrome() {
-  const me = getMe();
-  if (!me) return;
-  const avatarLink = qs("#topbarAvatar");
-  if (avatarLink) {
-    avatarLink.href = `profile.html?u=${encodeURIComponent(me.username)}`;
-    avatarLink.className = "avatar avatar-link";
-    avatarLink.style.background = me.color;
-    avatarLink.textContent = initials(me.fullName);
-  }
-  const searchForm = qs("#topbarSearchForm");
-  if (searchForm) {
-    searchForm.addEventListener("submit", (e) => {
-      const input = qs("input", searchForm);
-      if (!input.value.trim()) e.preventDefault();
-    });
-  }
-  qsa("[data-profile-link]").forEach(a => { a.href = `profile.html?u=${encodeURIComponent(me.username)}`; });
-}
-document.addEventListener("DOMContentLoaded", initShellChrome);
-
-/* ---------------------------------------------------------------------
-   SHARED RENDER HELPERS — reused across Home, Study, Discover, Profile…
---------------------------------------------------------------------- */
-function resourceCardNode(resource) {
-  const author = getUserById(resource.authorId);
-  const card = el("div", { class: "card resource-card" });
-  card.innerHTML = `
-    <div class="top-row"><span class="chip">${escapeHtml(resource.type)}</span><span style="opacity:.45;font-size:15px;">📄</span></div>
-    <div class="title">${escapeHtml(resource.title)}</div>
-    <div class="meta">${escapeHtml(resource.unit)} · ${author ? escapeHtml(uniName(author.universityId)) : ""}</div>
-    <div class="bottom-row">
-      <span class="author-link">${author ? escapeHtml(author.fullName) + ' <span style="color:var(--violet-dark)">@' + escapeHtml(author.username) + '</span>' : "MedLink student"}</span>
-      <span>🔖 ${resource.saves}</span>
-    </div>`;
-  card.addEventListener("click", (e) => {
-    if (e.target.closest(".author-link") && author) {
-      window.location.href = `profile.html?u=${encodeURIComponent(author.username)}`;
-      return;
-    }
-    window.location.href = `resource.html?id=${resource.id}`;
-  });
-  return card;
-}
-
-function feedPostNode(post) {
-  const author = getUserById(post.authorId);
-  const card = el("div", { class: "card post-card" });
-  card.innerHTML = `
-    <div class="post-author-row">
-      <div class="avatar" style="background:${author ? author.color : "#A66DF5"}">${author ? initials(author.fullName) : "?"}</div>
-      <div class="post-name-row"><span class="post-name">${author ? escapeHtml(author.fullName) : "Unknown"}</span><span class="post-handle">@${author ? escapeHtml(author.username) : ""}</span></div>
-    </div>
-    <div class="post-meta">${author ? escapeHtml(courseName(author.courseId) + " · " + author.year + " · " + uniAbbr(author.universityId)) : ""} · ${escapeHtml(post.time)}</div>
-    <div class="post-body">${escapeHtml(post.body)}</div>
-    <div class="post-actions"><span>❤️ ${post.likes}</span><span>💬 ${post.comments}</span><span>↗ Share</span></div>`;
-  qs(".post-author-row", card).addEventListener("click", () => {
-    if (author) window.location.href = `profile.html?u=${encodeURIComponent(author.username)}`;
-  });
-  return card;
-}
-
-function studentRowNode(user) {
-  const me = getMe();
-  const isMe = me && user.id === me.id;
-  const following = getFollowing();
-  const row = el("div", { class: "card pad", style: "display:flex;gap:10px;align-items:center;" });
-  row.innerHTML = `
-    <div class="row-gap follow-row-click" style="flex:1;cursor:pointer;min-width:0;">
-      <div class="avatar" style="background:${user.color}">${initials(user.fullName)}</div>
-      <div style="min-width:0;overflow:hidden;">
-        <div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(user.fullName)}</div>
-        <div style="font-size:12px;color:var(--violet-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@${escapeHtml(user.username)}</div>
-        <div class="faint" style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(courseName(user.courseId))} · ${escapeHtml(user.year)} · ${escapeHtml(uniAbbr(user.universityId))}</div>
-      </div>
-    </div>
-    ${isMe ? "" : `<button class="btn btn-ghost btn-sm follow-btn" style="flex-shrink:0;">${following.has(user.id) ? "Following" : "Follow"}</button>`}
-  `;
-  qs(".follow-row-click", row).addEventListener("click", () => {
-    window.location.href = `profile.html?u=${encodeURIComponent(user.username)}`;
-  });
-  const followBtn = qs(".follow-btn", row);
-  if (followBtn) {
-    followBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const set = toggleFollow(user.id);
-      followBtn.textContent = set.has(user.id) ? "Following" : "Follow";
-    });
-  }
-  return row;
-}
+const RESOURCE_TYPES = ["Notes", "Summary", "Past Paper", "MCQ", "Practical Guide", "Slides", "Other"];

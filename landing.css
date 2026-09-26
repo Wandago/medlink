@@ -240,3 +240,6 @@
   .lp-eyebrow { letter-spacing: .12em; margin-bottom: 24px; }
   .lp-trust { margin-top: 48px; }
 }
+
+/* sign-in link stays visible on phones even when the other nav links hide */
+@media (max-width: 640px) { .lp-nav .lp-link#signInLink { display: inline; } }
