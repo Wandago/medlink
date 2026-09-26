@@ -327,7 +327,7 @@
   function readConfig() {
     var c = window.MEDLINK_CONFIG || {};
     var clerkKey = String(c.CLERK_PUBLISHABLE_KEY || "").trim();
-    var sbUrl = String(c.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+    var sbUrl = normalizeSupabaseUrl(c.SUPABASE_URL);
     var sbKey = String(c.SUPABASE_PUBLISHABLE_KEY || "").trim();
     var problems = [];
     if (!window.MEDLINK_CONFIG) problems.push("config.js is missing. Copy config.example.js to config.js (or set the Vercel environment variables) and fill in your keys.");
@@ -338,6 +338,22 @@
       problems.push("SUPABASE_PUBLISHABLE_KEY looks like a SECRET key. Never ship it to the browser — use the publishable (anon) key.");
     }
     return { clerkKey: clerkKey, sbUrl: sbUrl, sbKey: sbKey, problems: problems };
+  }
+  // People paste the REST endpoint (".../rest/v1/") or a dashboard link; only the origin is wanted.
+  function normalizeSupabaseUrl(raw) {
+    var s = String(raw || "").trim().replace(/^["']+|["']+$/g, "");
+    var dash = /supabase\.com\/dashboard\/project\/([a-z0-9]+)/i.exec(s);
+    if (dash) return "https://" + dash[1] + ".supabase.co";
+    try { return new URL(s).origin; } catch (e) { return s.replace(/\/+$/, ""); }
+  }
+  // Turn the usual first-run database errors into a concrete next step.
+  function databaseHint(err) {
+    var msg = (err && (err.message || err.hint || err.code)) || String(err);
+    if (/Invalid path/i.test(msg)) return "SUPABASE_URL must be just https://<project-ref>.supabase.co — nothing after .co. Fix it in Vercel > Settings > Environment Variables, then redeploy.";
+    if (/Invalid API key|No API key/i.test(msg)) return "SUPABASE_PUBLISHABLE_KEY is wrong. Copy the publishable (or anon) key from Supabase > Project Settings > API Keys, then redeploy.";
+    if (/JW[ST]|PGRST30|alg|signature|No suitable key/i.test(msg)) return "Supabase doesn't trust Clerk sign-ins yet. In Supabase > Authentication > Sign In / Providers > Third-party Auth, add Clerk with your Clerk domain (from dashboard.clerk.com/setup/supabase).";
+    if (/does not exist|PGRST20[25]|schema cache/i.test(msg)) return "The database tables are missing. Run the whole of supabase/schema.sql in Supabase > SQL Editor.";
+    return "If this is a fresh setup: run supabase/schema.sql in the Supabase SQL Editor, and connect Clerk under Supabase > Authentication > Third-party Auth.";
   }
   function jwtRole(key) {
     try { return JSON.parse(atob(key.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).role; } catch (e) { return null; }
@@ -464,10 +480,7 @@
         ctx.suspension = found[1].suspension;
       } catch (err) {
         console.error(err);
-        renderNotice("Couldn't reach the database", [
-          errorMessage(err),
-          "If this is a fresh setup: run supabase/schema.sql in the Supabase SQL Editor, and connect Clerk under Supabase > Authentication > Third-party Auth.",
-        ]);
+        renderNotice("Couldn't reach the database", [errorMessage(err), databaseHint(err)]);
         return halt();
       }
       if (!ctx.me && opts.profile === "required") {
