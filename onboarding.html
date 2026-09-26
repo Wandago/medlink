@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FFFFFF">
+<title>Create your profile — MedLink KE</title>
+<script src="theme.js"></script>
+<!-- Supabase: UMD build (no bundler in this project), then config, then the shared client. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+<script src="config.js" defer></script>
+<script src="supabase.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="onboard-wrap fade-in">
+  <div class="onboard-top">
+    <a href="index.html" class="btn btn-ghost">‹ Back to home</a>
+    <button class="icon-btn theme-toggle" data-theme-toggle aria-label="Switch theme">
+      <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>
+    </button>
+  </div>
+
+  <div class="progress-bar" id="progressBar"></div>
+
+  <div class="card" style="padding:32px;">
+    <div class="step-label" id="stepLabel">Step 1 of 6</div>
+    <h2 class="disp" style="font-size:24px;margin:0 0 22px;" id="stepTitle">Welcome</h2>
+
+    <!-- Step 0 -->
+    <div class="onboard-step active" data-step="0">
+      <div class="welcome-box">
+        <div class="welcome-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></div>
+        <h3 class="disp" style="font-size:20px;margin:0 0 8px;">Welcome to MedLink KE</h3>
+        <p class="muted" style="max-width:400px;margin:0 auto;line-height:1.6;font-size:14px;">
+          Your medical school, all in one place. Let's set up your identity — the profile
+          your classmates will recognise, follow and message across MedLink.
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="onboard-step" data-step="1">
+      <div class="field" id="f-name">
+        <label>Full Name <span class="req">*</span></label>
+        <input type="text" id="in-name" placeholder="e.g. Gabriel Mwangi" autocomplete="name">
+        <div class="field-error hidden" id="err-name">Please enter your full name.</div>
+      </div>
+
+      <div class="field" id="f-username">
+        <label>Username <span class="req">*</span></label>
+        <div class="username-wrap">
+          <span class="at">@</span>
+          <input type="text" id="in-username" placeholder="gabrielmed" autocomplete="off" spellcheck="false">
+          <span class="status-icon hidden" id="username-icon"></span>
+        </div>
+        <div class="field-ok hidden" id="ok-username">✓ Username available</div>
+        <div class="field-error hidden" id="err-username"></div>
+        <div class="suggestion-row hidden" id="suggestion-row"></div>
+        <div class="field-hint" id="username-hint">3–20 characters: lowercase letters, numbers, periods and underscores only.</div>
+      </div>
+
+      <div class="two-col">
+        <div class="field" id="f-email">
+          <label>Email <span class="req">*</span></label>
+          <input type="email" id="in-email" placeholder="you@student.ac.ke" autocomplete="email">
+          <div class="field-error hidden" id="err-email">Please enter a valid email address.</div>
+        </div>
+        <div class="field" id="f-password">
+          <label>Password <span class="req">*</span></label>
+          <input type="password" id="in-password" placeholder="At least 6 characters" autocomplete="new-password">
+          <div class="field-error hidden" id="err-password">Password must be at least 6 characters.</div>
+        </div>
+      </div>
+
+      <div class="field" id="f-photo">
+        <label>Profile Photo <span class="req">*</span></label>
+        <div class="row-gap">
+          <div class="avatar md" id="photo-preview" style="border:1.5px dashed var(--line);background:transparent;"></div>
+          <div class="avatar-color-row" id="color-row"></div>
+        </div>
+        <div class="field-error hidden" id="err-photo">Please choose a profile photo colour.</div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="onboard-step" data-step="2">
+      <div class="field">
+        <label>Course / Program <span class="req">*</span></label>
+        <select id="in-course"></select>
+        <div class="field-hint">Pick this first — not every university offers every programme.</div>
+      </div>
+      <div class="field">
+        <label>University / School <span class="req">*</span></label>
+        <select id="in-university"></select>
+        <div class="field-hint" id="uni-context"></div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Year of Study <span class="req">*</span></label>
+        <select id="in-year"></select>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="onboard-step" data-step="3">
+      <p class="muted" style="margin:0 0 4px;font-size:13.5px;">Pick the units you're taking this semester — each one gets its own study space.</p>
+      <p class="faint" style="margin:0 0 16px;font-size:12.5px;" id="units-context"></p>
+      <div id="units-row"></div>
+      <div class="field-error hidden" id="err-units">Please pick at least one unit.</div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="onboard-step" data-step="4">
+      <p class="muted" style="margin:0 0 4px;font-size:13.5px;">What are you into beyond the syllabus? This shapes your recommendations across MedLink.</p>
+      <p class="faint" style="margin:0 0 16px;font-size:12.5px;" id="interests-context">Pick as many as you like — at least one.</p>
+      <div id="interests-row"></div>
+      <div class="field-error hidden" id="err-interests">Please pick at least one interest.</div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="onboard-step" data-step="5">
+      <p class="muted" style="margin:0 0 18px;font-size:13.5px;">Here's your MedLink identity. You can always edit this later from Settings.</p>
+      <div class="row-gap" style="margin-bottom:18px;">
+        <div class="avatar lg" id="review-avatar"></div>
+        <div>
+          <div style="font-weight:700;font-size:17px;" id="review-name">Your name</div>
+          <div style="font-size:13px;color:var(--violet-dark);" id="review-username">@username</div>
+          <div class="faint" style="font-size:12.5px;" id="review-meta"></div>
+        </div>
+      </div>
+      <div class="wrap-gap" id="review-units" style="margin-bottom:10px;"></div>
+      <div class="wrap-gap" id="review-interests"></div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn btn-ghost" id="backBtn">‹ Back</button>
+      <button class="btn btn-primary" id="nextBtn">Continue ›</button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+  const STEPS = ["Welcome", "Your identity", "Your studies", "Current units", "Interests", "Review"];
+  let step = 0;
+  const data = {
+    name: "", username: "", email: "", password: "", photoColor: null,
+    universityId: "uon", courseId: "mbchb", year: "Year 1",
+    units: [], interests: [],
+  };
+  const touched = {};
+  let usernameCheck = { checking: false, available: null, error: null };
+  let debounceHandle = null;
+  const takenSet = new Set(SEED_USERS.map(u => u.username.toLowerCase()));
+
+  const progressBar = document.getElementById("progressBar");
+  STEPS.forEach((_, i) => progressBar.appendChild(el("div", { class: "seg" + (i === 0 ? " on" : ""), "data-seg": i })));
+
+  const uniSelect = document.getElementById("in-university");
+  function renderUniversityOptions() {
+    const list = universitiesForCourse(data.courseId);
+    uniSelect.innerHTML = "";
+    list.forEach(u => uniSelect.appendChild(el("option", { value: u.id }, [`${u.name} (${u.abbreviation})`])));
+    // the previously chosen university may not offer the new course
+    if (!list.some(u => u.id === data.universityId)) data.universityId = list[0].id;
+    uniSelect.value = data.universityId;
+    document.getElementById("uni-context").textContent =
+      `${list.length} institution${list.length === 1 ? "" : "s"} offer ${courseName(data.courseId)}.`;
+  }
+  const courseSelect = document.getElementById("in-course");
+  COURSES.forEach(c => courseSelect.appendChild(el("option", { value: c.id }, [c.name])));
+  courseSelect.value = data.courseId;
+  renderUniversityOptions();
+  const yearSelect = document.getElementById("in-year");
+  function renderYearOptions() {
+    const valid = yearsForCourse(data.courseId);
+    yearSelect.innerHTML = "";
+    valid.forEach(y => yearSelect.appendChild(el("option", { value: y }, [y])));
+    if (!valid.includes(data.year)) data.year = valid[0];
+    yearSelect.value = data.year;
+  }
+  renderYearOptions();
+
+  const colorRow = document.getElementById("color-row");
+  AVATAR_COLORS.forEach(c => {
+    const dot = el("button", { class: "color-dot", type: "button", "aria-label": "Choose avatar colour", style: `background:${c}` });
+    dot.dataset.color = c;
+    dot.addEventListener("click", () => {
+      data.photoColor = c; touched.photo = true;
+      renderColorRow(); renderPhotoPreview(); validateStep1();
+    });
+    colorRow.appendChild(dot);
+  });
+  function renderColorRow() {
+    qsa(".color-dot", colorRow).forEach(d => d.classList.toggle("selected", d.dataset.color === data.photoColor));
+  }
+  function renderPhotoPreview() {
+    const p = document.getElementById("photo-preview");
+    if (data.photoColor) {
+      p.style.background = data.photoColor; p.style.border = "none";
+      p.textContent = initials(data.name) || "?";
+    } else {
+      p.style.background = "transparent"; p.style.border = "1.5px dashed var(--line)"; p.textContent = "";
+    }
+  }
+
+  // Grouped picker used for both units (by semester) and interests (by theme).
+  function renderPicker(containerId, groups, key, coral, onChange) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+    Object.entries(groups).forEach(([label, options]) => {
+      if (!options.length) return;
+      container.appendChild(el("div", {
+        class: "picker-group-label",
+        style: "font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin:14px 0 8px;",
+      }, [label]));
+      const row = el("div", { class: "wrap-gap" });
+      options.forEach(opt => {
+        const on = data[key].includes(opt);
+        const btn = el("button", { type: "button", class: "chip-toggle" + (coral ? " coral" : "") + (on ? " on" : "") }, [(on ? "✓ " : "") + opt]);
+        btn.addEventListener("click", () => {
+          const i = data[key].indexOf(opt);
+          if (i === -1) data[key].push(opt); else data[key].splice(i, 1);
+          renderPicker(containerId, groups, key, coral, onChange);
+          if (onChange) onChange();
+        });
+        row.appendChild(btn);
+      });
+      container.appendChild(row);
+    });
+    if (container.firstChild) container.firstChild.style.marginTop = "0";
+  }
+
+  function renderUnits() {
+    const groups = unitsBySemester(data.courseId, data.year);
+    const total = unitsForYear(data.courseId, data.year).length;
+    document.getElementById("units-context").textContent =
+      `${courseName(data.courseId)} · ${data.year} — ${total} units in your curriculum. ${data.units.length} selected.`;
+    renderPicker("units-row", groups, "units", false, renderUnits);
+    if (data.units.length) document.getElementById("err-units").classList.add("hidden");
+  }
+
+  function renderInterests() {
+    document.getElementById("interests-context").textContent =
+      `Choose from ${ALL_INTERESTS.length} areas — pick as many as you like. ${data.interests.length} selected.`;
+    renderPicker("interests-row", INTEREST_CATALOG, "interests", true, renderInterests);
+    if (data.interests.length) document.getElementById("err-interests").classList.add("hidden");
+  }
+
+  // A student's units only make sense for their own course and year — drop any
+  // selection that no longer belongs when either changes.
+  function pruneUnits() {
+    const valid = unitsForYear(data.courseId, data.year);
+    data.units = data.units.filter(u => valid.includes(u));
+  }
+
+  renderUnits();
+  renderInterests();
+
+  const usernameInput = document.getElementById("in-username");
+  usernameInput.addEventListener("input", () => {
+    const clean = usernameInput.value.toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 20);
+    usernameInput.value = clean;
+    data.username = clean;
+    usernameCheck = { checking: true, available: null, error: null };
+    renderUsernameStatus();
+    if (debounceHandle) clearTimeout(debounceHandle);
+    debounceHandle = setTimeout(() => {
+      const err = usernameFormatError(clean);
+      if (err) usernameCheck = { checking: false, available: null, error: err };
+      else if (RESERVED_USERNAMES.includes(clean) || takenSet.has(clean)) usernameCheck = { checking: false, available: false, error: null };
+      else usernameCheck = { checking: false, available: true, error: null };
+      renderUsernameStatus();
+    }, 300);
+  });
+  usernameInput.addEventListener("blur", () => { touched.username = true; renderUsernameStatus(); });
+
+  function applyUsername(name) {
+    usernameInput.value = name;
+    usernameInput.dispatchEvent(new Event("input"));
+  }
+
+  function renderUsernameStatus() {
+    const field = document.getElementById("f-username");
+    const icon = document.getElementById("username-icon");
+    const ok = document.getElementById("ok-username");
+    const err = document.getElementById("err-username");
+    const hint = document.getElementById("username-hint");
+    const sug = document.getElementById("suggestion-row");
+
+    field.classList.remove("error", "ok");
+    icon.classList.add("hidden"); icon.classList.remove("ok", "bad");
+    ok.classList.add("hidden"); err.classList.add("hidden");
+    sug.classList.add("hidden"); sug.innerHTML = "";
+    hint.classList.toggle("hidden", !!data.username);
+
+    if (!data.username || usernameCheck.checking) return;
+
+    if (usernameCheck.available === true) {
+      field.classList.add("ok");
+      icon.textContent = "✓"; icon.classList.remove("hidden"); icon.classList.add("ok");
+      ok.classList.remove("hidden");
+    } else if ((usernameCheck.available === false || usernameCheck.error) && touched.username) {
+      field.classList.add("error");
+      icon.textContent = "✕"; icon.classList.remove("hidden"); icon.classList.add("bad");
+      err.textContent = usernameCheck.error || "Username already taken.";
+      err.classList.remove("hidden");
+      if (usernameCheck.available === false) {
+        const list = suggestUsernames(data.username, takenSet);
+        if (list.length) {
+          sug.classList.remove("hidden");
+          sug.appendChild(el("div", { class: "field-hint", style: "width:100%;margin:0 0 2px;" }, ["Try one of these instead:"]));
+          list.forEach(s => {
+            const chip = el("button", { type: "button", class: "suggestion-chip" }, ["@" + s]);
+            chip.addEventListener("click", () => applyUsername(s));
+            sug.appendChild(chip);
+          });
+        }
+      }
+    }
+  }
+
+  const nameInput = document.getElementById("in-name");
+  const emailInput = document.getElementById("in-email");
+  const passwordInput = document.getElementById("in-password");
+  nameInput.addEventListener("input", () => { data.name = nameInput.value; renderPhotoPreview(); });
+  nameInput.addEventListener("blur", () => { touched.name = true; validateStep1(); });
+  emailInput.addEventListener("input", () => { data.email = emailInput.value; });
+  emailInput.addEventListener("blur", () => { touched.email = true; validateStep1(); });
+  passwordInput.addEventListener("input", () => { data.password = passwordInput.value; });
+  passwordInput.addEventListener("blur", () => { touched.password = true; validateStep1(); });
+
+  function markField(fieldId, errId, valid, touchKey) {
+    const field = document.getElementById(fieldId);
+    const err = document.getElementById(errId);
+    if (!touched[touchKey]) { field.classList.remove("error"); err.classList.add("hidden"); return; }
+    field.classList.toggle("error", !valid);
+    err.classList.toggle("hidden", valid);
+  }
+  function validateStep1() {
+    markField("f-name", "err-name", !!data.name.trim(), "name");
+    markField("f-email", "err-email", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email), "email");
+    markField("f-password", "err-password", data.password.length >= 6, "password");
+    const photoErr = document.getElementById("err-photo");
+    document.getElementById("f-photo").classList.toggle("error", touched.photo && !data.photoColor);
+    photoErr.classList.toggle("hidden", !touched.photo || !!data.photoColor);
+  }
+  function isStep1Valid() {
+    return data.name.trim() && data.username && usernameCheck.available === true &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && data.password.length >= 6 && data.photoColor;
+  }
+  function touchStep1() {
+    ["name", "username", "email", "password", "photo"].forEach(k => touched[k] = true);
+    validateStep1(); renderUsernameStatus();
+  }
+
+  uniSelect.addEventListener("change", () => data.universityId = uniSelect.value);
+  courseSelect.addEventListener("change", () => {
+    data.courseId = courseSelect.value;
+    renderUniversityOptions();  // not all universities offer the new course
+    renderYearOptions();        // programme length may differ
+    pruneUnits();
+    renderUnits();
+  });
+  yearSelect.addEventListener("change", () => {
+    data.year = yearSelect.value;
+    pruneUnits();
+    renderUnits();
+  });
+
+  const stepLabel = document.getElementById("stepLabel");
+  const stepTitle = document.getElementById("stepTitle");
+  const backBtn = document.getElementById("backBtn");
+  const nextBtn = document.getElementById("nextBtn");
+
+  function renderStep() {
+    qsa(".onboard-step").forEach(s => s.classList.toggle("active", Number(s.dataset.step) === step));
+    qsa(".seg", progressBar).forEach(s => s.classList.toggle("on", Number(s.dataset.seg) <= step));
+    stepLabel.textContent = `Step ${step + 1} of ${STEPS.length}`;
+    stepTitle.textContent = STEPS[step];
+    backBtn.style.visibility = step === 0 ? "hidden" : "visible";
+    nextBtn.textContent = step === STEPS.length - 1 ? "Create profile — enter MedLink" : "Continue ›";
+    if (step === 5) renderReview();
+  }
+
+  function renderReview() {
+    const a = document.getElementById("review-avatar");
+    a.style.background = data.photoColor || "#A66DF5";
+    a.textContent = initials(data.name) || "?";
+    document.getElementById("review-name").textContent = data.name || "Your name";
+    document.getElementById("review-username").textContent = "@" + (data.username || "username");
+    document.getElementById("review-meta").textContent = `${courseName(data.courseId)} · ${data.year} · ${uniName(data.universityId)}`;
+    const u = document.getElementById("review-units"); u.innerHTML = "";
+    data.units.forEach(x => u.appendChild(el("span", { class: "chip" }, [x])));
+    const i = document.getElementById("review-interests"); i.innerHTML = "";
+    data.interests.forEach(x => i.appendChild(el("span", { class: "chip chip-coral" }, [x])));
+  }
+
+  backBtn.addEventListener("click", () => { if (step > 0) { step -= 1; renderStep(); } });
+  nextBtn.addEventListener("click", () => {
+    if (step === 1 && !isStep1Valid()) { touchStep1(); return; }
+    if (step === 3 && !data.units.length) {
+      document.getElementById("err-units").classList.remove("hidden");
+      return;
+    }
+    if (step === 4 && !data.interests.length) {
+      document.getElementById("err-interests").classList.remove("hidden");
+      return;
+    }
+    if (step === STEPS.length - 1) { finish(); return; }
+    step += 1; renderStep();
+  });
+
+  function finish() {
+    setMe({
+      id: "me", fullName: data.name, username: data.username, email: data.email,
+      universityId: data.universityId, courseId: data.courseId, year: data.year,
+      bio: "", interests: data.interests, currentUnits: data.units,
+      color: data.photoColor || "#A66DF5", followingIds: [],
+    });
+    saveFollowing(new Set(["u_amina", "u_brian"]));
+    saveConversations(SEED_CONVERSATIONS);
+    window.location.href = "dashboard.html";
+  }
+
+  renderColorRow(); renderPhotoPreview(); renderStep();
+</script>
+</body>
+</html>
