@@ -29,7 +29,8 @@ signed-in user is `auth.jwt() ->> 'sub'` (their Clerk user ID), and every table 
 ### 2. Supabase
 1. Create a project at [supabase.com](https://supabase.com).
 2. **SQL Editor** → paste the whole of [`supabase/schema.sql`](supabase/schema.sql) → **Run**.
-   This creates all tables, security policies, the 4 starter communities and the `resources` storage bucket.
+   This creates all tables, security policies, the 4 starter communities, the `resources` and `site-media`
+   storage buckets, analytics + activity logging, roles and the admin functions.
 3. **Authentication → Sign In / Providers → Third-Party Auth → Add provider → Clerk** → paste the Clerk domain.
 4. **Project Settings → API** → copy the **Project URL** and the **publishable / anon key**
    (never the `service_role` / secret key).
@@ -64,6 +65,8 @@ app.js              runtime: config checks, Clerk boot, Supabase client, all que
 data.js             static catalogue: universities, courses, units, interests, practice questions, news
 theme.js            light / dark theme (runs before first paint)
 styles.css          design system        landing.css   landing page only
+admin.html/js/css   admin dashboard (analytics, activity, users & roles, content, images)
+img/                default site photos (Unsplash, see img/CREDITS.md) — replaceable from the admin page
 *.html              one file per page; each calls MedLink.run({ page }, async ({ api, me }) => …)
 supabase/schema.sql database schema + RLS + storage bucket
 scripts/build.mjs   Vercel build: copies files to dist/ and writes config.js from env vars
@@ -81,5 +84,55 @@ scripts/build.mjs   Vercel build: copies files to dist/ and writes config.js fro
 - **Search** — resources, students, communities and discussions.
 - Exam Bank practice questions and Medical News are static content in `data.js`.
 
-### Moderation
-Reports land in the `resource_reports` table — review them in the Supabase Table Editor.
+## Admin dashboard (`admin.html`)
+
+### Become the first super admin
+1. Sign up in the app and finish onboarding.
+2. Supabase → **SQL Editor** → run (with your username):
+   ```sql
+   insert into public.user_roles (user_id, role)
+   select id, 'super_admin' from public.profiles where username = 'your_username';
+   ```
+3. Reload — an orange shield appears in the top bar and **Admin** in the sidebar.
+
+After that, give other people roles from **Admin → Users & roles**.
+
+| Role | Can |
+| ---- | --- |
+| **Super admin** | Everything, including making admins / super admins and suspending staff |
+| **Admin** | Site images, communities, edit profiles, suspend students, make moderators |
+| **Moderator** | Analytics, activity, reports; edit or remove posts, comments and resources |
+
+Every rule is enforced in the database (RLS + `set_user_role`, `set_user_suspended`, `admin_stats`,
+`admin_users` in `schema.sql`), not just by hiding buttons.
+
+### What's in it
+- **Overview** — page views, visitors, sign-ups, active members, bounce rate, time on page (with change vs the
+  previous period), traffic and sign-up charts, devices, top pages, live activity, all-time totals.
+- **Traffic** — sources (Google, WhatsApp, Instagram, Facebook, X, TikTok, direct…), referring sites, UTM
+  campaigns with sign-up conversion, landing pages, hour-of-day / day-of-week, devices, browsers, OS,
+  time zones, students by university / programme / year, and a **campaign link builder**.
+  WhatsApp hides where clicks come from — share tagged links (`?utm_source=whatsapp&utm_campaign=…`).
+- **Activity** — the server-side activity log (sign-ups, posts, uploads, likes, saves, follows, joins,
+  messages sent — never message text — role changes, suspensions, image changes) and a live stream of
+  page views, clicks, time on page and JavaScript errors. Auto-refresh available.
+- **Users & roles** — search by name, username or email; assign roles; suspend / unsuspend with a reason
+  (suspended users can read but not post, upload, comment or message); edit name / bio; per-user timeline
+  of visits, traffic sources and actions.
+- **Content** — edit or delete any resource, post or comment.
+- **Reports** — resolve, dismiss, reopen, or delete the reported resource.
+- **Communities** — create, rename, re-describe, change the cover photo, delete.
+- **Site images** — every photo on the site has a slot; replace it by uploading, picking from the media
+  library, or pasting a link, and reset to the built-in photo any time. The media library lists uploads with
+  where each one is used, and lets you delete them.
+
+### What's tracked
+`app.js` records page views, clicks on anything marked `data-track`, links to other sites, key actions
+(sign-up, sign-in/out, uploads, downloads, views, saves, likes, comments, posts, follows, joins, searches,
+messages sent, quiz starts/results), time actively spent on each page, and JavaScript errors — together with the
+visit's traffic source (referrer + UTM), landing page, device, browser, OS, screen width, language and time zone.
+Visitors get a random anonymous ID; signed-in events are linked to the user by the database itself.
+Only staff can read the data. The landing-page footer tells visitors anonymous statistics are collected.
+
+### Upgrading an existing project
+Re-run the whole of `supabase/schema.sql` in the SQL Editor — it only adds what's missing.

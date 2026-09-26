@@ -5,7 +5,7 @@
 //   CLERK_PUBLISHABLE_KEY, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
 //
 // Run locally with:  node scripts/build.mjs
-import { copyFileSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,6 +21,13 @@ for (const name of readdirSync(root)) {
   if (!/\.(html|css|js|ico|png|svg|webmanifest|txt)$/.test(name) || SKIP.has(name)) continue;
   copyFileSync(join(root, name), join(out, name));
   copied++;
+}
+
+// Folders shipped as-is (default site photos).
+for (const dir of ["img"]) {
+  if (!existsSync(join(root, dir))) continue;
+  cpSync(join(root, dir), join(out, dir), { recursive: true });
+  copied += readdirSync(join(root, dir)).length;
 }
 
 const env = (k) => (process.env[k] || "").trim();

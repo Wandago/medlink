@@ -74,6 +74,7 @@ MedLink.run({ page: "settings" }, async ({ api, clerk, me }) => {
   const seg = qs("#themeSeg");
   const paintSeg = () => { const pref = MedLinkTheme.preference(); qsa("button", seg).forEach(b => b.classList.toggle("active", b.dataset.mode === pref)); };
   qsa("button", seg).forEach(b => b.addEventListener("click", () => {
+    MedLink.track("theme_change", { mode: b.dataset.mode });
     if (b.dataset.mode === "system") MedLinkTheme.useSystem(); else MedLinkTheme.set(b.dataset.mode);
     paintSeg();
   }));
@@ -114,7 +115,7 @@ MedLink.run({ page: "settings" }, async ({ api, clerk, me }) => {
   });
 
   qs("#accountBtn").addEventListener("click", () => clerk.openUserProfile());
-  qs("#logout").addEventListener("click", () => clerk.signOut({ redirectUrl: new URL("index.html", location.href).href }));
+  qs("#logout").addEventListener("click", () => MedLink.signOut());
 });
 </script>
 </body>

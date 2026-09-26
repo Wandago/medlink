@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="robots" content="noindex">
+<title>Admin — MedLink KE</title>
+<script src="theme.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<main id="page" hidden>
+<div class="admin fade-in">
+  <div class="admin-head">
+    <div>
+      <div class="eyebrow-text">Control centre</div>
+      <h1>Admin dashboard</h1>
+      <p id="adminWho"></p>
+    </div>
+    <div class="admin-head-actions">
+      <div class="seg-control" id="rangeSeg" aria-label="Date range">
+        <button type="button" data-days="1">Today</button>
+        <button type="button" data-days="7">7 days</button>
+        <button type="button" data-days="30">30 days</button>
+        <button type="button" data-days="90">90 days</button>
+      </div>
+      <button class="a-btn" type="button" id="refreshBtn">↻ Refresh</button>
+    </div>
+  </div>
+
+  <nav class="admin-tabs" id="adminTabs" aria-label="Admin sections"></nav>
+
+  <section class="admin-panel" id="tab-overview"></section>
+  <section class="admin-panel" id="tab-traffic"></section>
+  <section class="admin-panel" id="tab-activity"></section>
+  <section class="admin-panel" id="tab-users"></section>
+  <section class="admin-panel" id="tab-content"></section>
+  <section class="admin-panel" id="tab-reports"></section>
+  <section class="admin-panel" id="tab-communities"></section>
+  <section class="admin-panel" id="tab-images"></section>
+</div>
+</main>
+
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

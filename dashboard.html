@@ -12,42 +12,86 @@
 </head>
 <body>
 <main id="page" hidden>
-<div class="fade-in home-grid">
-  <div>
-    <h1 class="disp" style="font-size:26px;margin:4px 0 4px;" id="greeting">Hello 👋</h1>
-    <p class="muted" style="font-size:14px;margin:0 0 18px;" id="meMeta"></p>
-    <div class="wrap-gap" style="margin-bottom:26px;" id="unitsChips"></div>
-
-    <div class="section-heading">
-      <div><div class="eyebrow">From your current units</div><h2>Continue Studying</h2></div>
-      <a href="study.html" class="btn btn-ghost btn-sm">See all ›</a>
+<div class="fade-in">
+  <section class="dash-hero">
+    <div class="dash-hero-text">
+      <span class="eyebrow-pill" id="today"></span>
+      <h1 id="greeting">Hello 👋</h1>
+      <p class="dash-meta" id="meMeta"></p>
+      <div class="wrap-gap" id="unitsChips"></div>
+      <div class="dash-hero-actions">
+        <a href="study.html?upload=1" class="btn btn-lime" data-track="dash_upload">↑ Upload notes</a>
+        <a href="exams.html" class="btn btn-white" data-track="dash_practice">✅ Practice questions</a>
+      </div>
     </div>
-    <div class="grid grid-fill-230" style="margin-bottom:30px;" id="continueStudying"></div>
+    <div class="dash-hero-photo" data-slot="dashboard-banner" role="img" aria-label="Student at a microscope"></div>
+  </section>
 
-    <div class="section-heading">
-      <div><div class="eyebrow">Most viewed across MedLink</div><h2>Popular Right Now</h2></div>
-      <a href="discover.html" class="btn btn-ghost btn-sm">Discover ›</a>
-    </div>
-    <div class="grid grid-fill-230" style="margin-bottom:30px;" id="popular"></div>
-
-    <div class="section-heading">
-      <div><div class="eyebrow">Everyone on MedLink</div><h2>Latest Discussions</h2></div>
-      <a href="communities.html" class="btn btn-ghost btn-sm">Communities ›</a>
-    </div>
-    <div id="composer" style="margin-bottom:12px;"></div>
-    <div id="feedList" class="feed-list"></div>
+  <div class="stat-grid">
+    <a class="stat-card solid" href="profile.html" id="statPointsCard">
+      <div class="stat-top">MedPoints <span class="stat-ic">🏅</span></div>
+      <div class="stat-num" id="statPoints">…</div>
+      <div class="stat-sub">Earned by helping others</div>
+    </a>
+    <a class="stat-card c-orange" href="study.html">
+      <div class="stat-top">Notes you've shared <span class="stat-ic">📘</span></div>
+      <div class="stat-num" id="statUploads">…</div>
+      <div class="stat-sub">+20 MedPoints each</div>
+    </a>
+    <a class="stat-card c-pink" href="saved.html">
+      <div class="stat-top">Saved for later <span class="stat-ic">🔖</span></div>
+      <div class="stat-num" id="statSaved">…</div>
+      <div class="stat-sub">Your revision pile</div>
+    </a>
+    <a class="stat-card c-purple" href="communities.html">
+      <div class="stat-top">Communities <span class="stat-ic">👥</span></div>
+      <div class="stat-num" id="statCommunities">…</div>
+      <div class="stat-sub">Groups you've joined</div>
+    </a>
   </div>
 
-  <div class="home-side">
-    <div class="card pad">
-      <div class="section-heading"><h2>Your Communities</h2></div>
-      <div id="communitiesMini"></div>
-      <a href="communities.html" class="btn btn-ghost btn-block" style="margin-top:8px;">Browse all</a>
+  <div class="home-grid">
+    <div>
+      <div class="section-heading">
+        <div><div class="eyebrow">From your current units</div><h2>Continue Studying</h2></div>
+        <a href="study.html" class="btn btn-ghost btn-sm">See all ›</a>
+      </div>
+      <div class="grid grid-fill-230" style="margin-bottom:30px;" id="continueStudying"></div>
+
+      <div class="section-heading">
+        <div><div class="eyebrow">Most viewed across MedLink</div><h2>Popular Right Now</h2></div>
+        <a href="discover.html" class="btn btn-ghost btn-sm">Discover ›</a>
+      </div>
+      <div class="grid grid-fill-230" style="margin-bottom:30px;" id="popular"></div>
+
+      <div class="section-heading">
+        <div><div class="eyebrow">Everyone on MedLink</div><h2>Latest Discussions</h2></div>
+        <a href="communities.html" class="btn btn-ghost btn-sm">Communities ›</a>
+      </div>
+      <div id="composer" style="margin-bottom:12px;"></div>
+      <div id="feedList" class="feed-list"></div>
     </div>
-    <div class="card pad">
-      <div class="section-heading"><h2>Medical News</h2></div>
-      <div id="newsMini"></div>
-      <a href="news.html" class="btn btn-ghost btn-block" style="margin-top:10px;">More news</a>
+
+    <div class="home-side">
+      <div class="card pad">
+        <div class="side-card-title">Quick actions</div>
+        <div class="quick-grid">
+          <a class="quick-tile" href="study.html" style="--qt-bg:var(--accent-soft);--qt-text:var(--accent-on-soft)"><span class="qt-ic">📚</span>Study library</a>
+          <a class="quick-tile" href="exams.html" style="--qt-bg:var(--pink-soft);--qt-text:var(--pink-text)"><span class="qt-ic">📝</span>Exam bank</a>
+          <a class="quick-tile" href="units.html" style="--qt-bg:var(--teal-soft);--qt-text:var(--teal-text)"><span class="qt-ic">🩺</span>My units</a>
+          <a class="quick-tile" href="messages.html" style="--qt-bg:var(--orange-soft);--qt-text:var(--orange-text)"><span class="qt-ic">💬</span>Messages</a>
+        </div>
+      </div>
+      <div class="card pad">
+        <div class="side-card-title">Your Communities</div>
+        <div id="communitiesMini"></div>
+        <a href="communities.html" class="btn btn-ghost btn-block" style="margin-top:8px;">Browse all</a>
+      </div>
+      <div class="card pad">
+        <div class="side-card-title">Medical News</div>
+        <div id="newsMini"></div>
+        <a href="news.html" class="btn btn-ghost btn-block" style="margin-top:10px;">More news</a>
+      </div>
     </div>
   </div>
 </div>
@@ -60,14 +104,21 @@
 MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   const hour = new Date().getHours();
   const hello = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  qs("#today").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
   qs("#greeting").textContent = `${hello}, ${me.full_name.split(" ")[0]} 👋`;
   qs("#meMeta").textContent = `${courseName(me.course_id)} · ${me.year} · ${uniName(me.university_id)}`;
+  qs("#statPointsCard").href = profileHref(me);
   me.current_units.forEach(u => qs("#unitsChips").appendChild(
     el("a", { class: "chip", href: "study.html?unit=" + encodeURIComponent(u), style: "font-size:13px;padding:7px 14px;" }, [u])));
+  MedLink.applySiteImages();
 
-  NEWS.forEach(n => qs("#newsMini").appendChild(el("div", { class: "news-mini" }, [
-    el("div", { class: "news-mini-title" }, [n.title]),
-    el("div", { class: "faint", style: "font-size:11px;" }, [n.src + " · " + n.time]),
+  const newsColors = ["var(--accent)", "var(--orange)", "var(--pink)", "var(--teal)", "var(--purple)"];
+  NEWS.forEach((n, i) => qs("#newsMini").appendChild(el("div", { class: "news-mini" }, [
+    el("span", { class: "news-dot", style: "background:" + newsColors[i % newsColors.length] }),
+    el("div", {}, [
+      el("div", { class: "news-mini-title" }, [n.title]),
+      el("div", { class: "faint", style: "font-size:11px;" }, [n.src + " · " + n.time]),
+    ]),
   ])));
 
   const cont = qs("#continueStudying"), popular = qs("#popular"), feed = qs("#feedList"), mini = qs("#communitiesMini");
@@ -78,13 +129,21 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
     onPosted: post => { qs(".empty-state", feed)?.remove(); feed.prepend(MedLink.feedPostNode(post, { liked: new Set() })); },
   }));
 
-  const [mine, top, posts, communities, joined] = await Promise.all([
+  const [mine, top, posts, communities, joined, uploads, saved, points] = await Promise.all([
     me.current_units.length ? api.resources({ units: me.current_units, limit: 3 }) : Promise.resolve([]),
     api.resources({ order: "views", limit: 3 }),
     api.posts({ limit: 15 }),
     api.communities(),
     api.myCommunityIds(),
+    api.resources({ authorId: me.id, limit: 500 }),
+    api.savedIds(),
+    api.medPoints(me.id),
   ]);
+
+  qs("#statPoints").textContent = points.toLocaleString();
+  qs("#statUploads").textContent = uploads.length.toLocaleString();
+  qs("#statSaved").textContent = saved.size.toLocaleString();
+  qs("#statCommunities").textContent = joined.size.toLocaleString();
 
   cont.replaceChildren(...(mine.length ? mine.map(MedLink.resourceCardNode)
     : [MedLink.emptyState("No notes for your units yet — be the first to share.", el("a", { href: "study.html?upload=1", class: "btn btn-primary btn-sm" }, ["↑ Upload notes"]))]));
@@ -96,9 +155,9 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   mini.replaceChildren(
     ...(mineFirst.length ? [] : [el("p", { class: "faint", style: "font-size:12.5px;margin:0 0 6px;" }, ["You haven't joined any yet. Try:"])]),
     ...list.map(c => el("a", { href: "communities.html?c=" + encodeURIComponent(c.id), class: "row-gap mini-row" }, [
-      el("div", { class: "avatar sm", style: "background:var(--panel);" }, [c.name.charAt(0)]),
+      MedLink.communityCoverNode(c, "cc-cover cc-sm"),
       el("div", { style: "flex:1;min-width:0;" }, [
-        el("div", { style: "font-size:13px;font-weight:700;" }, [c.name]),
+        el("div", { style: "font-size:13.5px;font-weight:700;" }, [c.name]),
         el("div", { class: "faint", style: "font-size:11.5px;" }, [plural(count(c.community_members), "member")]),
       ]),
     ])),

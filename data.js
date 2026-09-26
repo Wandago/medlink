@@ -211,7 +211,7 @@ const INTEREST_CATALOG = {
 const ALL_INTERESTS = Object.values(INTEREST_CATALOG).flat();
 
 const RESERVED_USERNAMES = ["admin", "medlink", "support", "root", "moderator", "help", "medlinkke", "official", "staff"];
-const AVATAR_COLORS = ["#A66DF5", "#FF8B72", "#F0B84C", "#4FBE7E", "#5EC8E0", "#E07BD0"];
+const AVATAR_COLORS = ["#1A56F0", "#FF7A1A", "#FF4F9A", "#10B39E", "#7B61FF", "#F5A300", "#0EA5E9", "#A66DF5"];
 
 function uniName(id) { const u = UNIVERSITIES.find(x => x.id === id); return u ? u.name : ""; }
 function uniAbbr(id) { const u = UNIVERSITIES.find(x => x.id === id); return u ? u.abbreviation : ""; }
@@ -262,3 +262,48 @@ function suggestUsernames(base, takenSet) {
 }
 
 const RESOURCE_TYPES = ["Notes", "Summary", "Past Paper", "MCQ", "Practical Guide", "Slides", "Other"];
+
+/* ---------------------------------------------------------------------
+   COLOUR CODING
+--------------------------------------------------------------------- */
+// Each resource type gets its own bright colour + icon across the app.
+const TYPE_STYLES = {
+  "Notes":           { color: "#1A56F0", soft: "#E6EEFF", icon: "📘" },
+  "Summary":         { color: "#FF7A1A", soft: "#FFF0E3", icon: "⚡" },
+  "Past Paper":      { color: "#FF4F9A", soft: "#FFE8F2", icon: "📄" },
+  "MCQ":             { color: "#7B61FF", soft: "#EFEBFF", icon: "✅" },
+  "Practical Guide": { color: "#10B39E", soft: "#E1F7F3", icon: "🔬" },
+  "Slides":          { color: "#F5A300", soft: "#FFF5DB", icon: "📊" },
+  "Other":           { color: "#0EA5E9", soft: "#E0F4FD", icon: "📎" },
+};
+function typeStyle(t) { return TYPE_STYLES[t] || TYPE_STYLES.Other; }
+
+/* ---------------------------------------------------------------------
+   SITE IMAGES
+   Every photo on the site has a "slot". The defaults below ship in /img
+   (free Unsplash photos, see img/CREDITS.md); a super admin can replace
+   any slot from admin.html and the change applies site-wide.
+--------------------------------------------------------------------- */
+const SITE_IMAGES = [
+  { slot: "hero-main",           group: "Landing page", label: "Hero — main photo",          src: "img/hero-main.jpg",           alt: "Medical students reviewing a scan together" },
+  { slot: "hero-lab",            group: "Landing page", label: "Hero — small photo 1",       src: "img/hero-lab.jpg",            alt: "Student in a laboratory" },
+  { slot: "hero-study",          group: "Landing page", label: "Hero — small photo 2",       src: "img/hero-study.jpg",          alt: "Students studying together" },
+  { slot: "feature-library",     group: "Landing page", label: "Feature — Study library",    src: "img/feature-library.jpg",     alt: "Handwritten study notes" },
+  { slot: "feature-exams",       group: "Landing page", label: "Feature — Exam bank",        src: "img/feature-exams.jpg",       alt: "Doctor reading an X-ray" },
+  { slot: "feature-units",       group: "Landing page", label: "Feature — Unit groups",      src: "img/feature-units.jpg",       alt: "Anatomical model of the heart" },
+  { slot: "feature-communities", group: "Landing page", label: "Feature — Communities",      src: "img/feature-communities.jpg", alt: "Students laughing around a table" },
+  { slot: "feature-chat",        group: "Landing page", label: "Feature — Messages",         src: "img/feature-chat.jpg",        alt: "Doctor using a phone" },
+  { slot: "feature-news",        group: "Landing page", label: "Feature — Medical news",     src: "img/feature-news.jpg",        alt: "Colourful sample tubes in a lab" },
+  { slot: "cta-banner",          group: "Landing page", label: "Closing banner",             src: "img/cta-banner.jpg",          alt: "Graduates celebrating" },
+  { slot: "quote-photo",         group: "Landing page", label: "\"Why we built it\" photo",  src: "img/quote-photo.jpg",         alt: "Friends from medical school" },
+  { slot: "auth-side",           group: "Sign in / sign up", label: "Sign-in & sign-up photo", src: "img/auth-side.jpg",         alt: "Smiling medical student in scrubs" },
+  { slot: "onboarding-side",     group: "Sign in / sign up", label: "Onboarding photo",      src: "img/onboarding-side.jpg",     alt: "Student holding a folder" },
+  { slot: "dashboard-banner",    group: "Inside the app", label: "Home dashboard banner",   src: "img/dashboard-banner.jpg",    alt: "Student at a microscope" },
+];
+const COMMUNITY_IMAGES = {
+  "anatomy": "img/community-anatomy.jpg",
+  "surgery": "img/community-surgery.jpg",
+  "public-health": "img/community-public-health.jpg",
+  "med-students-ke": "img/community-med-students-ke.jpg",
+};
+const COMMUNITY_FALLBACK_COLORS = ["#1A56F0", "#FF7A1A", "#FF4F9A", "#10B39E", "#7B61FF", "#F5A300"];

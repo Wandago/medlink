@@ -34,6 +34,7 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
   }
   document.title = r.title + " — MedLink KE";
   api.incrementViews(r.id).catch(() => {});
+  MedLink.track("resource_view", { id: r.id, title: r.title, unit: r.unit, type: r.type });
 
   const author = r.author;
   const saved = await api.savedIds();
@@ -69,19 +70,21 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
   const shareBtn = el("button", { class: "btn btn-ghost", type: "button", onclick: async () => {
     const url = location.href;
     try {
+      MedLink.track("resource_share", { id: r.id });
       if (navigator.share) await navigator.share({ title: r.title, url });
       else { await navigator.clipboard.writeText(url); MedLink.toast("Link copied."); }
     } catch (e) { /* share sheet dismissed */ }
   } }, ["↗ Share"]);
 
   const actions = el("div", { class: "wrap-gap" }, [
-    el("a", { class: "btn btn-primary", href: downloadUrl, rel: "noopener" }, ["↓ Download"]),
+    el("a", { class: "btn btn-primary", href: downloadUrl, rel: "noopener", onclick: () => MedLink.track("resource_download", { id: r.id, title: r.title, unit: r.unit, type: r.type }) }, ["↓ Download"]),
     el("a", { class: "btn btn-ghost", href: viewUrl, target: "_blank", rel: "noopener" }, ["Open in new tab"]),
     saveBtn, shareBtn,
   ]);
-  if (author && author.id === me.id) {
+  const mine = author && author.id === me.id;
+  if (mine || MedLink.ctx.role) {
     actions.appendChild(el("button", { class: "btn btn-ghost btn-danger", type: "button", onclick: async () => {
-      if (!confirm("Delete this resource? This can't be undone.")) return;
+      if (!confirm(mine ? "Delete this resource? This can't be undone." : "Remove this resource as a moderator? The file is deleted for everyone.")) return;
       try { await api.deleteResource(r); MedLink.toast("Resource deleted."); MedLink.go("study.html"); }
       catch (err) { MedLink.reportError(err); }
     } }, ["Delete"]));

@@ -43,6 +43,7 @@ MedLink.run({ page: "exams" }, async () => {
   function render() {
     if (idx >= total) {
       qs("#scoreLabel").textContent = `Score: ${score}/${total}`;
+      MedLink.track("quiz_complete", { exam: examSet.id, score, total, percent: Math.round(score / total * 100) });
       qs("#quizCard").replaceChildren(
         el("h2", { class: "disp", style: "font-size:20px;margin:0 0 8px;" }, [`You scored ${score} out of ${total}`]),
         el("p", { class: "muted", style: "margin:0 0 18px;" }, [score === total ? "Perfect — well done! 🎉" : "Review the explanations and try again."]),
@@ -67,6 +68,7 @@ MedLink.run({ page: "exams" }, async () => {
         if (picked !== null) return;
         picked = i;
         if (i === cur.correct) score += 1;
+        if (idx === 0) MedLink.track("quiz_start", { exam: examSet.id });
         render();
       });
       return btn;

@@ -9,7 +9,10 @@
      config.js  ->  data.js  ->  app.js  ->  page script
    Every page script calls:
      MedLink.run({ page: "dashboard" }, async (ctx) => { ... })
-   ctx = { sb, clerk, me, api }
+   ctx = { sb, clerk, me, role, suspension, api }
+
+   Also here: analytics (page views, actions, engagement time and
+   traffic sources -> "events" table), roles and site images.
 ========================================================= */
 (function () {
   "use strict";
@@ -44,7 +47,7 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
     });
   }
-  function safeColor(c) { return /^#[0-9A-Fa-f]{6}$/.test(c || "") ? c : "#A66DF5"; }
+  function safeColor(c) { return /^#[0-9A-Fa-f]{6}$/.test(c || "") ? c : "#1A56F0"; }
   function param(name) { return new URLSearchParams(location.search).get(name); }
   function profileHref(p) { return "profile.html?u=" + encodeURIComponent(p.username); }
   function timeAgo(ts) {
@@ -100,7 +103,7 @@
   function modal(title, body, opts) {
     opts = opts || {};
     var backdrop = el("div", { class: "modal-backdrop" });
-    var box = el("div", { class: "modal card", role: "dialog", "aria-modal": "true", "aria-label": title });
+    var box = el("div", { class: "modal card" + (opts.wide ? " modal-wide" : ""), role: "dialog", "aria-modal": "true", "aria-label": title });
     var close = function () { backdrop.remove(); document.removeEventListener("keydown", onKey); };
     var onKey = function (e) { if (e.key === "Escape") close(); };
     box.appendChild(el("div", { class: "modal-head" }, [
@@ -120,6 +123,203 @@
     return el("div", { class: "empty-state" }, [el("div", {}, [text]), action || null]);
   }
   function loadingState() { return el("div", { class: "loading-state" }, ["Loading…"]); }
+
+  // ---------------------------------------------------------------------
+  // Analytics — page views, actions, engagement time, traffic sources.
+  // Rows go to the Supabase "events" table, which only staff can read.
+  // The database fills in user_id from the session token itself.
+  // ---------------------------------------------------------------------
+  var tracker = (function () {
+    var VISITOR_KEY = "ml_vid", SESSION_KEY = "ml_session", IDLE_MS = 30 * 60 * 1000;
+    // Hops through sign-in providers are not traffic sources.
+    var AUTH_HOSTS = /(^|\.)(clerk\.accounts\.dev|clerk\.com|accounts\.dev)$|^clerk\.|^accounts\.google\.|^appleid\.apple\.com$/;
+    var queue = [], client = null, timer = null, started = false, errors = 0;
+    var visibleSince = Date.now(), engaged = 0;
+
+    function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+    function newId() {
+      return (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36)).replace(/-/g, "");
+    }
+    function clip(v, n) { return String(v == null ? "" : v).slice(0, n); }
+
+    var visitorId = lsGet(VISITOR_KEY);
+    if (!visitorId || visitorId.length < 8) { visitorId = newId(); lsSet(VISITOR_KEY, visitorId); }
+
+    var ua = navigator.userAgent || "";
+    var device = /iPad|Tablet/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua)) ? "tablet"
+      : /Mobi|iPhone|iPod|Android/i.test(ua) ? "mobile" : "desktop";
+    var browser = /Edg\//.test(ua) ? "Edge" : /OPR\/|Opera/.test(ua) ? "Opera" : /SamsungBrowser/.test(ua) ? "Samsung Internet"
+      : /Firefox|FxiOS/.test(ua) ? "Firefox" : /Chrome|CriOS/.test(ua) ? "Chrome" : /Safari/.test(ua) ? "Safari" : "Other";
+    var os = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad|iPod/.test(ua) ? "iOS"
+      : /CrOS/.test(ua) ? "ChromeOS" : /Mac OS X|Macintosh/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "Other";
+    var timezone = "";
+    try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { /* old browser */ }
+
+    function pagePath() {
+      var f = location.pathname.split("/").pop() || "index.html";
+      return "/" + (/\.html$/.test(f) ? f : f + ".html");
+    }
+    function attribution() {
+      var q = new URLSearchParams(location.search);
+      var ref = document.referrer || "", host = "";
+      try { if (ref) { var u = new URL(ref); host = u.hostname; ref = u.origin + u.pathname; } } catch (e) { ref = ""; }
+      if (host === location.hostname || AUTH_HOSTS.test(host)) { ref = ""; host = ""; }
+      return {
+        referrer: clip(ref, 500), referrer_host: clip(host, 200),
+        utm_source: clip(q.get("utm_source"), 100).toLowerCase(), utm_medium: clip(q.get("utm_medium"), 100).toLowerCase(),
+        utm_campaign: clip(q.get("utm_campaign"), 100), utm_term: clip(q.get("utm_term"), 100), utm_content: clip(q.get("utm_content"), 100),
+      };
+    }
+    // A session ends after 30 idle minutes, or when a new campaign link is opened.
+    function session() {
+      var now = Date.now(), s = null;
+      try { s = JSON.parse(lsGet(SESSION_KEY) || "null"); } catch (e) { s = null; }
+      var a = attribution();
+      if (!s || !s.id || now - (s.last || 0) > IDLE_MS || (a.utm_source && a.utm_source !== s.utm_source)) {
+        s = Object.assign({ id: newId(), landing: pagePath() }, a);
+      }
+      s.last = now;
+      lsSet(SESSION_KEY, JSON.stringify(s));
+      return s;
+    }
+    function cleanProps(props) {
+      var out = {};
+      Object.keys(props || {}).slice(0, 12).forEach(function (k) {
+        var v = props[k];
+        if (v == null) return;
+        out[clip(k, 40)] = typeof v === "number" || typeof v === "boolean" ? v : clip(v, 200);
+      });
+      return out;
+    }
+    function build(type, name, props, duration) {
+      var s = session();
+      return {
+        visitor_id: visitorId, session_id: s.id, type: type, name: clip(name, 60), path: pagePath(),
+        props: cleanProps(props), referrer: s.referrer || "", referrer_host: s.referrer_host || "",
+        utm_source: s.utm_source || "", utm_medium: s.utm_medium || "", utm_campaign: s.utm_campaign || "",
+        utm_term: s.utm_term || "", utm_content: s.utm_content || "", landing_path: clip(s.landing || "", 300),
+        device: device, browser: browser, os: os, screen_w: Math.min(20000, Math.max(0, screen.width | 0)),
+        language: clip(navigator.language, 20), timezone: clip(timezone, 60),
+        duration_ms: duration == null ? null : Math.min(86400000, Math.max(0, Math.round(duration))),
+      };
+    }
+    function flush() {
+      clearTimeout(timer); timer = null;
+      if (!client) return;
+      while (queue.length) {
+        client.from("events").insert(queue.splice(0, 20)).then(function (res) {
+          if (res.error) console.warn("[MedLink] analytics:", res.error.message);
+        });
+      }
+    }
+    function push(row) {
+      queue.push(row);
+      if (queue.length > 200) queue.shift();
+      if (client && !timer) timer = setTimeout(flush, 1500);
+    }
+    function sendEngagement() {
+      if (visibleSince) { engaged += Date.now() - visibleSince; visibleSince = 0; }
+      if (started && engaged >= 1000) {
+        push(build("page_leave", "engaged", {}, engaged));
+        engaged = 0;
+      }
+      flush();
+    }
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") sendEngagement();
+      else visibleSince = Date.now();
+    });
+    window.addEventListener("pagehide", sendEngagement);
+
+    // Anything marked data-track="name" is counted when clicked, as are links to other sites.
+    document.addEventListener("click", function (e) {
+      var t = e.target.closest && e.target.closest("[data-track]");
+      if (t) push(build("action", t.getAttribute("data-track"), { label: (t.textContent || "").trim().slice(0, 80) }));
+      var a = e.target.closest && e.target.closest("a[href]");
+      if (a && a.hostname && a.hostname !== location.hostname && /^https?:$/.test(a.protocol)) {
+        push(build("action", "outbound_click", { href: a.href.slice(0, 200) }));
+      }
+    }, true);
+    window.addEventListener("error", function (e) {
+      if (++errors > 5) return;
+      push(build("error", "js_error", { message: e.message, source: (e.filename || "").split("/").pop() + ":" + (e.lineno || 0) }));
+    });
+    window.addEventListener("unhandledrejection", function (e) {
+      if (++errors > 5) return;
+      var r = e.reason || {};
+      push(build("error", "promise_error", { message: r.message || String(r) }));
+    });
+
+    return {
+      start: function (url, key, getToken) {
+        client = window.supabase.createClient(url, key, {
+          accessToken: getToken,
+          // keepalive lets the last batch survive the page closing.
+          global: { fetch: function (u, o) { return fetch(u, Object.assign({}, o, { keepalive: true })); } },
+        });
+      },
+      pageView: function (props) {
+        if (started) return;
+        started = true;
+        push(build("page_view", "page_view", props));
+        flush();
+      },
+      action: function (name, props) { push(build("action", name, props)); },
+      visitorId: function () { return visitorId; },
+    };
+  })();
+  function track(name, props) { tracker.action(name, props); }
+
+  // ---------------------------------------------------------------------
+  // Site images — every photo has a slot (see SITE_IMAGES in data.js).
+  // Admins override slots in the site_images table; the last known
+  // overrides are cached so returning visitors don't see the old photo.
+  // ---------------------------------------------------------------------
+  var IMAGE_CACHE_KEY = "ml_site_images";
+  var siteImageMap = (function () {
+    try { return JSON.parse(localStorage.getItem(IMAGE_CACHE_KEY) || "null") || {}; } catch (e) { return {}; }
+  })();
+  function siteImageDefault(slot) {
+    var def = (typeof SITE_IMAGES !== "undefined" ? SITE_IMAGES : []).find(function (x) { return x.slot === slot; });
+    return def ? def.src : "";
+  }
+  function siteImageUrl(slot) {
+    return (siteImageMap[slot] && siteImageMap[slot].url) || siteImageDefault(slot);
+  }
+  function cssUrl(url) { return 'url("' + String(url).replace(/["\\\n\r]/g, "") + '")'; }
+  function applySiteImages(root) {
+    qsa("[data-slot]", root).forEach(function (n) {
+      var slot = n.getAttribute("data-slot"), url = siteImageUrl(slot);
+      if (!url) return;
+      if (n.tagName === "IMG") {
+        if (n.getAttribute("src") !== url) n.setAttribute("src", url);
+        var alt = siteImageMap[slot] && siteImageMap[slot].alt;
+        if (alt) n.setAttribute("alt", alt);
+      } else {
+        n.style.backgroundImage = cssUrl(url);
+      }
+    });
+  }
+  async function refreshSiteImages() {
+    try {
+      var rows = must(await ctx.sb.from("site_images").select("slot,url,alt"));
+      siteImageMap = {};
+      rows.forEach(function (r) { siteImageMap[r.slot] = { url: r.url, alt: r.alt }; });
+      try { localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(siteImageMap)); } catch (e) { /* private mode */ }
+      applySiteImages();
+    } catch (err) { console.warn("[MedLink] site images:", errorMessage(err)); }
+  }
+  function communityImage(c) {
+    return (c && c.image_url) || (typeof COMMUNITY_IMAGES !== "undefined" && c && COMMUNITY_IMAGES[c.id]) || "";
+  }
+  function communityColor(c) {
+    var id = String((c && c.id) || ""), h = 0;
+    for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    var list = typeof COMMUNITY_FALLBACK_COLORS !== "undefined" ? COMMUNITY_FALLBACK_COLORS : ["#1A56F0"];
+    return list[h % list.length];
+  }
+  applySiteImages();
 
   // ---------------------------------------------------------------------
   // Configuration
@@ -143,13 +343,13 @@
     try { return JSON.parse(atob(key.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).role; } catch (e) { return null; }
   }
   function clerkAppearance() {
-    var font = "'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    var font = "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     var dark = document.documentElement.getAttribute("data-theme") === "dark";
     return {
       variables: dark
-        ? { colorPrimary: "#8B5CF6", colorBackground: "#1D1930", colorText: "#ECE9F5", colorTextSecondary: "#B5AECC",
-            colorInputBackground: "#14111F", colorInputText: "#ECE9F5", colorNeutral: "#ECE9F5", borderRadius: "12px", fontFamily: font }
-        : { colorPrimary: "#6D28D9", borderRadius: "12px", fontFamily: font },
+        ? { colorPrimary: "#5B8CFF", colorBackground: "#121A33", colorText: "#E8EEFF", colorTextSecondary: "#A9B6D6",
+            colorInputBackground: "#0A1022", colorInputText: "#E8EEFF", colorNeutral: "#E8EEFF", borderRadius: "14px", fontFamily: font }
+        : { colorPrimary: "#1A56F0", colorText: "#0B1533", borderRadius: "14px", fontFamily: font },
     };
   }
   // Clerk publishable keys encode their Frontend API host: pk_test_<base64(host + "$")>
@@ -202,10 +402,10 @@
   // ---------------------------------------------------------------------
   // Core context
   // ---------------------------------------------------------------------
-  var ctx = { sb: null, clerk: null, me: null, api: null, configured: false };
+  var ctx = { sb: null, clerk: null, me: null, role: null, suspension: null, api: null, configured: false };
 
   async function boot(opts) {
-    opts = Object.assign({ page: null, auth: "required", profile: "required", shell: true, allowUnconfigured: false }, opts);
+    opts = Object.assign({ page: null, auth: "required", profile: "required", shell: true, allowUnconfigured: false, staff: false }, opts);
     var cfg = readConfig();
     if (cfg.problems.length) {
       if (opts.allowUnconfigured) { ready(); return ctx; }
@@ -238,6 +438,10 @@
     ctx.clerk = clerk;
     ctx.configured = true;
     var signedIn = !!clerk.user;
+    var getToken = async function () {
+      return clerk.session ? (await clerk.session.getToken()) : null;
+    };
+    tracker.start(cfg.sbUrl, cfg.sbKey, getToken);
 
     if (opts.auth === "required" && !signedIn) {
       go("sign-in.html?redirect=" + encodeURIComponent(currentPage()));
@@ -248,16 +452,16 @@
       return halt();
     }
 
-    ctx.sb = window.supabase.createClient(cfg.sbUrl, cfg.sbKey, {
-      accessToken: async function () {
-        return clerk.session ? (await clerk.session.getToken()) : null;
-      },
-    });
+    ctx.sb = window.supabase.createClient(cfg.sbUrl, cfg.sbKey, { accessToken: getToken });
     ctx.api = api;
+    refreshSiteImages();
 
     if (signedIn) {
       try {
-        ctx.me = await api.myProfile();
+        var found = await Promise.all([api.myProfile(), api.myStatus()]);
+        ctx.me = found[0];
+        ctx.role = found[1].role;
+        ctx.suspension = found[1].suspension;
       } catch (err) {
         console.error(err);
         renderNotice("Couldn't reach the database", [
@@ -270,11 +474,50 @@
         go("onboarding.html");
         return halt();
       }
+      // Bookkeeping only — never allowed to break the page.
+      try { noteSignIn(clerk.user); if (ctx.me) syncPrivate(clerk.user); } catch (err) { console.warn("[MedLink]", err); }
+    }
+
+    tracker.pageView({ signed_in: signedIn, role: ctx.role || undefined });
+
+    if (opts.staff && !ctx.role) {
+      renderNotice("Admins only", [
+        "This page is for MedLink staff. Your account (@" + (ctx.me ? ctx.me.username : "?") + ") doesn't have a staff role.",
+        "Setting up for the first time? In Supabase > SQL Editor run the latest supabase/schema.sql, then:",
+      ], el("pre", { class: "notice-code" }, [
+        "insert into public.user_roles (user_id, role)\nselect id, 'super_admin' from public.profiles\nwhere username = '" + (ctx.me ? ctx.me.username : "your_username") + "';",
+      ]));
+      return halt();
     }
 
     if (opts.shell && ctx.me) renderShell(opts.page, ctx.me);
     ready();
     return ctx;
+  }
+
+  // Count a sign-in the first time we see a user on this browser (cleared on sign-out).
+  function noteSignIn(user) {
+    var key = "ml_uid", prev = null;
+    try { prev = localStorage.getItem(key); } catch (e) { /* private mode */ }
+    if (prev === user.id) return;
+    try { localStorage.setItem(key, user.id); } catch (e) { /* private mode */ }
+    track("sign_in", { method: (user.externalAccounts && user.externalAccounts[0] && user.externalAccounts[0].provider) || "email" });
+  }
+  // Keep the admin-only copy of the user's email current (once per browser session).
+  function syncPrivate(user) {
+    var email = user.primaryEmailAddress ? user.primaryEmailAddress.emailAddress : "";
+    var key = "ml_private_synced", mark = user.id + "|" + email;
+    try { if (sessionStorage.getItem(key) === mark) return; } catch (e) { /* private mode */ }
+    sb().from("user_private").upsert({ user_id: user.id, email: email.slice(0, 320), updated_at: new Date().toISOString() })
+      .then(function (res) {
+        if (res.error) { console.warn("[MedLink] private profile:", res.error.message); return; }
+        try { sessionStorage.setItem(key, mark); } catch (e) { /* private mode */ }
+      });
+  }
+  async function signOut() {
+    track("sign_out");
+    try { localStorage.removeItem("ml_uid"); } catch (e) { /* private mode */ }
+    await ctx.clerk.signOut({ redirectUrl: new URL("index.html", location.href).href });
   }
 
   async function run(opts, main) {
@@ -290,10 +533,12 @@
   // Data access — every Supabase query lives here
   // ---------------------------------------------------------------------
   var PROFILE_COLS = "id,username,full_name,university_id,course_id,year,bio,interests,current_units,color,created_at";
-  var AUTHOR = "author:profiles(id,username,full_name,university_id,course_id,year,color)";
+  // "!author_id" names the foreign key: likes/saves/reports also link these tables to profiles.
+  var AUTHOR = "author:profiles!author_id(id,username,full_name,university_id,course_id,year,color)";
   var RES_SELECT = "*," + AUTHOR + ",saved_resources(count)";
   var POST_SELECT = "*," + AUTHOR + ",post_likes(count),post_comments(count),community:communities(id,name)";
   var BUCKET = "resources";
+  var MEDIA_BUCKET = "site-media";
 
   function sb() { return ctx.sb; }
   function myId() { return ctx.clerk && ctx.clerk.user ? ctx.clerk.user.id : null; }
@@ -302,6 +547,23 @@
     // ---- profiles ----
     myProfile: async function () {
       return must(await sb().from("profiles").select(PROFILE_COLS).eq("id", myId()).maybeSingle());
+    },
+    // Role + suspension. Tolerates a database that hasn't been upgraded yet.
+    myStatus: async function () {
+      var res = await Promise.all([
+        sb().from("user_roles").select("role").eq("user_id", myId()).maybeSingle(),
+        sb().from("user_suspensions").select("reason,created_at").eq("user_id", myId()).maybeSingle(),
+      ]);
+      res.forEach(function (r) { if (r.error) console.warn("[MedLink] status:", r.error.message); });
+      return { role: res[0].data ? res[0].data.role : null, suspension: res[1].data || null };
+    },
+    rolesFor: async function (ids) {
+      ids = Array.from(new Set(ids)).filter(Boolean);
+      if (!ids.length) return {};
+      var res = await sb().from("user_roles").select("user_id,role").in("user_id", ids);
+      var map = {};
+      (res.data || []).forEach(function (r) { map[r.user_id] = r.role; });
+      return map;
     },
     profileByUsername: async function (username) {
       return must(await sb().from("profiles").select(PROFILE_COLS).eq("username", username).maybeSingle());
@@ -316,7 +578,9 @@
       return !!row && row.id !== myId();
     },
     createProfile: async function (fields) {
-      return must(await sb().from("profiles").insert(Object.assign({}, fields, { id: myId() })).select(PROFILE_COLS).single());
+      var row = must(await sb().from("profiles").insert(Object.assign({}, fields, { id: myId() })).select(PROFILE_COLS).single());
+      track("sign_up_complete", { university: fields.university_id, course: fields.course_id, year: fields.year });
+      return row;
     },
     updateProfile: async function (fields) {
       var row = must(await sb().from("profiles").update(fields).eq("id", myId()).select(PROFILE_COLS).single());
@@ -338,6 +602,7 @@
     setFollowing: async function (id, on) {
       if (on) must(await sb().from("follows").insert({ follower_id: myId(), following_id: id }));
       else must(await sb().from("follows").delete().eq("follower_id", myId()).eq("following_id", id));
+      track(on ? "follow" : "unfollow", { user_id: id });
     },
     suggestedProfiles: async function (limit, me) {
       var rows = must(await sb().from("profiles").select(PROFILE_COLS).neq("id", myId()).order("created_at", { ascending: false }).limit(60));
@@ -376,11 +641,13 @@
         await sb().storage.from(BUCKET).remove([path]);
         throw res.error;
       }
+      track("resource_upload", { id: res.data.id, unit: f.unit, type: f.type, size: f.file.size });
       return res.data;
     },
     deleteResource: async function (r) {
       must(await sb().from("resources").delete().eq("id", r.id));
       await sb().storage.from(BUCKET).remove([r.file_path]);
+      track("resource_delete", { id: r.id, title: r.title });
     },
     fileUrl: function (path, download) {
       return sb().storage.from(BUCKET).getPublicUrl(path, download ? { download: true } : undefined).data.publicUrl;
@@ -392,6 +659,7 @@
     setSaved: async function (resourceId, on) {
       if (on) must(await sb().from("saved_resources").insert({ user_id: myId(), resource_id: resourceId }));
       else must(await sb().from("saved_resources").delete().eq("user_id", myId()).eq("resource_id", resourceId));
+      track(on ? "resource_save" : "resource_unsave", { id: resourceId });
     },
     savedResources: async function () {
       var rows = must(await sb().from("saved_resources").select("created_at,resource:resources(" + RES_SELECT + ")")
@@ -403,6 +671,7 @@
     },
     report: async function (resourceId, reason) {
       must(await sb().from("resource_reports").insert({ resource_id: resourceId, reporter_id: myId(), reason: reason || "" }));
+      track("resource_report", { id: resourceId });
     },
 
     // ---- posts / likes / comments ----
@@ -416,12 +685,15 @@
       return must(await q.order("created_at", { ascending: false }).limit(o.limit || 30));
     },
     createPost: async function (p) {
-      return must(await sb().from("posts").insert({
+      var row = must(await sb().from("posts").insert({
         author_id: myId(), body: p.body, community_id: p.communityId || null, unit: p.unit || null,
       }).select(POST_SELECT).single());
+      track("post_create", { community: p.communityId || "", unit: p.unit || "", length: p.body.length });
+      return row;
     },
     deletePost: async function (id) {
       must(await sb().from("posts").delete().eq("id", id));
+      track("post_delete", { id: id });
     },
     likedIds: async function (postIds) {
       if (!postIds.length) return new Set();
@@ -431,12 +703,15 @@
     setLiked: async function (postId, on) {
       if (on) must(await sb().from("post_likes").insert({ post_id: postId, user_id: myId() }));
       else must(await sb().from("post_likes").delete().eq("post_id", postId).eq("user_id", myId()));
+      track(on ? "post_like" : "post_unlike", { id: postId });
     },
     comments: async function (postId) {
       return must(await sb().from("post_comments").select("*," + AUTHOR).eq("post_id", postId).order("created_at", { ascending: true }));
     },
     addComment: async function (postId, body) {
-      return must(await sb().from("post_comments").insert({ post_id: postId, author_id: myId(), body: body }).select("*," + AUTHOR).single());
+      var row = must(await sb().from("post_comments").insert({ post_id: postId, author_id: myId(), body: body }).select("*," + AUTHOR).single());
+      track("comment_create", { post_id: postId });
+      return row;
     },
     deleteComment: async function (id) {
       must(await sb().from("post_comments").delete().eq("id", id));
@@ -456,6 +731,7 @@
     setMember: async function (communityId, on) {
       if (on) must(await sb().from("community_members").insert({ community_id: communityId, user_id: myId() }));
       else must(await sb().from("community_members").delete().eq("community_id", communityId).eq("user_id", myId()));
+      track(on ? "community_join" : "community_leave", { id: communityId });
     },
     unitStats: async function (unit) {
       var res = await Promise.all([
@@ -473,7 +749,9 @@
       return must(await sb().from("messages").select("*").order("created_at", { ascending: false }).limit(1000));
     },
     sendMessage: async function (toId, body) {
-      return must(await sb().from("messages").insert({ sender_id: myId(), recipient_id: toId, body: body }).select("*").single());
+      var row = must(await sb().from("messages").insert({ sender_id: myId(), recipient_id: toId, body: body }).select("*").single());
+      track("message_send", { length: body.length });
+      return row;
     },
     markRead: async function (fromId) {
       must(await sb().from("messages").update({ read_at: new Date().toISOString() })
@@ -490,6 +768,7 @@
       var q = String(raw || "").replace(/^@/, "").replace(/[^\p{L}\p{N}\s._-]/gu, " ").replace(/\s+/g, " ").trim();
       if (q.length < 2) return { q: q, resources: [], profiles: [], communities: [], posts: [] };
       var like = "%" + q + "%";
+      track("search", { q: q.slice(0, 80) });
       var res = await Promise.all([
         sb().from("resources").select(RES_SELECT).ilike("title", like).limit(20),
         sb().from("resources").select(RES_SELECT).ilike("unit", like).limit(20),
@@ -522,6 +801,122 @@
       res.forEach(must);
       return (res[0].count || 0) * 20 + (res[1].count || 0) * 5 + (res[2].count || 0) * 2;
     },
+
+    // ---- site images (public read) ----
+    siteImages: async function () {
+      return must(await sb().from("site_images").select("*").order("slot"));
+    },
+  };
+
+  // ---------------------------------------------------------------------
+  // Admin API — the database enforces every permission (RLS + checks
+  // inside the functions); these helpers only save typing.
+  // ---------------------------------------------------------------------
+  api.admin = {
+    stats: async function (days) {
+      return must(await sb().rpc("admin_stats", { p_days: days }));
+    },
+    users: async function (o) {
+      o = o || {};
+      return must(await sb().rpc("admin_users", { p_q: o.q || "", p_filter: o.filter || "", p_limit: o.limit || 50, p_offset: o.offset || 0 }));
+    },
+    setRole: async function (userId, role) {
+      must(await sb().rpc("set_user_role", { target: userId, new_role: role || null }));
+      track("admin_set_role", { user_id: userId, role: role || "student" });
+    },
+    setSuspended: async function (userId, on, reason) {
+      must(await sb().rpc("set_user_suspended", { target: userId, suspend: !!on, reason: reason || "" }));
+      track(on ? "admin_suspend" : "admin_unsuspend", { user_id: userId });
+    },
+    updateProfile: async function (userId, fields) {
+      return must(await sb().from("profiles").update(fields).eq("id", userId).select(PROFILE_COLS).single());
+    },
+    activity: async function (o) {
+      o = o || {};
+      var q = sb().from("activity_log").select("*");
+      if (o.actorId) q = q.eq("actor_id", o.actorId);
+      if (o.action) q = q.eq("action", o.action);
+      if (o.entity) q = q.eq("entity", o.entity);
+      if (o.before) q = q.lt("id", o.before);
+      return must(await q.order("id", { ascending: false }).limit(o.limit || 50));
+    },
+    events: async function (o) {
+      o = o || {};
+      var q = sb().from("events").select("*");
+      if (o.userId) q = q.eq("user_id", o.userId);
+      if (o.type) q = q.eq("type", o.type);
+      if (o.name) q = q.eq("name", o.name);
+      if (o.sessionId) q = q.eq("session_id", o.sessionId);
+      if (o.before) q = q.lt("id", o.before);
+      return must(await q.order("id", { ascending: false }).limit(o.limit || 50));
+    },
+    reports: async function (status) {
+      var q = sb().from("resource_reports")
+        .select("*,resource:resources!resource_id(id,title,unit,type,file_path,author_id),reporter:profiles!reporter_id(id,username,full_name,color)");
+      if (status) q = q.eq("status", status);
+      return must(await q.order("created_at", { ascending: false }).limit(100));
+    },
+    resolveReport: async function (id, status) {
+      must(await sb().from("resource_reports").update({ status: status, resolved_by: myId(), resolved_at: new Date().toISOString() }).eq("id", id));
+    },
+    resources: async function (o) {
+      o = o || {};
+      var q = sb().from("resources").select(RES_SELECT);
+      if (o.q) q = q.ilike("title", "%" + o.q + "%");
+      return must(await q.order("created_at", { ascending: false }).limit(o.limit || 50));
+    },
+    updateResource: async function (id, fields) {
+      return must(await sb().from("resources").update(fields).eq("id", id).select(RES_SELECT).single());
+    },
+    posts: async function (o) {
+      o = o || {};
+      var q = sb().from("posts").select(POST_SELECT);
+      if (o.q) q = q.ilike("body", "%" + o.q + "%");
+      return must(await q.order("created_at", { ascending: false }).limit(o.limit || 50));
+    },
+    comments: async function (o) {
+      o = o || {};
+      var q = sb().from("post_comments").select("*," + AUTHOR);
+      if (o.q) q = q.ilike("body", "%" + o.q + "%");
+      return must(await q.order("created_at", { ascending: false }).limit(o.limit || 50));
+    },
+    saveCommunity: async function (c, isNew) {
+      var fields = { name: c.name, description: c.description, image_url: c.image_url || "" };
+      if (isNew) return must(await sb().from("communities").insert(Object.assign({ id: c.id }, fields)).select("*").single());
+      return must(await sb().from("communities").update(fields).eq("id", c.id).select("*").single());
+    },
+    deleteCommunity: async function (id) {
+      must(await sb().from("communities").delete().eq("id", id));
+    },
+    setSiteImage: async function (slot, url, alt) {
+      must(await sb().from("site_images").upsert({ slot: slot, url: url, alt: alt || "", updated_by: myId(), updated_at: new Date().toISOString() }));
+      await refreshSiteImages();
+    },
+    resetSiteImage: async function (slot) {
+      must(await sb().from("site_images").delete().eq("slot", slot));
+      await refreshSiteImages();
+    },
+    media: async function () {
+      var rows = must(await sb().storage.from(MEDIA_BUCKET).list("", { limit: 500, sortBy: { column: "created_at", order: "desc" } }));
+      return rows.filter(function (f) { return f.id && f.name !== ".emptyFolderPlaceholder"; }).map(function (f) {
+        return { name: f.name, size: f.metadata ? f.metadata.size : 0, type: f.metadata ? f.metadata.mimetype : "",
+                 created_at: f.created_at, url: api.admin.mediaUrl(f.name) };
+      });
+    },
+    mediaUrl: function (name) {
+      return sb().storage.from(MEDIA_BUCKET).getPublicUrl(name).data.publicUrl;
+    },
+    uploadMedia: async function (file) {
+      var safe = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(-60) || "image";
+      var name = Date.now().toString(36) + "-" + safe;
+      must(await sb().storage.from(MEDIA_BUCKET).upload(name, file, { contentType: file.type, upsert: false }));
+      track("admin_media_upload", { name: name, size: file.size });
+      return { name: name, url: api.admin.mediaUrl(name) };
+    },
+    deleteMedia: async function (name) {
+      must(await sb().storage.from(MEDIA_BUCKET).remove([name]));
+      track("admin_media_delete", { name: name });
+    },
   };
 
   // ---------------------------------------------------------------------
@@ -543,30 +938,54 @@
     return node;
   }
 
+  function icon(paths, size) {
+    return '<svg width="' + (size || 20) + '" height="' + (size || 20) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + paths + "</svg>";
+  }
+  var ICONS = {
+    dashboard: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    study: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+    exams: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="m9 13 2 2 4-4"/>',
+    units: '<path d="M3 12h4l2-5 4 10 2-5h6"/>',
+    communities: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>',
+    discover: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+    news: '<path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 17h3"/>',
+    messages: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/>',
+    saved: '<path d="M6 3h12v18l-6-4-6 4z"/>',
+    profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    settings: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+    admin: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+    logout: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/>',
+  };
+  var ROLE_LABELS = { super_admin: "Super admin", admin: "Admin", moderator: "Moderator" };
+
   function renderShell(active, me) {
-    var nav = [
-      ["dashboard", "dashboard.html", "🏠", "Home"],
-      ["study", "study.html", "📚", "Study"],
-      ["exams", "exams.html", "📝", "Exam Bank"],
-      ["units", "units.html", "🩺", "Current Units"],
-      ["communities", "communities.html", "👥", "Communities"],
-      ["discover", "discover.html", "🧭", "Discover"],
-      ["news", "news.html", "📰", "News"],
-      ["messages", "messages.html", "💬", "Messages"],
-      null,
-      ["saved", "saved.html", "🔖", "Saved"],
-      ["profile", profileHref(me), "👤", "Profile"],
-      ["settings", "settings.html", "⚙️", "Settings"],
+    var isStaff = !!ctx.role;
+    // [page, href, label, icon colour]
+    var menu = [
+      ["dashboard", "dashboard.html", "Home", "#1A56F0"],
+      ["study", "study.html", "Study Library", "#FF7A1A"],
+      ["exams", "exams.html", "Exam Bank", "#FF4F9A"],
+      ["units", "units.html", "Current Units", "#10B39E"],
+      ["communities", "communities.html", "Communities", "#7B61FF"],
+      ["discover", "discover.html", "Discover", "#0EA5E9"],
+      ["news", "news.html", "Medical News", "#F5A300"],
+      ["messages", "messages.html", "Messages", "#1A56F0"],
     ];
+    var general = [
+      ["saved", "saved.html", "Saved", "#FF4F9A"],
+      ["profile", profileHref(me), "Profile", "#7B61FF"],
+      ["settings", "settings.html", "Settings", "#10B39E"],
+    ];
+    if (isStaff) general.push(["admin", "admin.html", "Admin", "#FF7A1A"]);
     var bottom = [
-      ["dashboard", "dashboard.html", "🏠", "Home"],
-      ["study", "study.html", "📚", "Study"],
-      ["communities", "communities.html", "👥", "Groups"],
-      ["messages", "messages.html", "💬", "Messages"],
-      ["profile", profileHref(me), "👤", "Profile"],
+      ["dashboard", "dashboard.html", "Home"],
+      ["study", "study.html", "Study"],
+      ["communities", "communities.html", "Groups"],
+      ["messages", "messages.html", "Messages"],
+      ["profile", profileHref(me), "Profile"],
     ];
 
-    var searchInput = el("input", { type: "text", name: "q", placeholder: "Search resources, @usernames, communities…", "aria-label": "Search", value: active === "search" ? (param("q") || "") : null });
+    var searchInput = el("input", { type: "text", name: "q", placeholder: "Search notes, @students, communities…", "aria-label": "Search", value: active === "search" ? (param("q") || "") : null });
     var searchForm = el("form", { class: "topbar-search", action: "search.html", method: "get", html: ICON_SEARCH }, [searchInput]);
     searchForm.addEventListener("submit", function (e) { if (!searchInput.value.trim()) e.preventDefault(); });
 
@@ -577,28 +996,58 @@
           el("span", { class: "brand-mark", html: ICON_MARK }), " ", el("span", { class: "brand-text" }, ["MedLink KE"]),
         ]),
         searchForm,
+        isStaff ? el("a", { class: "icon-btn admin-quick", href: "admin.html", "aria-label": "Admin dashboard", title: "Admin dashboard", html: icon(ICONS.admin, 18) }) : null,
         el("button", { class: "icon-btn theme-toggle", "data-theme-toggle": true, type: "button", "aria-label": "Switch theme", html: ICON_THEME }),
-        (function () { var a = avatarNode(me, "", true); a.classList.add("avatar-link"); return a; })(),
+        el("a", { class: "topbar-me", href: profileHref(me) }, [
+          avatarNode(me, "", false),
+          el("span", { class: "topbar-me-text" }, [
+            el("span", { class: "topbar-me-name" }, [me.full_name]),
+            el("span", { class: "topbar-me-sub" }, [ctx.role ? ROLE_LABELS[ctx.role] : "@" + me.username]),
+          ]),
+        ]),
       ]),
     ]);
 
     var badgeSlots = [];
-    var navItem = function (item, cls) {
-      var a = el("a", { href: item[1], class: cls + (item[0] === active ? " active" : "") }, cls === "nav-item"
-        ? [item[2] + " " + item[3]]
-        : [el("span", { class: "bn-icon" }, [item[2]]), item[3]]);
+    var navItem = function (item) {
+      var a = el("a", { href: item[1], class: "nav-item" + (item[0] === active ? " active" : ""), style: "--ic:" + item[3] }, [
+        el("span", { class: "nav-icon", html: icon(ICONS[item[0]], 19) }), el("span", {}, [item[2]]),
+      ]);
       if (item[0] === "messages") badgeSlots.push(a);
       return a;
     };
-    var points = el("div", { class: "title" }, ["🏅 … MedPoints"]);
-    var sidebar = el("nav", { class: "sidebar", "aria-label": "Main" },
-      nav.map(function (item) { return item ? navItem(item, "nav-item") : el("div", { class: "nav-divider" }); })
-        .concat([el("div", { class: "medpoints-card" }, [points, el("div", { class: "desc" }, ["Earn points by sharing notes (20), posting (5) and helping in comments (2)."])])]));
-    var bottomNav = el("nav", { class: "bottom-nav", "aria-label": "Main" }, bottom.map(function (item) { return navItem(item, ""); }));
+    var points = el("div", { class: "mp-points" }, ["…"]);
+    var sidebar = el("nav", { class: "sidebar", "aria-label": "Main" }, [
+      el("div", { class: "nav-label" }, ["Menu"]),
+    ].concat(menu.map(navItem), [el("div", { class: "nav-label" }, ["General"])], general.map(navItem), [
+      el("button", { type: "button", class: "nav-item", style: "--ic:#78849B", onclick: signOut }, [
+        el("span", { class: "nav-icon", html: icon(ICONS.logout, 19) }), el("span", {}, ["Sign out"]),
+      ]),
+      el("div", { class: "medpoints-card" }, [
+        el("div", { class: "mp-label" }, ["🏅 Your MedPoints"]),
+        points,
+        el("div", { class: "desc" }, ["Share notes (+20), post (+5) and help in comments (+2)."]),
+        el("a", { href: "study.html?upload=1", class: "mp-btn" }, ["Upload notes"]),
+      ]),
+    ]));
+    var bottomNav = el("nav", { class: "bottom-nav", "aria-label": "Main" }, bottom.map(function (item) {
+      var a = el("a", { href: item[1], class: item[0] === active ? "active" : "" }, [
+        el("span", { class: "bn-icon", html: icon(ICONS[item[0]], 21) }), item[2],
+      ]);
+      if (item[0] === "messages") badgeSlots.push(a);
+      return a;
+    }));
 
     var page = qs("#page");
     page.classList.add("main-content");
     page.hidden = false;
+    if (ctx.suspension) {
+      page.prepend(el("div", { class: "suspended-banner", role: "alert" }, [
+        el("strong", {}, ["Your account is suspended. "]),
+        "You can still read and download, but posting, uploading, commenting and messaging are turned off.",
+        ctx.suspension.reason ? el("span", { class: "suspended-reason" }, [" Reason: " + ctx.suspension.reason]) : null,
+      ]));
+    }
     var body = el("div", { class: "shell-body" }, [sidebar]);
     page.parentNode.insertBefore(topbar, page);
     page.parentNode.insertBefore(body, page);
@@ -613,8 +1062,8 @@
       if (!n) return;
       badgeSlots.forEach(function (a) { a.appendChild(el("span", { class: "nav-badge" }, [n > 99 ? "99+" : String(n)])); });
     }).catch(function (e) { console.warn(e); });
-    api.medPoints(me.id).then(function (n) { points.textContent = "🏅 " + n.toLocaleString() + " MedPoints"; })
-      .catch(function () { points.textContent = "🏅 MedPoints"; });
+    api.medPoints(me.id).then(function (n) { points.textContent = n.toLocaleString(); })
+      .catch(function () { points.textContent = "—"; });
   }
 
   // ---------------------------------------------------------------------
@@ -626,13 +1075,18 @@
 
   function resourceCardNode(r) {
     var author = r.author;
-    var card = el("a", { class: "card resource-card", href: "resource.html?id=" + encodeURIComponent(r.id) }, [
-      el("div", { class: "top-row" }, [el("span", { class: "chip" }, [r.type]), el("span", { class: "file-ext" }, [fileExt(r.file_name)])]),
+    var ts = typeStyle(r.type);
+    var card = el("a", { class: "card resource-card", href: "resource.html?id=" + encodeURIComponent(r.id), style: "--tc:" + ts.color + ";--tc-soft:" + ts.soft }, [
+      el("div", { class: "top-row" }, [
+        el("span", { class: "rc-icon", "aria-hidden": "true" }, [ts.icon]),
+        el("span", { class: "rc-type" }, [r.type]),
+        el("span", { class: "file-ext" }, [fileExt(r.file_name)]),
+      ]),
       el("div", { class: "title" }, [r.title]),
       el("div", { class: "meta" }, [r.unit + (author ? " · " + uniAbbr(author.university_id) : "")]),
       el("div", { class: "bottom-row" }, [
         el("span", { class: "author-link" }, author ? [author.full_name + " ", el("span", { class: "handle" }, ["@" + author.username])] : ["MedLink student"]),
-        el("span", {}, ["🔖 " + count(r.saved_resources)]),
+        el("span", { class: "rc-stats" }, ["👁 " + (r.views || 0) + "  🔖 " + count(r.saved_resources)]),
       ]),
     ]);
     return card;
@@ -707,7 +1161,7 @@
           el("div", { class: "comment-body" }, [c.body]),
         ]),
       ]);
-      if (me && c.author_id === me.id) {
+      if (me && (c.author_id === me.id || ctx.role)) {
         row.appendChild(el("button", { type: "button", class: "link-btn", "aria-label": "Delete comment", onclick: async function () {
           if (!confirm("Delete this comment?")) return;
           try { await api.deleteComment(c.id); row.remove(); comments -= 1; commentBtn.textContent = "💬 " + comments; } catch (err) { reportError(err); }
@@ -717,7 +1171,7 @@
     }
 
     var actions = el("div", { class: "post-actions" }, [likeBtn, commentBtn]);
-    if (me && post.author_id === me.id) {
+    if (me && (post.author_id === me.id || ctx.role)) {
       actions.appendChild(el("button", { type: "button", class: "post-action danger", onclick: async function () {
         if (!confirm("Delete this post?")) return;
         try { await api.deletePost(post.id); card.remove(); toast("Post deleted."); } catch (err) { reportError(err); }
@@ -806,13 +1260,24 @@
     return row;
   }
 
+  function communityCoverNode(c, cls) {
+    var img = communityImage(c);
+    var cover = el("div", { class: cls || "cc-cover", style: "--cc:" + communityColor(c) });
+    if (img) cover.style.backgroundImage = cssUrl(img);
+    else cover.appendChild(el("span", { class: "cc-letter" }, [c.name.charAt(0)]));
+    return cover;
+  }
   function communityCardNode(c, joined) {
-    return el("a", { href: "communities.html?c=" + encodeURIComponent(c.id), class: "card pad community-card" }, [
-      el("div", { class: "avatar md", style: "background:var(--panel);" }, [c.name.charAt(0)]),
-      el("div", { class: "community-name" }, [c.name]),
-      el("div", { class: "faint community-count" }, [plural(count(c.community_members), "member") + (joined ? " · Joined" : "")]),
-      el("div", { class: "muted community-desc" }, [c.description]),
-      el("span", { class: "btn btn-ghost btn-block" }, [joined ? "Open community" : "View community"]),
+    var cover = communityCoverNode(c);
+    if (joined) cover.appendChild(el("span", { class: "cc-badge" }, ["✓ Joined"]));
+    return el("a", { href: "communities.html?c=" + encodeURIComponent(c.id), class: "card community-card" }, [
+      cover,
+      el("div", { class: "cc-body" }, [
+        el("div", { class: "community-name" }, [c.name]),
+        el("div", { class: "faint community-count" }, [plural(count(c.community_members), "member")]),
+        el("div", { class: "muted community-desc" }, [c.description]),
+        el("span", { class: "btn btn-block " + (joined ? "btn-primary" : "btn-ghost") }, [joined ? "Open community" : "View community"]),
+      ]),
     ]);
   }
 
@@ -844,6 +1309,19 @@
     composerNode: composerNode,
     studentRowNode: studentRowNode,
     communityCardNode: communityCardNode,
+    communityCoverNode: communityCoverNode,
+    communityImage: communityImage,
+    communityColor: communityColor,
     fileExt: fileExt,
+    track: track,
+    visitorId: tracker.visitorId,
+    signOut: signOut,
+    icon: icon,
+    ICONS: ICONS,
+    ROLE_LABELS: ROLE_LABELS,
+    siteImageUrl: siteImageUrl,
+    siteImageDefault: siteImageDefault,
+    applySiteImages: applySiteImages,
+    cssUrl: cssUrl,
   };
 })();
