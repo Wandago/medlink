@@ -61,7 +61,7 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   // ---- hero carousel ----
   const slides = [
     { kicker: new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }),
-      title: `${hello}, ${first}`, text: `${courseName(me.course_id)} · ${me.year} · ${uniName(me.university_id)}`,
+      title: `${hello}, ${first}`, text: `${courseName(me.course_id)} · ${me.year} · ${uniFull(me)}`,
       photo: MedLink.siteImageUrl("dashboard-banner"),
       actions: [el("a", { class: "btn btn-white", href: "study.html" }, ["Open library"]), el("a", { class: "btn btn-ghost-white", href: "exams.html" }, ["Practice questions"])] },
     { kicker: "Earn 20 MedPoints", title: "Share your notes, help your class.",

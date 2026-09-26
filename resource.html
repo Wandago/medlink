@@ -108,7 +108,7 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
       el("a", { href: "study.html?unit=" + encodeURIComponent(r.unit), class: "handle" }, [r.unit]),
       " · Uploaded by ",
       author ? el("a", { href: profileHref(author), class: "handle" }, [author.full_name + " (@" + author.username + ")"]) : "a MedLink student",
-      author ? " · " + uniAbbr(author.university_id) : "",
+      author && uniLabel(author) ? " · " + uniLabel(author) : "",
       " · " + timeAgo(r.created_at),
     ]),
     el("div", { class: "row-gap", style: "gap:22px;font-size:13px;margin-bottom:18px;" }, [

@@ -67,7 +67,7 @@ MedLink.run({ page: "profile" }, async ({ api, me }) => {
       el("div", { style: "flex:1;min-width:170px;" }, [
         el("h1", { class: "disp", style: "font-size:22px;" }, [user.full_name]),
         el("div", { class: "handle", style: "font-size:13.5px;" }, ["@" + user.username]),
-        el("div", { class: "faint", style: "font-size:12.5px;" }, [`${courseName(user.course_id)} · ${user.year} · ${uniName(user.university_id)}`]),
+        el("div", { class: "faint", style: "font-size:12.5px;" }, [`${courseName(user.course_id)} · ${user.year} · ${uniFull(user)}${user.country ? " " + countryFlag(user.country) : ""}`]),
       ]),
       actions,
     ]),

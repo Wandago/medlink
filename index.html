@@ -8,10 +8,10 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <title>MedLink KE — Your medical school, all in one place</title>
-<meta name="description" content="Free study notes, past-paper practice and communities for medical students in Kenya.">
+<meta name="description" content="Free study notes, past-paper practice and communities for medical students — built in Kenya, open everywhere.">
 <meta name="theme-color" content="#FFFFFF">
 <meta property="og:title" content="MedLink KE — Your medical school, all in one place">
-<meta property="og:description" content="Free notes, past-paper practice and study communities for medical students in Kenya.">
+<meta property="og:description" content="Free notes, past-paper practice and study communities for medical students — built in Kenya, open everywhere.">
 <meta property="og:image" content="img/hero-main.jpg">
 <script src="theme.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,9 +41,9 @@
     </nav>
 
     <div class="lp-hero-center">
-      <span class="lp-glass-pill"><i></i> Free for every medical student in Kenya</span>
+      <span class="lp-glass-pill"><i></i> Free for medical students — built in Kenya, open everywhere</span>
       <h1>Your medical school,<br>all in one place.</h1>
-      <p>Notes filed by unit, exam-style practice questions, past papers and a community of classmates from every Kenyan medical school.</p>
+      <p>Notes filed by unit, exam-style practice questions, past papers and a community of medical students — from Nairobi to wherever you study.</p>
       <div class="lp-cta-row">
         <a href="#features" class="btn lp-btn-glass" data-track="cta_hero_explore">See what's inside</a>
         <a href="sign-up.html" class="btn btn-lime" id="ctaHero" data-track="cta_hero_get_started">Get started free <span class="lp-arrow">↗</span></a>
@@ -69,7 +69,7 @@
     <h2 class="lp-h2">One place for your notes, <span class="lp-bubble">✚</span> your exams<br><span class="soft">and your classmates <span class="lp-bubble lime">✓</span></span></h2>
     <div class="lp-bento">
       <div class="lp-tile photo" data-slot="hero-main" role="img" aria-label="Medical students reviewing a scan together">
-        <div class="overlay"><div class="num" id="statUnis">13+</div><div class="cap">Universities and colleges, every programme and year of study.</div></div>
+        <div class="overlay"><div class="num" id="statUnis">10,000+</div><div class="cap" id="statUnisCap">Universities in 200 countries — plus every Kenyan medical school.</div></div>
       </div>
       <div class="lp-tile grey">
         <div><div class="small" style="color:var(--text-3)">Free study material</div><div class="num" style="margin-top:6px">100%</div></div>
@@ -112,7 +112,7 @@
       <a class="lp-comm" href="join.html?c=course-mbchb" data-community="course-mbchb" data-track="lp_community"><div class="img"><b>Course</b></div><h3>MBChB</h3><p>Everyone studying medicine — every year, every university.</p><span class="go">Take a look →</span></a>
       <a class="lp-comm" href="join.html?c=course-nursing" data-community="course-nursing" data-track="lp_community"><div class="img"><b>Course</b></div><h3>Nursing</h3><p>Placements, notes and support from nursing students across Kenya.</p><span class="go">Take a look →</span></a>
       <a class="lp-comm" href="join.html?c=surgery" data-community="surgery" data-track="lp_community"><div class="img"><b>Topic</b></div><h3>Surgery</h3><p>For students on surgical rotations and future surgeons.</p><span class="go">Take a look →</span></a>
-      <a class="lp-comm" href="join.html?c=med-students-ke" data-community="med-students-ke" data-track="lp_community"><div class="img"><b>Everyone</b></div><h3>Medical Students in Kenya</h3><p>Announcements, opportunities and banter.</p><span class="go">Take a look →</span></a>
+      <a class="lp-comm" href="join.html?c=med-students-ke" data-community="med-students-ke" data-track="lp_community"><div class="img"><b>Country</b></div><h3>Medical Students in Kenya</h3><p>Announcements, opportunities and banter — every country gets its own.</p><span class="go">Take a look →</span></a>
     </div>
   </section>
 
@@ -144,10 +144,11 @@
 <script>
   // Real numbers from the catalogue in data.js.
   const unitCount = new Set(Object.values(UNIT_CATALOG).flatMap(y => Object.values(y).flatMap(s => Object.values(s).flat()))).size;
-  qs("#statUnis").textContent = UNIVERSITIES.length + "+";
+  qs("#statUnis").textContent = (Math.floor(UNIVERSITY_COUNT / 1000) * 1000).toLocaleString() + "+";
+  qs("#statUnisCap").textContent = `Universities in ${COUNTRIES_WITH_UNIVERSITIES} countries — plus every Kenyan medical school.`;
   qs("#statCourses").textContent = COURSES.length;
   qs("#statUnits").textContent = qs("#cardUnits").textContent = unitCount + "+";
-  qs("#uniCount").textContent = `Built for ${UNIVERSITIES.length}+ Kenyan universities and colleges`;
+  qs("#uniCount").textContent = `Built in Kenya · students from ${COUNTRIES_WITH_UNIVERSITIES} countries can join`;
   const names = UNIVERSITIES.map(u => u.name);
   qs("#logos").replaceChildren(...names.concat(names).map(n => el("span", {}, [n])));
   qsa("[data-community]").forEach(n => {

@@ -571,6 +571,7 @@ begin
       v_entity := 'user'; v_id := r->>'id';
       v_action := case tg_op when 'INSERT' then 'user_joined' else 'profile_updated' end;
       v_det := jsonb_build_object('username', r->>'username', 'university_id', r->>'university_id',
+                                  'university_name', r->>'university_name', 'country', r->>'country',
                                   'course_id', r->>'course_id', 'year', r->>'year');
     when 'posts' then
       v_entity := 'post'; v_id := r->>'id'; v_action := 'post_' || verb;
@@ -879,7 +880,10 @@ begin
                     from ev e join public.profiles p on p.id = e.user_id
                     group by p.id, p.username, p.full_name, p.color order by 5 desc limit 10) t),
     'universities', (select coalesce(jsonb_agg(t order by t.users desc), '[]') from (
-                    select university_id as label, count(*) as users from public.profiles group by 1) t),
+                    select university_id as label, max(university_name) as name, count(*) as users from public.profiles group by 1) t),
+    'countries', (select coalesce(jsonb_agg(t order by t.users desc), '[]') from (
+                    select p.country as label, coalesce(max(c.name), p.country) as name, count(*) as users
+                    from public.profiles p left join public.countries c on c.code = p.country group by p.country) t),
     'courses', (select coalesce(jsonb_agg(t order by t.users desc), '[]') from (
                     select course_id as label, count(*) as users from public.profiles group by 1) t),
     'years', (select coalesce(jsonb_agg(t order by t.label), '[]') from (
@@ -888,53 +892,14 @@ begin
   return result;
 end $$;
 
--- Users table for the admin page (profile + role + suspension + activity counts).
--- Emails are only returned to admins.
-create or replace function public.admin_users(p_q text default '', p_filter text default '', p_limit integer default 50, p_offset integer default 0)
-returns table (
-  id text, username text, full_name text, university_id text, course_id text, year text, color text,
-  bio text, created_at timestamptz, email text, role text, suspended boolean, suspension_reason text,
-  last_seen timestamptz, events bigint, posts bigint, resources bigint, total bigint
-)
-language sql stable security definer set search_path = public as $$
-  with base as (
-    select p.* from public.profiles p
-    left join public.user_roles r on r.user_id = p.id
-    left join public.user_suspensions s on s.user_id = p.id
-    where public.is_staff()
-      and (coalesce(p_q, '') = ''
-           or p.username ilike '%' || p_q || '%'
-           or p.full_name ilike '%' || p_q || '%'
-           or (public.is_admin() and exists (select 1 from public.user_private up
-                                             where up.user_id = p.id and up.email ilike '%' || p_q || '%')))
-      and (coalesce(p_filter, '') = ''
-           or (p_filter = 'staff' and r.role is not null)
-           or (p_filter = 'suspended' and s.user_id is not null)
-           or (p_filter = r.role))
-  )
-  select b.id, b.username, b.full_name, b.university_id, b.course_id, b.year, b.color, b.bio, b.created_at,
-         case when public.is_admin() then (select up.email from public.user_private up where up.user_id = b.id) end,
-         r.role, s.user_id is not null, s.reason,
-         (select max(e.created_at) from public.events e where e.user_id = b.id),
-         (select count(*) from public.events e where e.user_id = b.id),
-         (select count(*) from public.posts x where x.author_id = b.id),
-         (select count(*) from public.resources x where x.author_id = b.id),
-         count(*) over ()
-  from base b
-  left join public.user_roles r on r.user_id = b.id
-  left join public.user_suspensions s on s.user_id = b.id
-  order by b.created_at desc
-  limit least(greatest(coalesce(p_limit, 50), 1), 200) offset greatest(coalesce(p_offset, 0), 0)
-$$;
+-- admin_users() is defined in the v4 section below (it includes country and university name).
 
 revoke all on function public.set_user_role(text, text) from public, anon;
 revoke all on function public.set_user_suspended(text, boolean, text) from public, anon;
 revoke all on function public.admin_stats(integer) from public, anon;
-revoke all on function public.admin_users(text, text, integer, integer) from public, anon;
 grant execute on function public.set_user_role(text, text) to authenticated;
 grant execute on function public.set_user_suspended(text, boolean, text) to authenticated;
 grant execute on function public.admin_stats(integer) to authenticated;
-grant execute on function public.admin_users(text, text, integer, integer) to authenticated;
 
 -- =========================================================
 -- v3 — simpler communities, invite links, exam bank,
@@ -956,7 +921,7 @@ alter table public.app_meta enable row level security;  -- no policies: not reac
 alter table public.communities add column if not exists kind text not null default 'topic';
 alter table public.communities add column if not exists course_id text;
 alter table public.communities drop constraint if exists communities_kind_check;
-alter table public.communities add constraint communities_kind_check check (kind in ('general', 'course', 'topic'));
+alter table public.communities add constraint communities_kind_check check (kind in ('general', 'course', 'topic', 'country'));
 
 insert into public.communities (id, name, description, kind, course_id) values
   ('course-mbchb',     'MBChB',             'Everyone studying medicine — every year, every university.',      'course', 'mbchb'),
@@ -965,7 +930,7 @@ insert into public.communities (id, name, description, kind, course_id) values
   ('course-pharmacy',  'Pharmacy',          'Pharmacology, pharmaceutics and everything in between.',          'course', 'pharmacy'),
   ('course-dentistry', 'Dentistry',         'Dental students — clinics, techniques and study help.',           'course', 'dentistry')
 on conflict (id) do update set kind = excluded.kind, course_id = excluded.course_id;
-update public.communities set kind = 'general' where id = 'med-students-ke';
+update public.communities set kind = 'general' where id = 'med-students-ke' and kind = 'topic';
 
 -- Everyone joins the general community and their course community automatically.
 create or replace function public.auto_join_communities()
@@ -1186,3 +1151,362 @@ create trigger log_activity after insert or delete on public.exam_sets     for e
 create trigger log_activity after insert           on public.exam_attempts for each row execute function public.log_activity();
 create trigger log_activity after insert or delete on public.exam_papers   for each row execute function public.log_activity();
 create trigger log_activity after insert or delete on public.role_invites  for each row execute function public.log_activity();
+
+-- =========================================================
+-- v4 — any country. Students pick their country and any
+-- university (Kenya keeps its curated list); each country gets
+-- its own community automatically, plus one for everyone.
+-- =========================================================
+create table if not exists public.countries (
+  code text primary key check (code ~ '^[A-Z]{2}$'),
+  name text not null
+);
+alter table public.countries enable row level security;
+drop policy if exists "countries: readable" on public.countries;
+create policy "countries: readable" on public.countries for select to anon, authenticated using (true);
+insert into public.countries (code, name) values
+  ('AD', 'Andorra'),
+  ('AE', 'United Arab Emirates'),
+  ('AF', 'Afghanistan'),
+  ('AG', 'Antigua & Barbuda'),
+  ('AI', 'Anguilla'),
+  ('AL', 'Albania'),
+  ('AM', 'Armenia'),
+  ('AO', 'Angola'),
+  ('AQ', 'Antarctica'),
+  ('AR', 'Argentina'),
+  ('AS', 'American Samoa'),
+  ('AT', 'Austria'),
+  ('AU', 'Australia'),
+  ('AW', 'Aruba'),
+  ('AX', 'Åland Islands'),
+  ('AZ', 'Azerbaijan'),
+  ('BA', 'Bosnia & Herzegovina'),
+  ('BB', 'Barbados'),
+  ('BD', 'Bangladesh'),
+  ('BE', 'Belgium'),
+  ('BF', 'Burkina Faso'),
+  ('BG', 'Bulgaria'),
+  ('BH', 'Bahrain'),
+  ('BI', 'Burundi'),
+  ('BJ', 'Benin'),
+  ('BL', 'St. Barthélemy'),
+  ('BM', 'Bermuda'),
+  ('BN', 'Brunei'),
+  ('BO', 'Bolivia'),
+  ('BQ', 'Caribbean Netherlands'),
+  ('BR', 'Brazil'),
+  ('BS', 'Bahamas'),
+  ('BT', 'Bhutan'),
+  ('BV', 'Bouvet Island'),
+  ('BW', 'Botswana'),
+  ('BY', 'Belarus'),
+  ('BZ', 'Belize'),
+  ('CA', 'Canada'),
+  ('CC', 'Cocos (Keeling) Islands'),
+  ('CD', 'Congo - Kinshasa'),
+  ('CF', 'Central African Republic'),
+  ('CG', 'Congo - Brazzaville'),
+  ('CH', 'Switzerland'),
+  ('CI', 'Côte d’Ivoire'),
+  ('CK', 'Cook Islands'),
+  ('CL', 'Chile'),
+  ('CM', 'Cameroon'),
+  ('CN', 'China'),
+  ('CO', 'Colombia'),
+  ('CR', 'Costa Rica'),
+  ('CU', 'Cuba'),
+  ('CV', 'Cape Verde'),
+  ('CW', 'Curaçao'),
+  ('CX', 'Christmas Island'),
+  ('CY', 'Cyprus'),
+  ('CZ', 'Czechia'),
+  ('DE', 'Germany'),
+  ('DJ', 'Djibouti'),
+  ('DK', 'Denmark'),
+  ('DM', 'Dominica'),
+  ('DO', 'Dominican Republic'),
+  ('DZ', 'Algeria'),
+  ('EC', 'Ecuador'),
+  ('EE', 'Estonia'),
+  ('EG', 'Egypt'),
+  ('EH', 'Western Sahara'),
+  ('ER', 'Eritrea'),
+  ('ES', 'Spain'),
+  ('ET', 'Ethiopia'),
+  ('FI', 'Finland'),
+  ('FJ', 'Fiji'),
+  ('FK', 'Falkland Islands'),
+  ('FM', 'Micronesia'),
+  ('FO', 'Faroe Islands'),
+  ('FR', 'France'),
+  ('GA', 'Gabon'),
+  ('GB', 'United Kingdom'),
+  ('GD', 'Grenada'),
+  ('GE', 'Georgia'),
+  ('GF', 'French Guiana'),
+  ('GG', 'Guernsey'),
+  ('GH', 'Ghana'),
+  ('GI', 'Gibraltar'),
+  ('GL', 'Greenland'),
+  ('GM', 'Gambia'),
+  ('GN', 'Guinea'),
+  ('GP', 'Guadeloupe'),
+  ('GQ', 'Equatorial Guinea'),
+  ('GR', 'Greece'),
+  ('GS', 'South Georgia & South Sandwich Islands'),
+  ('GT', 'Guatemala'),
+  ('GU', 'Guam'),
+  ('GW', 'Guinea-Bissau'),
+  ('GY', 'Guyana'),
+  ('HK', 'Hong Kong SAR China'),
+  ('HM', 'Heard & McDonald Islands'),
+  ('HN', 'Honduras'),
+  ('HR', 'Croatia'),
+  ('HT', 'Haiti'),
+  ('HU', 'Hungary'),
+  ('ID', 'Indonesia'),
+  ('IE', 'Ireland'),
+  ('IL', 'Israel'),
+  ('IM', 'Isle of Man'),
+  ('IN', 'India'),
+  ('IO', 'British Indian Ocean Territory'),
+  ('IQ', 'Iraq'),
+  ('IR', 'Iran'),
+  ('IS', 'Iceland'),
+  ('IT', 'Italy'),
+  ('JE', 'Jersey'),
+  ('JM', 'Jamaica'),
+  ('JO', 'Jordan'),
+  ('JP', 'Japan'),
+  ('KE', 'Kenya'),
+  ('KG', 'Kyrgyzstan'),
+  ('KH', 'Cambodia'),
+  ('KI', 'Kiribati'),
+  ('KM', 'Comoros'),
+  ('KN', 'St. Kitts & Nevis'),
+  ('KP', 'North Korea'),
+  ('KR', 'South Korea'),
+  ('KW', 'Kuwait'),
+  ('KY', 'Cayman Islands'),
+  ('KZ', 'Kazakhstan'),
+  ('LA', 'Laos'),
+  ('LB', 'Lebanon'),
+  ('LC', 'St. Lucia'),
+  ('LI', 'Liechtenstein'),
+  ('LK', 'Sri Lanka'),
+  ('LR', 'Liberia'),
+  ('LS', 'Lesotho'),
+  ('LT', 'Lithuania'),
+  ('LU', 'Luxembourg'),
+  ('LV', 'Latvia'),
+  ('LY', 'Libya'),
+  ('MA', 'Morocco'),
+  ('MC', 'Monaco'),
+  ('MD', 'Moldova'),
+  ('ME', 'Montenegro'),
+  ('MF', 'St. Martin'),
+  ('MG', 'Madagascar'),
+  ('MH', 'Marshall Islands'),
+  ('MK', 'North Macedonia'),
+  ('ML', 'Mali'),
+  ('MM', 'Myanmar (Burma)'),
+  ('MN', 'Mongolia'),
+  ('MO', 'Macao SAR China'),
+  ('MP', 'Northern Mariana Islands'),
+  ('MQ', 'Martinique'),
+  ('MR', 'Mauritania'),
+  ('MS', 'Montserrat'),
+  ('MT', 'Malta'),
+  ('MU', 'Mauritius'),
+  ('MV', 'Maldives'),
+  ('MW', 'Malawi'),
+  ('MX', 'Mexico'),
+  ('MY', 'Malaysia'),
+  ('MZ', 'Mozambique'),
+  ('NA', 'Namibia'),
+  ('NC', 'New Caledonia'),
+  ('NE', 'Niger'),
+  ('NF', 'Norfolk Island'),
+  ('NG', 'Nigeria'),
+  ('NI', 'Nicaragua'),
+  ('NL', 'Netherlands'),
+  ('NO', 'Norway'),
+  ('NP', 'Nepal'),
+  ('NR', 'Nauru'),
+  ('NU', 'Niue'),
+  ('NZ', 'New Zealand'),
+  ('OM', 'Oman'),
+  ('PA', 'Panama'),
+  ('PE', 'Peru'),
+  ('PF', 'French Polynesia'),
+  ('PG', 'Papua New Guinea'),
+  ('PH', 'Philippines'),
+  ('PK', 'Pakistan'),
+  ('PL', 'Poland'),
+  ('PM', 'St. Pierre & Miquelon'),
+  ('PN', 'Pitcairn Islands'),
+  ('PR', 'Puerto Rico'),
+  ('PS', 'Palestinian Territories'),
+  ('PT', 'Portugal'),
+  ('PW', 'Palau'),
+  ('PY', 'Paraguay'),
+  ('QA', 'Qatar'),
+  ('RE', 'Réunion'),
+  ('RO', 'Romania'),
+  ('RS', 'Serbia'),
+  ('RU', 'Russia'),
+  ('RW', 'Rwanda'),
+  ('SA', 'Saudi Arabia'),
+  ('SB', 'Solomon Islands'),
+  ('SC', 'Seychelles'),
+  ('SD', 'Sudan'),
+  ('SE', 'Sweden'),
+  ('SG', 'Singapore'),
+  ('SH', 'St. Helena'),
+  ('SI', 'Slovenia'),
+  ('SJ', 'Svalbard & Jan Mayen'),
+  ('SK', 'Slovakia'),
+  ('SL', 'Sierra Leone'),
+  ('SM', 'San Marino'),
+  ('SN', 'Senegal'),
+  ('SO', 'Somalia'),
+  ('SR', 'Suriname'),
+  ('SS', 'South Sudan'),
+  ('ST', 'São Tomé & Príncipe'),
+  ('SV', 'El Salvador'),
+  ('SX', 'Sint Maarten'),
+  ('SY', 'Syria'),
+  ('SZ', 'Eswatini'),
+  ('TC', 'Turks & Caicos Islands'),
+  ('TD', 'Chad'),
+  ('TF', 'French Southern Territories'),
+  ('TG', 'Togo'),
+  ('TH', 'Thailand'),
+  ('TJ', 'Tajikistan'),
+  ('TK', 'Tokelau'),
+  ('TL', 'Timor-Leste'),
+  ('TM', 'Turkmenistan'),
+  ('TN', 'Tunisia'),
+  ('TO', 'Tonga'),
+  ('TR', 'Türkiye'),
+  ('TT', 'Trinidad & Tobago'),
+  ('TV', 'Tuvalu'),
+  ('TW', 'Taiwan'),
+  ('TZ', 'Tanzania'),
+  ('UA', 'Ukraine'),
+  ('UG', 'Uganda'),
+  ('UM', 'U.S. Outlying Islands'),
+  ('US', 'United States'),
+  ('UY', 'Uruguay'),
+  ('UZ', 'Uzbekistan'),
+  ('VA', 'Vatican City'),
+  ('VC', 'St. Vincent & Grenadines'),
+  ('VE', 'Venezuela'),
+  ('VG', 'British Virgin Islands'),
+  ('VI', 'U.S. Virgin Islands'),
+  ('VN', 'Vietnam'),
+  ('VU', 'Vanuatu'),
+  ('WF', 'Wallis & Futuna'),
+  ('WS', 'Samoa'),
+  ('XK', 'Kosovo'),
+  ('YE', 'Yemen'),
+  ('YT', 'Mayotte'),
+  ('ZA', 'South Africa'),
+  ('ZM', 'Zambia'),
+  ('ZW', 'Zimbabwe')
+on conflict (code) do update set name = excluded.name;
+
+alter table public.profiles add column if not exists country text not null default 'KE';
+alter table public.profiles add column if not exists university_name text not null default '';
+alter table public.profiles drop constraint if exists profiles_country_check;
+alter table public.profiles add constraint profiles_country_check check (country ~ '^[A-Z]{2}$');
+alter table public.profiles drop constraint if exists profiles_university_name_check;
+alter table public.profiles add constraint profiles_university_name_check check (char_length(university_name) <= 160);
+create index if not exists profiles_country_idx on public.profiles (country);
+
+alter table public.communities add column if not exists country text;
+alter table public.communities drop constraint if exists communities_kind_check;
+alter table public.communities add constraint communities_kind_check check (kind in ('general', 'course', 'topic', 'country'));
+update public.communities set kind = 'country', country = 'KE' where id = 'med-students-ke';
+insert into public.communities (id, name, description, kind) values
+  ('medlink-global', 'MedLink Global', 'Every medical student on MedLink, in every country — say hello.', 'general')
+on conflict (id) do nothing;
+
+-- Join: everyone + your course + your country (created the first time someone from it signs up).
+create or replace function public.auto_join_communities()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  cid   text;
+  cname text;
+begin
+  if tg_op = 'UPDATE' and old.course_id is not distinct from new.course_id
+     and old.country is not distinct from new.country then
+    return null;
+  end if;
+  select id into cid from public.communities where kind = 'country' and country = new.country order by created_at limit 1;
+  if cid is null then
+    cname := coalesce((select name from public.countries where code = new.country), new.country);
+    cid := 'country-' || lower(new.country);
+    insert into public.communities (id, name, description, kind, country)
+    values (cid, 'Medical Students in ' || cname, 'Medical students in ' || cname || ' — news, opportunities and study help.', 'country', new.country)
+    on conflict (id) do nothing;
+  end if;
+  insert into public.community_members (community_id, user_id)
+  select c.id, new.id from public.communities c
+  where c.kind = 'general' or (c.kind = 'course' and c.course_id = new.course_id) or c.id = cid
+  on conflict do nothing;
+  return null;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from public.app_meta where key = 'backfill_global_community_v1') then
+    insert into public.community_members (community_id, user_id)
+    select c.id, p.id from public.profiles p join public.communities c on c.kind = 'general'
+    on conflict do nothing;
+    insert into public.app_meta (key, value) values ('backfill_global_community_v1', 'done');
+  end if;
+end $$;
+
+-- Admin users list now includes country and university name (return type changed, so drop first).
+drop function if exists public.admin_users(text, text, integer, integer);
+create function public.admin_users(p_q text default '', p_filter text default '', p_limit integer default 50, p_offset integer default 0)
+returns table (
+  id text, username text, full_name text, university_id text, university_name text, country text, course_id text, year text, color text,
+  bio text, created_at timestamptz, email text, role text, suspended boolean, suspension_reason text,
+  last_seen timestamptz, events bigint, posts bigint, resources bigint, total bigint
+)
+language sql stable security definer set search_path = public as $$
+  with base as (
+    select p.* from public.profiles p
+    left join public.user_roles r on r.user_id = p.id
+    left join public.user_suspensions s on s.user_id = p.id
+    where public.is_staff()
+      and (coalesce(p_q, '') = ''
+           or p.username ilike '%' || p_q || '%'
+           or p.full_name ilike '%' || p_q || '%'
+           or p.university_name ilike '%' || p_q || '%'
+           or (public.is_admin() and exists (select 1 from public.user_private up
+                                             where up.user_id = p.id and up.email ilike '%' || p_q || '%')))
+      and (coalesce(p_filter, '') = ''
+           or (p_filter = 'staff' and r.role is not null)
+           or (p_filter = 'suspended' and s.user_id is not null)
+           or (p_filter = r.role))
+  )
+  select b.id, b.username, b.full_name, b.university_id, b.university_name, b.country, b.course_id, b.year, b.color, b.bio, b.created_at,
+         case when public.is_admin() then (select up.email from public.user_private up where up.user_id = b.id) end,
+         r.role, s.user_id is not null, s.reason,
+         (select max(e.created_at) from public.events e where e.user_id = b.id),
+         (select count(*) from public.events e where e.user_id = b.id),
+         (select count(*) from public.posts x where x.author_id = b.id),
+         (select count(*) from public.resources x where x.author_id = b.id),
+         count(*) over ()
+  from base b
+  left join public.user_roles r on r.user_id = b.id
+  left join public.user_suspensions s on s.user_id = b.id
+  order by b.created_at desc
+  limit least(greatest(coalesce(p_limit, 50), 1), 200) offset greatest(coalesce(p_offset, 0), 0)
+$$;
+revoke all on function public.admin_users(text, text, integer, integer) from public, anon;
+grant execute on function public.admin_users(text, text, integer, integer) to authenticated;

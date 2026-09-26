@@ -388,9 +388,10 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
         card("Browsers", "", hbars(stats.browsers.map(b => ({ label: b.label, value: b.sessions })))),
         card("Operating systems", "", hbars(stats.os.map(b => ({ label: b.label, value: b.sessions })))),
       ]),
-      el("div", { class: "a-grid c111" }, [
+      el("div", { class: "a-grid c11" }, [
         card("Time zones", "A rough guide to where visitors are", hbars(stats.timezones.map(b => ({ label: b.label.replace(/_/g, " "), value: b.sessions })))),
-        card("Students by university", "All-time", hbars(stats.universities.slice(0, 8).map(u => ({ label: uniAbbr(u.label) || u.label, title: uniName(u.label), value: u.users })))),
+        card("Students by country", "All-time", hbars((stats.countries || []).slice(0, 8).map(c => ({ label: countryFlag(c.label) + " " + c.name, value: c.users })))),
+        card("Students by university", "All-time", hbars(stats.universities.slice(0, 8).map(u => ({ label: uniLabel({ university_id: u.label, university_name: u.name }) || u.label, title: uniFull({ university_id: u.label, university_name: u.name }), value: u.users })))),
         card("Students by programme & year", "All-time", el("div", {}, [
           hbars(stats.courses.slice(0, 5).map(c => ({ label: courseName(c.label) || c.label, value: c.users }))),
           el("div", { style: "height:14px" }),
@@ -478,7 +479,7 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
       let target = null, detail = "";
       if (r.entity === "user" && r.action !== "user_joined" && r.action !== "profile_updated") target = name(r.entity_id);
       if (r.action === "profile_updated") detail = "@" + (d.username || "");
-      if (r.action === "user_joined") detail = [uniAbbr(d.university_id), courseName(d.course_id), d.year].filter(Boolean).join(" · ");
+      if (r.action === "user_joined") detail = [uniLabel(d), courseName(d.course_id), d.year, d.country ? countryFlag(d.country) : ""].filter(Boolean).join(" · ");
       if (r.action === "role_granted") detail = "→ " + (ROLE_LABELS[d.role] || d.role) + (d.previous ? " (was " + (ROLE_LABELS[d.previous] || d.previous) + ")" : "");
       if (r.action === "role_revoked") detail = "was " + (ROLE_LABELS[d.role] || d.role);
       if (r.action === "user_suspended") detail = d.reason ? "Reason: " + d.reason : "";
@@ -619,7 +620,7 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
         const total = rows.length ? Number(rows[0].total) : 0;
         body.replaceChildren(table([
           { label: "Student", render: u => userCell(u, "@" + u.username + (u.email ? " · " + u.email : "")) },
-          { label: "Studying", render: u => el("div", { class: "muted-cell" }, [[uniAbbr(u.university_id), courseName(u.course_id), u.year].filter(Boolean).join(" · ")]) },
+          { label: "Studying", render: u => el("div", { class: "muted-cell" }, [[countryFlag(u.country) + " " + uniLabel(u), courseName(u.course_id), u.year].filter(Boolean).join(" · ")]) },
           { label: "Joined", cls: "nowrap", render: u => el("span", { title: when(u.created_at) }, [timeAgo(u.created_at)]) },
           { label: "Last seen", cls: "nowrap", render: u => u.last_seen ? el("span", { title: when(u.last_seen) }, [timeAgo(u.last_seen)]) : "—" },
           { label: "Activity", cls: "nowrap", render: u => el("span", { class: "muted-cell" }, [`${fmt(u.events)} events · ${fmt(u.posts)} posts · ${fmt(u.resources)} uploads`]) },
@@ -776,7 +777,7 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
           el("div", { style: "flex:1;min-width:0" }, [
             el("div", { style: "font-weight:800;font-size:18px" }, [u.full_name]),
             el("div", { class: "faint", style: "font-size:13px" }, ["@" + u.username + (u.email ? " · " + u.email : "")]),
-            el("div", { class: "faint", style: "font-size:13px" }, [[uniName(u.university_id), courseName(u.course_id), u.year].filter(Boolean).join(" · ")]),
+            el("div", { class: "faint", style: "font-size:13px" }, [[uniFull(u), countryName(u.country), courseName(u.course_id), u.year].filter(Boolean).join(" · ")]),
           ]),
           el("span", { class: "badge " + (u.role || "student") }, [u.role ? ROLE_LABELS[u.role] : "Student"]),
           u.suspended ? el("span", { class: "badge bad" }, ["Suspended"]) : null,
@@ -957,11 +958,14 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
   function editCommunity(c, reload) {
     const isNew = !c;
     c = c || { id: "", name: "", description: "", image_url: "", kind: "topic", course_id: null };
-    const kind = el("select", { class: "role-select" }, [["topic", "Topic — e.g. Surgery, Research"], ["course", "Course — everyone on one programme"], ["general", "Everyone"]]
+    const kind = el("select", { class: "role-select" }, [["topic", "Topic — e.g. Surgery, Research"], ["course", "Course — everyone on one programme"], ["country", "Country — students in one country"], ["general", "Everyone"]]
       .map(([v, l]) => el("option", { value: v, selected: (c.kind || "topic") === v }, [l])));
     const course = el("select", { class: "role-select" }, [el("option", { value: "" }, ["—"])].concat(COURSES.map(x => el("option", { value: x.id, selected: c.course_id === x.id }, [x.name]))));
     const courseField = el("div", { class: "field" }, [el("label", {}, ["Course (new students on it join automatically)"]), course]);
-    const syncKind = () => { courseField.hidden = kind.value !== "course"; };
+    const country = el("select", { class: "role-select" }, COUNTRY_CODES.map(cc => [cc, countryName(cc)]).sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([cc, n]) => el("option", { value: cc, selected: (c.country || "KE") === cc }, [countryFlag(cc) + " " + n])));
+    const countryField = el("div", { class: "field" }, [el("label", {}, ["Country (new students from it join automatically)"]), country]);
+    const syncKind = () => { courseField.hidden = kind.value !== "course"; countryField.hidden = kind.value !== "country"; };
     kind.addEventListener("change", syncKind);
     const name = el("input", { type: "text", value: c.name, maxlength: "60", required: true });
     const slug = el("input", { type: "text", value: c.id, maxlength: "40", pattern: "[a-z0-9\\-]{2,40}", required: true, disabled: !isNew });
@@ -982,6 +986,7 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
       el("div", { class: "field" }, [el("label", {}, ["Description"]), desc]),
       el("div", { class: "field" }, [el("label", {}, ["Type"]), kind]),
       courseField,
+      countryField,
       el("div", { class: "field" }, [el("label", {}, ["Cover photo"]), preview, el("div", { class: "a-actions", style: "justify-content:flex-start" }, [
         el("button", { type: "button", class: "a-btn", onclick: async () => { const url = await pickImage("Community cover"); if (url) { imageUrl = url; paint(); } } }, ["Choose photo…"]),
         el("button", { type: "button", class: "a-btn", onclick: () => { imageUrl = ""; paint(); } }, ["Use default"]),
@@ -996,7 +1001,8 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
       save.disabled = true;
       try {
         await A.saveCommunity({ id: slug.value, name: name.value.trim(), description: desc.value.trim(), image_url: imageUrl,
-          kind: kind.value, course_id: kind.value === "course" ? (course.value || null) : null }, isNew);
+          kind: kind.value, course_id: kind.value === "course" ? (course.value || null) : null,
+          country: kind.value === "country" ? country.value : null }, isNew);
         toast(isNew ? "Community created." : "Community saved.", "success"); close(); reload();
       } catch (err) { fail(err); save.disabled = false; }
     });

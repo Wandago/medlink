@@ -23,8 +23,8 @@ for (const name of readdirSync(root)) {
   copied++;
 }
 
-// Folders shipped as-is (default site photos).
-for (const dir of ["img"]) {
+// Folders shipped as-is (default site photos, universities by country).
+for (const dir of ["img", "data"]) {
   if (!existsSync(join(root, dir))) continue;
   cpSync(join(root, dir), join(out, dir), { recursive: true });
   copied += readdirSync(join(root, dir)).length;

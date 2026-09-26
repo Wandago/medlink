@@ -564,9 +564,9 @@
   // ---------------------------------------------------------------------
   // Data access — every Supabase query lives here
   // ---------------------------------------------------------------------
-  var PROFILE_COLS = "id,username,full_name,university_id,course_id,year,bio,interests,current_units,color,created_at";
+  var PROFILE_COLS = "id,username,full_name,university_id,university_name,country,course_id,year,bio,interests,current_units,color,created_at";
   // "!author_id" names the foreign key: likes/saves/reports also link these tables to profiles.
-  var AUTHOR = "author:profiles!author_id(id,username,full_name,university_id,course_id,year,color)";
+  var AUTHOR = "author:profiles!author_id(id,username,full_name,university_id,university_name,country,course_id,year,color)";
   var RES_SELECT = "*," + AUTHOR + ",saved_resources(count)";
   var POST_SELECT = "*," + AUTHOR + ",post_likes(count),post_comments(count),community:communities(id,name)";
   var BUCKET = "resources";
@@ -611,7 +611,7 @@
     },
     createProfile: async function (fields) {
       var row = must(await sb().from("profiles").insert(Object.assign({}, fields, { id: myId() })).select(PROFILE_COLS).single());
-      track("sign_up_complete", { university: fields.university_id, course: fields.course_id, year: fields.year });
+      track("sign_up_complete", { university: fields.university_name || fields.university_id, country: fields.country, course: fields.course_id, year: fields.year });
       return row;
     },
     updateProfile: async function (fields) {
@@ -640,7 +640,7 @@
       var rows = must(await sb().from("profiles").select(PROFILE_COLS).neq("id", myId()).order("created_at", { ascending: false }).limit(60));
       var following = await api.followingIds();
       var score = function (p) {
-        return (p.university_id === me.university_id ? 2 : 0) + (p.course_id === me.course_id ? 1 : 0) + (p.year === me.year ? 1 : 0);
+        return (p.university_id === me.university_id ? 2 : 0) + (p.country === me.country ? 1 : 0) + (p.course_id === me.course_id ? 1 : 0) + (p.year === me.year ? 1 : 0);
       };
       return rows.filter(function (p) { return !following.has(p.id); })
         .sort(function (a, b) { return score(b) - score(a); })
@@ -841,7 +841,7 @@
     // Latest members of every community, for the avatar stacks and "recent activity".
     communityFaces: async function (limit) {
       var rows = must(await sb().from("community_members")
-        .select("community_id,joined_at,user:profiles!user_id(id,username,full_name,color,course_id,year,university_id)")
+        .select("community_id,joined_at,user:profiles!user_id(id,username,full_name,color,course_id,year,university_id,university_name,country)")
         .order("joined_at", { ascending: false }).limit(limit || 400));
       var map = {};
       rows.forEach(function (r) { if (r.user) (map[r.community_id] = map[r.community_id] || []).push(r.user); });
@@ -969,7 +969,7 @@
       return must(await q.order("created_at", { ascending: false }).limit(o.limit || 50));
     },
     saveCommunity: async function (c, isNew) {
-      var fields = { name: c.name, description: c.description, image_url: c.image_url || "", kind: c.kind || "topic", course_id: c.course_id || null };
+      var fields = { name: c.name, description: c.description, image_url: c.image_url || "", kind: c.kind || "topic", course_id: c.course_id || null, country: c.country || null };
       if (isNew) return must(await sb().from("communities").insert(Object.assign({ id: c.id }, fields)).select("*").single());
       return must(await sb().from("communities").update(fields).eq("id", c.id).select("*").single());
     },
@@ -1198,7 +1198,8 @@
   // Shared render helpers
   // ---------------------------------------------------------------------
   function metaLine(p) {
-    return [courseName(p.course_id), p.year, uniAbbr(p.university_id)].filter(Boolean).join(" · ");
+    var abroad = p.country && ctx.me && p.country !== ctx.me.country ? countryFlag(p.country) : "";
+    return [courseName(p.course_id), p.year, (uniLabel(p) + (abroad ? " " + abroad : "")).trim()].filter(Boolean).join(" · ");
   }
 
   function resourceCardNode(r) {
@@ -1210,7 +1211,7 @@
         el("span", { class: "rc-ext" }, [fileExt(r.file_name)]),
       ]),
       el("div", { class: "title" }, [r.title]),
-      el("div", { class: "meta" }, [r.unit + (author ? " · " + uniAbbr(author.university_id) : "")]),
+      el("div", { class: "meta" }, [r.unit + (author && uniLabel(author) ? " · " + uniLabel(author) : "")]),
       el("div", { class: "bottom-row" }, [
         el("span", { class: "author-link" }, author ? [author.full_name] : ["MedLink student"]),
         el("span", { class: "rc-stats" }, ["👁 " + (r.views || 0) + " · 🔖 " + count(r.saved_resources)]),
@@ -1386,7 +1387,7 @@
     return row;
   }
 
-  var KIND_LABELS = { general: "Everyone", course: "Course", topic: "Topic" };
+  var KIND_LABELS = { general: "Everyone", course: "Course", topic: "Topic", country: "Country" };
   function communityCoverNode(c, cls) {
     var img = communityImage(c);
     var cover = el("div", { class: cls || "cc-cover", style: "--cc:" + communityColor(c) });

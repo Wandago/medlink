@@ -11,7 +11,7 @@
 <title>You're invited — MedLink KE</title>
 <meta name="description" content="Join a community of medical students on MedLink KE — free notes, past papers and study help.">
 <meta property="og:title" content="You're invited to MedLink KE">
-<meta property="og:description" content="Free notes, past-paper practice and study communities for medical students in Kenya.">
+<meta property="og:description" content="Free notes, past-paper practice and study communities for medical students — built in Kenya, open everywhere.">
 <meta property="og:image" content="img/hero-main.jpg">
 <script src="theme.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -101,7 +101,7 @@ MedLink.run({ auth: "optional", profile: "optional", shell: false }, async ({ ap
     // New here: remember the community, create the account, set up the profile, then come back and join.
     const signUp = el("a", { class: "btn btn-primary", href: "sign-up.html", onclick: () => MedLink.pendingJoin.set(c.id) }, ["Create a free account & join"]);
     const signIn = el("a", { class: "btn btn-ghost", href: "sign-in.html?redirect=" + encodeURIComponent(here), onclick: () => MedLink.pendingJoin.set(c.id) }, ["I already have an account"]);
-    actions.replaceChildren(signUp, signIn, el("div", { class: "faint", style: "font-size:12px" }, ["Takes about 2 minutes. Free for every medical student in Kenya."]));
+    actions.replaceChildren(signUp, signIn, el("div", { class: "faint", style: "font-size:12px" }, ["Takes about 2 minutes. Free for medical students everywhere."]));
     return;
   }
   if (!me) {

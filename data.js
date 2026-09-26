@@ -4,8 +4,8 @@
    ships with the app. Everything users create (profiles, posts,
    resources, messages) lives in Supabase — see app.js.
 ========================================================= */
-// The 13 institutions on the KUCCPS placement list for health-sciences
-// degrees. Every entry here is placed through KUCCPS.
+// Kenyan medical & health-sciences schools, with which programmes each offers.
+// Students elsewhere pick from the worldwide list in data/universities/.
 const UNIVERSITIES = [
   { id: "uon",     name: "University of Nairobi",                             abbreviation: "UoN",     location: "Nairobi",  type: "Public"  },
   { id: "moi",     name: "Moi University",                                    abbreviation: "Moi",     location: "Eldoret",  type: "Public"  },
@@ -20,6 +20,7 @@ const UNIVERSITIES = [
   { id: "mku",     name: "Mount Kenya University",                            abbreviation: "MKU",     location: "Thika",    type: "Private" },
   { id: "kemu",    name: "Kenya Methodist University",                        abbreviation: "KeMU",    location: "Meru",     type: "Private" },
   { id: "uzima",   name: "Uzima University",                                  abbreviation: "Uzima",   location: "Kisumu",   type: "Private" },
+  { id: "aku",     name: "Aga Khan University (Nairobi)",                     abbreviation: "AKU",     location: "Nairobi",  type: "Private" },
 ];
 
 // Not every institution offers every programme, so the university list is
@@ -27,11 +28,12 @@ const UNIVERSITIES = [
 //   MBChB      — the full KUCCPS placement list
 //   Dentistry  — only UoN and Moi are KMPDC-accredited for BDS
 //   Pharmacy   — Pharmacy & Poisons Board approved schools within this list
-//   Nursing    — offered across all 13
+//   Nursing    — offered across the list
+//   Aga Khan   — Medical College (MBChB) and School of Nursing & Midwifery, Nairobi
 //   Clin. Med. — degree-level programmes; not offered at UoN or JKUAT
 const COURSE_UNIVERSITIES = {
-  mbchb:     ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima"],
-  nursing:   ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima"],
+  mbchb:     ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "aku"],
+  nursing:   ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "aku"],
   clinmed:   ["moi", "ku", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima"],
   pharmacy:  ["uon", "ku", "jkuat", "maseno", "kisii", "mku", "kemu"],
   dentistry: ["uon", "moi"],
@@ -215,6 +217,62 @@ const AVATAR_COLORS = ["#1A56F0", "#FF7A1A", "#FF4F9A", "#10B39E", "#7B61FF", "#
 
 function uniName(id) { const u = UNIVERSITIES.find(x => x.id === id); return u ? u.name : ""; }
 function uniAbbr(id) { const u = UNIVERSITIES.find(x => x.id === id); return u ? u.abbreviation : ""; }
+// For any profile (Kenyan list or the worldwide list): full name, and a short label for meta lines.
+function uniFull(p) { return (p && (uniName(p.university_id) || p.university_name)) || ""; }
+function uniLabel(p) {
+  const known = p && uniAbbr(p.university_id);
+  if (known) return known;
+  const name = (p && p.university_name) || "";
+  if (name.length <= 24) return name;
+  const initials = name.replace(/\(.*?\)/g, "").split(/\s+/)
+    .filter(w => /^[A-Z]/.test(w) && !/^(Of|And|The|For|De|Da|Del|La|Le|Du|Des|Y|Et)$/.test(w)).map(w => w[0]).join("");
+  return initials.length >= 2 ? initials : name.slice(0, 22) + "…";
+}
+
+/* ---------------------------------------------------------------------
+   COUNTRIES — ISO 3166-1 codes; names come from the browser (localised).
+--------------------------------------------------------------------- */
+// "CODE:Name|…" — English names shipped here so every browser can show them.
+const COUNTRY_NAMES = Object.fromEntries("AD:Andorra|AE:United Arab Emirates|AF:Afghanistan|AG:Antigua & Barbuda|AI:Anguilla|AL:Albania|AM:Armenia|AO:Angola|AQ:Antarctica|AR:Argentina|AS:American Samoa|AT:Austria|AU:Australia|AW:Aruba|AX:Åland Islands|AZ:Azerbaijan|BA:Bosnia & Herzegovina|BB:Barbados|BD:Bangladesh|BE:Belgium|BF:Burkina Faso|BG:Bulgaria|BH:Bahrain|BI:Burundi|BJ:Benin|BL:St. Barthélemy|BM:Bermuda|BN:Brunei|BO:Bolivia|BQ:Caribbean Netherlands|BR:Brazil|BS:Bahamas|BT:Bhutan|BV:Bouvet Island|BW:Botswana|BY:Belarus|BZ:Belize|CA:Canada|CC:Cocos (Keeling) Islands|CD:Congo - Kinshasa|CF:Central African Republic|CG:Congo - Brazzaville|CH:Switzerland|CI:Côte d’Ivoire|CK:Cook Islands|CL:Chile|CM:Cameroon|CN:China|CO:Colombia|CR:Costa Rica|CU:Cuba|CV:Cape Verde|CW:Curaçao|CX:Christmas Island|CY:Cyprus|CZ:Czechia|DE:Germany|DJ:Djibouti|DK:Denmark|DM:Dominica|DO:Dominican Republic|DZ:Algeria|EC:Ecuador|EE:Estonia|EG:Egypt|EH:Western Sahara|ER:Eritrea|ES:Spain|ET:Ethiopia|FI:Finland|FJ:Fiji|FK:Falkland Islands|FM:Micronesia|FO:Faroe Islands|FR:France|GA:Gabon|GB:United Kingdom|GD:Grenada|GE:Georgia|GF:French Guiana|GG:Guernsey|GH:Ghana|GI:Gibraltar|GL:Greenland|GM:Gambia|GN:Guinea|GP:Guadeloupe|GQ:Equatorial Guinea|GR:Greece|GS:South Georgia & South Sandwich Islands|GT:Guatemala|GU:Guam|GW:Guinea-Bissau|GY:Guyana|HK:Hong Kong SAR China|HM:Heard & McDonald Islands|HN:Honduras|HR:Croatia|HT:Haiti|HU:Hungary|ID:Indonesia|IE:Ireland|IL:Israel|IM:Isle of Man|IN:India|IO:British Indian Ocean Territory|IQ:Iraq|IR:Iran|IS:Iceland|IT:Italy|JE:Jersey|JM:Jamaica|JO:Jordan|JP:Japan|KE:Kenya|KG:Kyrgyzstan|KH:Cambodia|KI:Kiribati|KM:Comoros|KN:St. Kitts & Nevis|KP:North Korea|KR:South Korea|KW:Kuwait|KY:Cayman Islands|KZ:Kazakhstan|LA:Laos|LB:Lebanon|LC:St. Lucia|LI:Liechtenstein|LK:Sri Lanka|LR:Liberia|LS:Lesotho|LT:Lithuania|LU:Luxembourg|LV:Latvia|LY:Libya|MA:Morocco|MC:Monaco|MD:Moldova|ME:Montenegro|MF:St. Martin|MG:Madagascar|MH:Marshall Islands|MK:North Macedonia|ML:Mali|MM:Myanmar (Burma)|MN:Mongolia|MO:Macao SAR China|MP:Northern Mariana Islands|MQ:Martinique|MR:Mauritania|MS:Montserrat|MT:Malta|MU:Mauritius|MV:Maldives|MW:Malawi|MX:Mexico|MY:Malaysia|MZ:Mozambique|NA:Namibia|NC:New Caledonia|NE:Niger|NF:Norfolk Island|NG:Nigeria|NI:Nicaragua|NL:Netherlands|NO:Norway|NP:Nepal|NR:Nauru|NU:Niue|NZ:New Zealand|OM:Oman|PA:Panama|PE:Peru|PF:French Polynesia|PG:Papua New Guinea|PH:Philippines|PK:Pakistan|PL:Poland|PM:St. Pierre & Miquelon|PN:Pitcairn Islands|PR:Puerto Rico|PS:Palestinian Territories|PT:Portugal|PW:Palau|PY:Paraguay|QA:Qatar|RE:Réunion|RO:Romania|RS:Serbia|RU:Russia|RW:Rwanda|SA:Saudi Arabia|SB:Solomon Islands|SC:Seychelles|SD:Sudan|SE:Sweden|SG:Singapore|SH:St. Helena|SI:Slovenia|SJ:Svalbard & Jan Mayen|SK:Slovakia|SL:Sierra Leone|SM:San Marino|SN:Senegal|SO:Somalia|SR:Suriname|SS:South Sudan|ST:São Tomé & Príncipe|SV:El Salvador|SX:Sint Maarten|SY:Syria|SZ:Eswatini|TC:Turks & Caicos Islands|TD:Chad|TF:French Southern Territories|TG:Togo|TH:Thailand|TJ:Tajikistan|TK:Tokelau|TL:Timor-Leste|TM:Turkmenistan|TN:Tunisia|TO:Tonga|TR:Türkiye|TT:Trinidad & Tobago|TV:Tuvalu|TW:Taiwan|TZ:Tanzania|UA:Ukraine|UG:Uganda|UM:U.S. Outlying Islands|US:United States|UY:Uruguay|UZ:Uzbekistan|VA:Vatican City|VC:St. Vincent & Grenadines|VE:Venezuela|VG:British Virgin Islands|VI:U.S. Virgin Islands|VN:Vietnam|VU:Vanuatu|WF:Wallis & Futuna|WS:Samoa|XK:Kosovo|YE:Yemen|YT:Mayotte|ZA:South Africa|ZM:Zambia|ZW:Zimbabwe".split("|").map(x => x.split(":")));
+const COUNTRY_CODES = Object.keys(COUNTRY_NAMES);
+const UNIVERSITY_COUNT = 10249;   // in data/universities/ (regenerate: node scripts/universities.mjs)
+const COUNTRIES_WITH_UNIVERSITIES = 200;
+function countryName(code) { return COUNTRY_NAMES[code] || code || ""; }
+function countryFlag(code) {
+  return /^[A-Z]{2}$/.test(code || "") ? String.fromCodePoint(...[...code].map(c => 0x1F1A5 + c.charCodeAt(0))) : "";
+}
+// Best guess for a new student: their time zone first, then the browser language.
+function guessCountry() {
+  try {
+    const TZ = {
+      "Africa/Nairobi": "KE", "Africa/Lagos": "NG", "Africa/Kampala": "UG", "Africa/Dar_es_Salaam": "TZ", "Africa/Kigali": "RW",
+      "Africa/Addis_Ababa": "ET", "Africa/Accra": "GH", "Africa/Johannesburg": "ZA", "Africa/Cairo": "EG", "Africa/Lusaka": "ZM",
+      "Africa/Harare": "ZW", "Africa/Juba": "SS", "Africa/Mogadishu": "SO", "Africa/Khartoum": "SD", "Africa/Bujumbura": "BI",
+      "Africa/Blantyre": "MW", "Africa/Maputo": "MZ", "Africa/Gaborone": "BW", "Africa/Windhoek": "NA", "Africa/Douala": "CM",
+      "Africa/Abidjan": "CI", "Africa/Dakar": "SN", "Africa/Casablanca": "MA", "Africa/Tunis": "TN", "Africa/Algiers": "DZ",
+      "Asia/Kolkata": "IN", "Asia/Karachi": "PK", "Asia/Dhaka": "BD", "Asia/Manila": "PH", "Europe/London": "GB",
+    };
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    if (TZ[tz]) return TZ[tz];
+    const m = /-([A-Z]{2})$/.exec(navigator.language || "");
+    if (m && COUNTRY_CODES.includes(m[1])) return m[1];
+  } catch (e) { /* old browser */ }
+  return "KE";
+}
+const universityCache = {};
+async function universitiesIn(code) {
+  if (!/^[A-Z]{2}$/.test(code || "")) return [];
+  if (!universityCache[code]) {
+    universityCache[code] = fetch("data/universities/" + code + ".json")
+      .then(r => (r.ok ? r.json() : []))
+      .catch(() => []);
+  }
+  return universityCache[code];
+}
+function universitySlug(code, name) {
+  return code.toLowerCase() + ":" + String(name).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+}
 function courseName(id) { const c = COURSES.find(x => x.id === id); return c ? c.name : ""; }
 function initials(name) { return (name || "").trim().split(/\s+/).map(n => n[0]).join("").slice(0, 2).toUpperCase(); }
 

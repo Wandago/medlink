@@ -62,7 +62,8 @@ npx serve .                      # or any static file server
 
 ```
 app.js              runtime: config checks, Clerk boot, Supabase client, all queries, shared UI
-data.js             static catalogue: universities, courses, units, interests, practice questions, news
+data.js             static catalogue: Kenyan schools, countries, courses, units, interests, news
+data/universities/  universities by country (one JSON file per country, loaded on demand)
 theme.js            light / dark theme (runs before first paint)
 styles.css          design system        landing.css   landing page only
 admin.html/js/css   admin dashboard (analytics, activity, users & roles, content, images)
@@ -147,9 +148,18 @@ next time they sign in. For that, Clerk must put the (verified) email in its ses
   and KenyaPlex, searched with a site-limited Google search so it works whatever software each repository runs.
 Students see practice sets (with their best score), past papers, and a "Find papers online" search for their units.
 
+### Countries & universities
+Students pick their **country** during onboarding. Kenya shows a curated list of medical schools filtered by
+programme (including Aga Khan University's Medical College and School of Nursing & Midwifery), with
+"My school isn't listed" for anything else, e.g. KMTC. Every other country gets a searchable list from
+`data/universities/` — 10,000+ universities in 200 countries from the MIT-licensed
+[Hipo university list](https://github.com/Hipo/university-domains-list) (refresh with `node scripts/universities.mjs`);
+if a school is missing, students type its name.
+
 ### Communities
-Kept broad on purpose: one per course (created automatically), a few topics, and one for everyone. New students
-join their course community and the general one automatically; year and course show on every post. Every
+Kept broad on purpose: one per course, one per country (created automatically the first time someone from that
+country joins), a few topics, and **MedLink Global** for everyone. New students join their course, their country
+and the global community automatically; year, course and university show on every post. Every
 community has an **invite link** (`join.html?c=…`) with WhatsApp / Telegram / X / Facebook / email / SMS buttons —
 new students are walked through sign-up and land inside the community. Each share is tagged
 (`utm_source=whatsapp` etc.) so **Admin → Traffic** shows which channels bring people in.

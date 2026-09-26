@@ -76,14 +76,20 @@
     <!-- Step 2 -->
     <div class="onboard-step" data-step="2">
       <div class="field">
-        <label for="in-course">Course / Program <span class="req">*</span></label>
-        <select id="in-course"></select>
-        <div class="field-hint">Pick this first — not every university offers every programme.</div>
+        <label for="in-country">Country <span class="req">*</span></label>
+        <select id="in-country"></select>
       </div>
       <div class="field">
+        <label for="in-course">Course / Program <span class="req">*</span></label>
+        <select id="in-course"></select>
+      </div>
+      <div class="field" id="f-university">
         <label for="in-university">University / School <span class="req">*</span></label>
         <select id="in-university"></select>
+        <input type="text" id="in-university-search" list="uni-list" autocomplete="off" maxlength="160" placeholder="Start typing your university…" hidden>
+        <datalist id="uni-list"></datalist>
         <div class="field-hint" id="uni-context"></div>
+        <div class="field-error hidden" id="err-university">Choose your university, or type its full name.</div>
       </div>
       <div class="field" style="margin-bottom:0;">
         <label for="in-year">Year of Study <span class="req">*</span></label>
@@ -93,7 +99,7 @@
 
     <!-- Step 3 -->
     <div class="onboard-step" data-step="3">
-      <p class="muted" style="margin:0 0 4px;font-size:13.5px;">Pick the units you're taking this semester — each one gets its own study group.</p>
+      <p class="muted" style="margin:0 0 4px;font-size:13.5px;">Pick the units you're taking this semester — your library and notes will follow them.</p>
       <p class="faint" style="margin:0 0 16px;font-size:12.5px;" id="units-context"></p>
       <div id="units-row"></div>
       <div class="field-error hidden" id="err-units">Please pick at least one unit.</div>
@@ -157,13 +163,13 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
   qs("#switchAccount").addEventListener("click", () => MedLink.signOut("sign-up.html"));
   const data = me ? {
     name: me.full_name, username: me.username, photoColor: me.color,
-    universityId: me.university_id, courseId: me.course_id, year: me.year,
+    country: me.country || "KE", universityId: me.university_id, universityName: me.university_name || "", courseId: me.course_id, year: me.year,
     units: me.current_units.slice(), interests: me.interests.slice(),
   } : {
     name: cu.fullName || [cu.firstName, cu.lastName].filter(Boolean).join(" ") || "",
     username: (cu.username || emailLocal || "").toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 20),
     photoColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
-    universityId: "uon", courseId: "mbchb", year: "Year 1",
+    country: guessCountry(), universityId: "", universityName: "", courseId: "mbchb", year: "Year 1",
     units: [], interests: [],
   };
   const touched = {};
@@ -175,16 +181,66 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
   STEPS.forEach((_, i) => progressBar.appendChild(el("div", { class: "seg", "data-seg": i })));
 
   // ---- studies ----
+  const countrySelect = qs("#in-country");
   const uniSelect = qs("#in-university");
+  const uniSearch = qs("#in-university-search");
   const courseSelect = qs("#in-course");
   const yearSelect = qs("#in-year");
-  function renderUniversityOptions() {
-    const list = universitiesForCourse(data.courseId);
-    uniSelect.replaceChildren(...list.map(u => el("option", { value: u.id }, [`${u.name} (${u.abbreviation})`])));
-    if (!list.some(u => u.id === data.universityId)) data.universityId = list[0].id;
-    uniSelect.value = data.universityId;
-    qs("#uni-context").textContent = `${list.length} institution${list.length === 1 ? "" : "s"} offer ${courseName(data.courseId)}.`;
+  const OTHER = "__other";
+  const isCurated = id => UNIVERSITIES.some(u => u.id === id);
+  COUNTRY_CODES.map(c => [c, countryName(c)]).sort((a, b) => a[1].localeCompare(b[1]))
+    .forEach(([c, n]) => countrySelect.appendChild(el("option", { value: c }, [countryFlag(c) + "  " + n])));
+  countrySelect.value = data.country;
+
+  // Kenya: curated list filtered by programme (+ "not listed"). Elsewhere: search the worldwide list.
+  async function renderUniversityOptions() {
+    const country = data.country, context = qs("#uni-context");
+    qs("#err-university").classList.add("hidden");
+    if (country === "KE") {
+      const list = universitiesForCourse(data.courseId);
+      uniSelect.hidden = false;
+      uniSelect.replaceChildren(...list.map(u => el("option", { value: u.id }, [`${u.name} (${u.abbreviation})`])),
+        el("option", { value: OTHER }, ["My school isn't listed…"]));
+      if (isCurated(data.universityId) && !list.some(u => u.id === data.universityId)) data.universityId = "";
+      if (!data.universityId && !data.universityName) data.universityId = list[0].id;
+      const other = !isCurated(data.universityId);
+      uniSelect.value = other ? OTHER : data.universityId;
+      uniSearch.hidden = !other;
+      uniSearch.value = other ? data.universityName : "";
+      context.textContent = other ? "Type the full name, e.g. Kenya Medical Training College." : `${list.length} Kenyan institutions offer ${courseName(data.courseId)}.`;
+    } else {
+      uniSelect.hidden = true;
+      uniSearch.hidden = false;
+      if (isCurated(data.universityId)) { data.universityId = ""; data.universityName = ""; }
+      uniSearch.value = data.universityName;
+      context.textContent = `Loading universities in ${countryName(country)}…`;
+    }
+    const names = await universitiesIn(country);
+    if (country !== data.country) return;   // the student picked another country meanwhile
+    qs("#uni-list").replaceChildren(...names.map(n => el("option", { value: n })));
+    if (country !== "KE") {
+      context.textContent = names.length
+        ? `${names.length.toLocaleString()} universities in ${countryName(country)} — start typing. Not listed? Type the full name.`
+        : `Type the full name of your university in ${countryName(country)}.`;
+    }
   }
+  function validateUniversity() {
+    const ok = isCurated(data.universityId) || data.universityName.trim().length >= 3;
+    qs("#err-university").classList.toggle("hidden", ok);
+    return ok;
+  }
+  countrySelect.addEventListener("change", () => { data.country = countrySelect.value; renderUniversityOptions(); });
+  uniSelect.addEventListener("change", () => {
+    if (uniSelect.value === OTHER) { data.universityId = ""; data.universityName = ""; }
+    else { data.universityId = uniSelect.value; data.universityName = ""; }
+    renderUniversityOptions();
+    if (uniSelect.value === OTHER) uniSearch.focus();
+  });
+  uniSearch.addEventListener("input", () => {
+    data.universityName = uniSearch.value.replace(/\s+/g, " ").trimStart().slice(0, 160);
+    data.universityId = data.universityName.trim() ? universitySlug(data.country, data.universityName.trim()) : "";
+    qs("#err-university").classList.add("hidden");
+  });
   function renderYearOptions() {
     const valid = yearsForCourse(data.courseId);
     yearSelect.replaceChildren(...valid.map(y => el("option", { value: y }, [y])));
@@ -249,7 +305,6 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
     data.units = data.units.filter(u => valid.includes(u));
   }
 
-  uniSelect.addEventListener("change", () => { data.universityId = uniSelect.value; });
   courseSelect.addEventListener("change", () => {
     data.courseId = courseSelect.value;
     renderUniversityOptions(); renderYearOptions(); pruneUnits(); renderUnits();
@@ -341,7 +396,7 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
     a.textContent = initials(data.name) || "?";
     qs("#review-name").textContent = data.name || "Your name";
     qs("#review-username").textContent = "@" + (data.username || "username");
-    qs("#review-meta").textContent = `${courseName(data.courseId)} · ${data.year} · ${uniName(data.universityId)}`;
+    qs("#review-meta").textContent = `${courseName(data.courseId)} · ${data.year} · ${uniFull({ university_id: data.universityId, university_name: data.universityName })} ${countryFlag(data.country)}`;
     qs("#review-units").replaceChildren(...data.units.map(x => el("span", { class: "chip" }, [x])));
     qs("#review-interests").replaceChildren(...data.interests.map(x => el("span", { class: "chip chip-coral" }, [x])));
   }
@@ -355,6 +410,7 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
       if (usernameCheck.checking) { MedLink.toast("Still checking that username…"); return; }
       if (!nameOk || usernameCheck.available !== true) return;
     }
+    if (step === 2 && !validateUniversity()) return;
     if (step === 3 && !data.units.length) { qs("#err-units").classList.remove("hidden"); return; }
     if (step === 4 && !data.interests.length) { qs("#err-interests").classList.remove("hidden"); return; }
     if (step === STEPS.length - 1) { await finish(); return; }
@@ -368,7 +424,9 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
       full_name: data.name.trim().slice(0, 80),
       username: data.username,
       color: safeColor(data.photoColor),
-      university_id: data.universityId,
+      country: data.country,
+      university_id: isCurated(data.universityId) ? data.universityId : universitySlug(data.country, data.universityName.trim()),
+      university_name: isCurated(data.universityId) ? uniName(data.universityId) : data.universityName.trim(),
       course_id: data.courseId,
       year: data.year,
       current_units: data.units,

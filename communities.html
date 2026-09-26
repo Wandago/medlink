@@ -183,7 +183,7 @@ MedLink.run({ page: "communities" }, async ({ api, me }) => {
   // ---- hero carousel: a welcome slide + the biggest communities ----
   const slides = [{
     kicker: "Communities", title: "Find your people.",
-    text: "One community per course, a few big topics, and one for everyone. Your year and course show on every post, so you always know who's talking.",
+    text: "One community per course, one per country, a few big topics and one for everyone. Year, course and university show on every post.",
     photo: MedLink.siteImageUrl("communities-banner"),
     actions: [
       el("a", { class: "btn btn-white", href: "#communityGrid" }, ["Explore"]),
@@ -219,7 +219,7 @@ MedLink.run({ page: "communities" }, async ({ api, me }) => {
 
   // ---- filterable grid ----
   let filter = "all";
-  const FILTERS = [["all", "All"], ["joined", "Joined"], ["course", "Courses"], ["topic", "Topics"], ["general", "Everyone"]];
+  const FILTERS = [["all", "All"], ["joined", "Joined"], ["course", "Courses"], ["country", "Countries"], ["topic", "Topics"], ["general", "Everyone"]];
   FILTERS.forEach(([key, label]) => tabs.appendChild(el("button", {
     type: "button", class: key === filter ? "on" : null,
     onclick: ev => { filter = key; qsa("button", tabs).forEach(b => b.classList.remove("on")); ev.currentTarget.classList.add("on"); paintGrid(); },
