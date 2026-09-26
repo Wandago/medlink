@@ -1,0 +1,493 @@
+/* =========================================================
+   MEDLINK KE — application design system
+   Open Sans · light + dark themes driven by semantic tokens
+   ---------------------------------------------------------
+   Components never hard-code colour. They consume the
+   semantic layer below; the legacy alias block keeps every
+   existing component working without markup changes.
+========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+/* ---------------------------------------------------------
+   1. SEMANTIC TOKENS — LIGHT (default)
+--------------------------------------------------------- */
+:root,
+[data-theme="light"] {
+  --bg:              #F6F7FA;
+  --surface:         #FFFFFF;
+  --surface-2:       #F0F2F7;
+  --surface-sunken:  #EDEFF4;
+  --topbar-bg:       rgba(255, 255, 255, 0.90);
+
+  --text:            #131725;
+  --text-2:          #4C566B;
+  --text-3:          #78849B;
+  --text-on-accent:  #FFFFFF;
+
+  --border:          #E1E5ED;
+  --border-strong:   #CDD4E0;
+
+  --accent:          #6D28D9;
+  --accent-strong:   #5B21B6;
+  --accent-soft:     #F1EBFE;
+  --accent-on-soft:  #5B21B6;
+  --btn-primary-bg:  #6D28D9;
+  --btn-primary-hover:#5B21B6;
+
+  --teal:            #0E9384;
+  --teal-soft:       #E3F5F2;
+
+  --success:         #12805C;
+  --success-bg:      #E6F5EE;
+  --success-text:    #0B6247;
+  --warning:         #B45309;
+  --warning-bg:      #FDF1E3;
+  --error:           #C2410C;
+  --error-bg:        #FDECE6;
+  --error-text:      #9A3412;
+
+  --panel:           #221041;
+  --panel-text:      #F3EDFF;
+  --panel-text-2:    #BCA9E4;
+
+  --input-bg:        #FFFFFF;
+  --shadow-sm:       0 1px 2px rgba(19, 23, 37, .06);
+  --shadow-md:       0 4px 16px rgba(19, 23, 37, .07);
+  --shadow-lg:       0 12px 32px rgba(19, 23, 37, .10);
+}
+
+/* ---------------------------------------------------------
+   2. SEMANTIC TOKENS — DARK
+   Deep charcoal-violet, not black. Tuned for long sessions.
+--------------------------------------------------------- */
+[data-theme="dark"] {
+  --bg:              #14111F;
+  --surface:         #1D1930;
+  --surface-2:       #262138;
+  --surface-sunken:  #100D19;
+  --topbar-bg:       rgba(20, 17, 31, 0.90);
+
+  --text:            #ECE9F5;
+  --text-2:          #B5AECC;
+  --text-3:          #857DA0;
+  --text-on-accent:  #FFFFFF;
+
+  --border:          #2F2947;
+  --border-strong:   #453D63;
+
+  --accent:          #A78BFA;
+  --accent-strong:   #C4B1FD;
+  --accent-soft:     #271F3F;
+  --accent-on-soft:  #D9C8FF;
+  --btn-primary-bg:  #7C3AED;
+  --btn-primary-hover:#8B5CF6;
+
+  --teal:            #2DD4BF;
+  --teal-soft:       #10302F;
+
+  --success:         #34D399;
+  --success-bg:      #16321F;
+  --success-text:    #8FEBB0;
+  --warning:         #FBBF24;
+  --warning-bg:      #33270F;
+  --error:           #FB8B6C;
+  --error-bg:        #3A2036;
+  --error-text:      #FFC3AE;
+
+  --panel:           #2A1550;
+  --panel-text:      #F3EDFF;
+  --panel-text-2:    #C4B2E9;
+
+  --input-bg:        #1D1930;
+  --shadow-sm:       0 1px 2px rgba(0, 0, 0, .30);
+  --shadow-md:       0 4px 16px rgba(0, 0, 0, .34);
+  --shadow-lg:       0 12px 32px rgba(0, 0, 0, .42);
+}
+
+/* ---------------------------------------------------------
+   3. LEGACY ALIASES
+   Existing components/JS reference these names. Mapping them
+   onto the semantic layer themes the whole app at once.
+--------------------------------------------------------- */
+:root {
+  --ink:            var(--text);
+  --ink-soft:       var(--text-2);
+  --ink-faint:      var(--text-3);
+  --line:           var(--border);
+  --chip:           var(--accent-soft);
+  --white:          var(--surface);
+  --violet:         var(--accent);
+  --violet-dark:    var(--accent-strong);
+  --violet-deep:    var(--accent-on-soft);
+  --violet-solid:   var(--btn-primary-bg);
+  --violet-solid-hover: var(--btn-primary-hover);
+  --coral:          var(--error);
+  --coral-soft:     var(--error-bg);
+  --coral-text:     var(--error-text);
+  --green:          var(--success);
+  --green-bg:       var(--success-bg);
+  --green-text:     var(--success-text);
+  --amber:          var(--warning);
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --header-h: 62px;
+  --ease: 180ms cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ---------------------------------------------------------
+   4. BASE
+--------------------------------------------------------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+h1, h2, h3, h4, .disp { font-family: inherit; letter-spacing: -0.011em; margin: 0; }
+h1, .disp { font-weight: 700; }
+h2 { font-weight: 600; }
+h3 { font-weight: 600; }
+strong, b { font-weight: 600; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+img { max-width: 100%; display: block; }
+:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* Theme transition — scoped to colour properties so layout never animates. */
+body, .card, .topbar, .sidebar, .bottom-nav, .btn, .chip, .chip-toggle, .nav-item,
+.quiz-option, .profile-tab, .conv-item, .bubble, .medpoints-card, .settings-row,
+input, select, textarea, .thread-header, .thread-input, .conv-list, .join-unit-tile,
+.seg-control, .seg-control button {
+  transition: background-color var(--ease), border-color var(--ease), color var(--ease), box-shadow var(--ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/* ---------------------------------------------------------
+   5. LAYOUT HELPERS
+--------------------------------------------------------- */
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+.grid { display: grid; gap: 14px; }
+.grid-fill-230 { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.grid-fill-260 { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.grid-fill-220 { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.row { display: flex; align-items: center; }
+.row-gap { display: flex; align-items: center; gap: 10px; }
+.wrap-gap { display: flex; flex-wrap: wrap; gap: 8px; }
+.flex-1 { flex: 1; }
+.muted { color: var(--text-2); }
+.faint { color: var(--text-3); }
+.hidden { display: none !important; }
+.fade-in { animation: fadeIn .35s ease both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ---------------------------------------------------------
+   6. BUTTONS
+--------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 12px; font-weight: 600; font-size: 14.5px;
+  padding: 11px 20px; border: 1.5px solid transparent;
+  transition: transform var(--ease), background-color var(--ease), border-color var(--ease), color var(--ease);
+}
+.btn-primary { background: var(--btn-primary-bg); color: var(--text-on-accent); }
+.btn-primary:hover { background: var(--btn-primary-hover); transform: translateY(-1px); }
+.btn-primary:disabled { background: var(--surface-2); color: var(--text-3); cursor: not-allowed; transform: none; }
+.btn-ghost { background: transparent; color: var(--text); border-color: var(--border-strong); }
+.btn-ghost:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-on-soft); }
+.btn-sm { padding: 7px 14px; font-size: 12.5px; }
+.btn-block { width: 100%; }
+.btn-danger { color: var(--error); border-color: var(--error); }
+.btn-danger:hover { background: var(--error-bg); color: var(--error-text); border-color: var(--error); }
+
+/* ---------------------------------------------------------
+   7. CARDS / CHIPS
+--------------------------------------------------------- */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+.pad { padding: 18px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent-soft); color: var(--accent-on-soft);
+  border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 600;
+}
+.chip-coral { background: var(--error-bg); color: var(--error-text); }
+.chip-toggle {
+  padding: 9px 15px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+  border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text-2);
+}
+.chip-toggle:hover { border-color: var(--accent); }
+.chip-toggle.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-on-soft); }
+.chip-toggle.coral.on { border-color: var(--error); background: var(--error-bg); color: var(--error-text); }
+
+/* ---------------------------------------------------------
+   8. AVATARS
+--------------------------------------------------------- */
+.avatar {
+  border-radius: 50%; color: #fff; font-weight: 700; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; font-size: 15px;
+}
+.avatar.sm { width: 32px; height: 32px; font-size: 12.5px; }
+.avatar.md { width: 44px; height: 44px; font-size: 16px; }
+.avatar.lg { width: 64px; height: 64px; font-size: 24px; }
+.avatar.xl { width: 72px; height: 72px; font-size: 27px; }
+
+/* ---------------------------------------------------------
+   9. FORMS
+--------------------------------------------------------- */
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
+.field .req { color: var(--error); }
+.field input[type=text], .field input[type=email], .field input[type=password], .field select {
+  width: 100%; padding: 12px 14px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-strong); background: var(--input-bg); color: var(--text); font-size: 14.5px;
+}
+.field input::placeholder { color: var(--text-3); }
+.field input:focus, .field select:focus { border-color: var(--accent); }
+.field.error input, .field.error select { border-color: var(--error); }
+.field.ok input { border-color: var(--success); }
+.field-error { font-size: 12px; color: var(--error); margin-top: 5px; display: flex; align-items: center; gap: 5px; font-weight: 500; }
+.field-ok { font-size: 12px; color: var(--success); margin-top: 5px; font-weight: 500; }
+.field-hint { font-size: 11.5px; color: var(--text-3); margin-top: 5px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.username-wrap { position: relative; }
+.username-wrap .at { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 14.5px; }
+.username-wrap input { padding-left: 26px !important; padding-right: 40px !important; }
+.username-wrap .status-icon { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); font-weight: 800; }
+.status-icon.ok { color: var(--success); }
+.status-icon.bad { color: var(--error); }
+
+/* ---------------------------------------------------------
+   10. TOPBAR
+--------------------------------------------------------- */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--topbar-bg); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar-inner { max-width: 1280px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
+.icon-btn {
+  background: transparent; border: 1.5px solid var(--border-strong); color: var(--text-2);
+  width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.icon-btn:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-on-soft); }
+.back-btn {
+  background: none; border: none; color: var(--text-2); display: flex; align-items: center;
+  padding: 4px; border-radius: 8px; width: 28px; height: 28px; justify-content: center; flex-shrink: 0;
+}
+.back-btn:hover { color: var(--accent); }
+.brand { display: flex; align-items: center; gap: 8px; flex-shrink: 0; font-weight: 700; font-size: 16px; letter-spacing: -0.015em; }
+.brand-mark {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  background: linear-gradient(150deg, #8B5CF6, #6D28D9);
+  display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.topbar-search { flex: 1; max-width: 440px; position: relative; }
+.topbar-search input {
+  width: 100%; padding: 10px 14px 10px 36px; border-radius: 11px; border: 1.5px solid var(--border-strong);
+  background: var(--input-bg); color: var(--text); font-size: 13.5px;
+}
+.topbar-search input::placeholder { color: var(--text-3); }
+.topbar-search input:focus { border-color: var(--accent); }
+.topbar-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-3); }
+.avatar-link { cursor: pointer; }
+
+/* theme toggle — shows the mode you'd switch TO */
+.theme-toggle svg { display: none; }
+[data-theme="light"] .theme-toggle .icon-moon { display: block; }
+[data-theme="dark"]  .theme-toggle .icon-sun  { display: block; }
+
+/* ---------------------------------------------------------
+   11. SHELL / SIDEBAR / BOTTOM NAV
+--------------------------------------------------------- */
+.shell-body { max-width: 1280px; margin: 0 auto; display: flex; align-items: flex-start; }
+.sidebar {
+  width: 224px; flex-shrink: 0; padding: 20px 12px;
+  position: sticky; top: var(--header-h); align-self: flex-start;
+  height: calc(100vh - var(--header-h)); overflow-y: auto;
+}
+.nav-item {
+  width: 100%; display: flex; align-items: center; gap: 11px; padding: 10px 14px;
+  border-radius: 11px; margin-bottom: 3px; font-size: 14px; font-weight: 500; color: var(--text-2);
+}
+.nav-item:hover { background: var(--surface-2); color: var(--text); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent-on-soft); font-weight: 600; }
+.nav-divider { height: 1px; background: var(--border); margin: 10px 6px; }
+.medpoints-card { margin-top: 16px; padding: 14px; border-radius: var(--radius); background: var(--panel); color: var(--panel-text); }
+.medpoints-card .title { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; font-size: 12.5px; font-weight: 700; }
+.medpoints-card .desc { font-size: 11.5px; color: var(--panel-text-2); line-height: 1.5; }
+
+.main-content { flex: 1; min-width: 0; padding: 22px 20px 60px; }
+
+.bottom-nav {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+  background: var(--surface); border-top: 1px solid var(--border);
+  justify-content: space-around; padding: 8px 6px calc(env(safe-area-inset-bottom, 0) + 8px);
+}
+.bottom-nav a { display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--text-3); font-size: 10px; font-weight: 600; }
+.bottom-nav a.active { color: var(--accent); }
+.bottom-nav .bn-icon { font-size: 18px; line-height: 1; }
+
+/* ---------------------------------------------------------
+   12. SECTION HEADINGS
+--------------------------------------------------------- */
+.section-heading { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
+.section-heading .eyebrow { font-size: 11.5px; font-weight: 700; color: var(--accent); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 3px; }
+.section-heading h2 { font-size: 19px; font-weight: 700; }
+
+/* ---------------------------------------------------------
+   13. RESOURCE CARDS
+--------------------------------------------------------- */
+.resource-card { padding: 16px; cursor: pointer; }
+.resource-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
+.resource-card .top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.resource-card .title { font-weight: 600; font-size: 14.5px; line-height: 1.35; margin-bottom: 8px; }
+.resource-card .meta { font-size: 12px; color: var(--text-3); margin-bottom: 10px; }
+.resource-card .bottom-row { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: var(--text-3); gap: 8px; }
+.resource-card .author-link:hover { text-decoration: underline; }
+
+/* ---------------------------------------------------------
+   14. FEED POSTS
+--------------------------------------------------------- */
+.post-card { padding: 16px; }
+.post-author-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.post-name-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.post-name { font-size: 13.5px; font-weight: 600; }
+.post-handle { font-size: 12px; color: var(--text-3); }
+.post-meta { font-size: 12px; color: var(--text-3); margin: 6px 0 8px 50px; }
+.post-body { font-size: 14px; line-height: 1.55; margin: 0 0 10px 50px; }
+.post-actions { display: flex; gap: 16px; font-size: 12.5px; color: var(--text-3); margin-left: 50px; }
+.post-actions span { display: flex; align-items: center; gap: 4px; }
+
+/* ---------------------------------------------------------
+   15. ONBOARDING
+--------------------------------------------------------- */
+.onboard-wrap { max-width: 560px; margin: 0 auto; padding: 40px 20px 60px; }
+.onboard-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 10px; }
+.progress-bar { display: flex; gap: 6px; margin-bottom: 28px; }
+.progress-bar .seg { flex: 1; height: 4px; border-radius: 2px; background: var(--border); }
+.progress-bar .seg.on { background: var(--accent); }
+.step-label { font-size: 11.5px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.onboard-step { display: none; }
+.onboard-step.active { display: block; }
+.step-nav { display: flex; justify-content: space-between; margin-top: 30px; gap: 10px; }
+.avatar-color-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.color-dot { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid transparent; padding: 0; }
+.color-dot.selected { border-color: var(--text); }
+.suggestion-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.suggestion-chip { padding: 5px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 600; border: 1.5px solid var(--border-strong); background: var(--accent-soft); color: var(--accent-on-soft); }
+.welcome-box { text-align: center; padding: 10px 0 6px; }
+.welcome-icon { width: 56px; height: 56px; border-radius: 16px; background: var(--panel); color: var(--panel-text); display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; font-size: 26px; }
+
+/* ---------------------------------------------------------
+   16. EXAM / PRACTICE
+--------------------------------------------------------- */
+.quiz-option {
+  display: block; width: 100%; text-align: left; padding: 12px 15px; border-radius: 11px;
+  border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text);
+  font-size: 14px; font-weight: 500; margin-bottom: 9px;
+}
+.quiz-option:hover { border-color: var(--accent); }
+.quiz-option.correct { background: var(--success-bg); border-color: var(--success); color: var(--success-text); }
+.quiz-option.incorrect { background: var(--error-bg); border-color: var(--error); color: var(--error-text); }
+.quiz-explain { margin-top: 16px; padding: 14px; background: var(--surface-2); border-radius: 11px; font-size: 13px; color: var(--text-2); line-height: 1.55; }
+
+/* ---------------------------------------------------------
+   17. UNITS
+--------------------------------------------------------- */
+.unit-card { padding: 18px; }
+.unit-badge { background: var(--error); color: #fff; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
+.join-unit-tile {
+  border: 1.5px dashed var(--border-strong); border-radius: var(--radius); background: transparent; color: var(--text-3);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 130px; font-weight: 600; font-size: 13px;
+}
+.join-unit-tile:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---------------------------------------------------------
+   18. MESSAGES
+--------------------------------------------------------- */
+.messages-shell { display: flex; height: calc(100vh - 170px); min-height: 420px; overflow: hidden; }
+.conv-list { width: 270px; border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; }
+.conv-item { display: flex; gap: 10px; padding: 12px 16px; cursor: pointer; align-items: center; }
+.conv-item:hover { background: var(--surface-2); }
+.conv-item.active { background: var(--accent-soft); }
+.conv-thread { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.thread-header { padding: 14px 18px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.thread-body { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.bubble { padding: 9px 14px; border-radius: 14px; max-width: 70%; font-size: 13.5px; line-height: 1.5; }
+.bubble.me { align-self: flex-end; background: var(--btn-primary-bg); color: var(--text-on-accent); }
+.bubble.them { align-self: flex-start; background: var(--surface-2); color: var(--text); }
+.thread-input { display: flex; gap: 8px; padding: 14px; border-top: 1px solid var(--border); }
+.thread-input input { flex: 1; min-width: 0; padding: 10px 14px; border-radius: 11px; border: 1.5px solid var(--border-strong); background: var(--input-bg); color: var(--text); font-size: 13.5px; }
+.thread-input input:focus { border-color: var(--accent); }
+.msg-search-wrap { padding: 0 14px 12px; position: relative; }
+.msg-search-wrap svg { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); color: var(--text-3); }
+.msg-search-wrap input { width: 100%; padding: 8px 10px 8px 30px; border-radius: 9px; border: 1.5px solid var(--border-strong); background: var(--input-bg); color: var(--text); font-size: 12.5px; }
+
+/* ---------------------------------------------------------
+   19. PROFILE
+--------------------------------------------------------- */
+.profile-header { padding: 26px; margin-bottom: 20px; }
+.profile-top { display: flex; gap: 16px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+.profile-stats { display: flex; gap: 24px; margin-bottom: 18px; font-size: 13px; flex-wrap: wrap; }
+.profile-tabs { display: flex; gap: 10px; margin-bottom: 18px; }
+.profile-tab { flex: 1; padding: 10px 0; border-radius: 11px; border: 1.5px solid var(--border-strong); background: var(--surface); color: var(--text-2); font-weight: 600; font-size: 13px; text-align: center; }
+.profile-tab:hover { border-color: var(--accent); }
+.profile-tab.active { background: var(--accent-soft); color: var(--accent-on-soft); border-color: var(--accent); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ---------------------------------------------------------
+   20. SETTINGS
+--------------------------------------------------------- */
+.settings-row { padding: 15px 18px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; gap: 12px; }
+.settings-row:hover { border-color: var(--border-strong); }
+.seg-control { display: inline-flex; background: var(--surface-2); border-radius: 11px; padding: 4px; gap: 4px; }
+.seg-control button {
+  border: none; background: transparent; color: var(--text-2);
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+}
+.seg-control button:hover { color: var(--text); }
+.seg-control button.active { background: var(--surface); color: var(--accent-on-soft); box-shadow: var(--shadow-sm); }
+
+/* ---------------------------------------------------------
+   21. STATES (empty / loading / error)
+--------------------------------------------------------- */
+.empty-state { text-align: center; padding: 54px 20px; color: var(--text-3); font-size: 13.5px; }
+.error-state { padding: 14px 16px; border-radius: 11px; background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error); font-size: 13.5px; }
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%; animation: shimmer 1.3s infinite linear; border-radius: 8px;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ---------------------------------------------------------
+   22. RESPONSIVE
+--------------------------------------------------------- */
+@media (max-width: 860px) {
+  .sidebar { display: none; }
+  .bottom-nav { display: flex; }
+  .main-content { padding-bottom: 84px; }
+  .home-grid { grid-template-columns: 1fr !important; }
+  .two-col { grid-template-columns: 1fr; }
+  .brand-text { display: none; }
+  .messages-shell { height: calc(100vh - 210px); }
+  .conv-list { width: 100%; border-right: none; }
+  .post-meta, .post-body, .post-actions { margin-left: 0; }
+}
+@media (max-width: 640px) {
+  .topbar-inner { gap: 9px; padding: 10px 14px; }
+  .topbar-search { max-width: none; }
+  .notif-btn { display: none; }   /* keep the theme toggle, drop the bell */
+  .profile-stats { gap: 16px; }
+  .profile-tabs { gap: 6px; }
+  .profile-tab { font-size: 12px; }
+}
