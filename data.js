@@ -218,13 +218,6 @@ function uniAbbr(id) { const u = UNIVERSITIES.find(x => x.id === id); return u ?
 function courseName(id) { const c = COURSES.find(x => x.id === id); return c ? c.name : ""; }
 function initials(name) { return (name || "").trim().split(/\s+/).map(n => n[0]).join("").slice(0, 2).toUpperCase(); }
 
-const EXAM_SETS = [
-  { id: "e1", title: "Anatomy — End of Semester 2024", unit: "Anatomy", questions: 60, university: "University of Nairobi" },
-  { id: "e2", title: "Physiology CAT 1 — 2024", unit: "Physiology", questions: 25, university: "Moi University" },
-  { id: "e3", title: "Biochemistry — Metabolism MCQs", unit: "Biochemistry", questions: 40, university: "Kenyatta University" },
-  { id: "e4", title: "Anatomy — Head & Neck Practical Exam 2024", unit: "Anatomy", questions: 30, university: "Pwani University" },
-];
-
 const SAMPLE_QUIZ = [
   { q: "Which nerve root most commonly contributes to Erb's palsy following a brachial plexus injury?",
     options: ["C5–C6", "C8–T1", "C7 only", "T1–T2"], correct: 0,
@@ -285,25 +278,60 @@ function typeStyle(t) { return TYPE_STYLES[t] || TYPE_STYLES.Other; }
    any slot from admin.html and the change applies site-wide.
 --------------------------------------------------------------------- */
 const SITE_IMAGES = [
-  { slot: "hero-main",           group: "Landing page", label: "Hero — main photo",          src: "img/hero-main.jpg",           alt: "Medical students reviewing a scan together" },
-  { slot: "hero-lab",            group: "Landing page", label: "Hero — small photo 1",       src: "img/hero-lab.jpg",            alt: "Student in a laboratory" },
-  { slot: "hero-study",          group: "Landing page", label: "Hero — small photo 2",       src: "img/hero-study.jpg",          alt: "Students studying together" },
-  { slot: "feature-library",     group: "Landing page", label: "Feature — Study library",    src: "img/feature-library.jpg",     alt: "Handwritten study notes" },
-  { slot: "feature-exams",       group: "Landing page", label: "Feature — Exam bank",        src: "img/feature-exams.jpg",       alt: "Doctor reading an X-ray" },
-  { slot: "feature-units",       group: "Landing page", label: "Feature — Unit groups",      src: "img/feature-units.jpg",       alt: "Anatomical model of the heart" },
-  { slot: "feature-communities", group: "Landing page", label: "Feature — Communities",      src: "img/feature-communities.jpg", alt: "Students laughing around a table" },
-  { slot: "feature-chat",        group: "Landing page", label: "Feature — Messages",         src: "img/feature-chat.jpg",        alt: "Doctor using a phone" },
-  { slot: "feature-news",        group: "Landing page", label: "Feature — Medical news",     src: "img/feature-news.jpg",        alt: "Colourful sample tubes in a lab" },
+  { slot: "hero-sky",            group: "Landing page", label: "Hero background",            src: "img/hero-sky.jpg",            alt: "Blue sky above the clouds" },
+  { slot: "hero-main",           group: "Landing page", label: "About — photo card",         src: "img/hero-main.jpg",           alt: "Medical students reviewing a scan together" },
+  { slot: "feature-exams",       group: "Landing page", label: "Features — photo 1",         src: "img/feature-exams.jpg",       alt: "Doctor reading an X-ray" },
+  { slot: "feature-communities", group: "Landing page", label: "Features — photo 2",         src: "img/feature-communities.jpg", alt: "Students laughing around a table" },
   { slot: "cta-banner",          group: "Landing page", label: "Closing banner",             src: "img/cta-banner.jpg",          alt: "Graduates celebrating" },
-  { slot: "quote-photo",         group: "Landing page", label: "\"Why we built it\" photo",  src: "img/quote-photo.jpg",         alt: "Friends from medical school" },
   { slot: "auth-side",           group: "Sign in / sign up", label: "Sign-in & sign-up photo", src: "img/auth-side.jpg",         alt: "Smiling medical student in scrubs" },
   { slot: "onboarding-side",     group: "Sign in / sign up", label: "Onboarding photo",      src: "img/onboarding-side.jpg",     alt: "Student holding a folder" },
-  { slot: "dashboard-banner",    group: "Inside the app", label: "Home dashboard banner",   src: "img/dashboard-banner.jpg",    alt: "Student at a microscope" },
+  { slot: "dashboard-banner",    group: "Inside the app", label: "Home banner photo",       src: "img/dashboard-banner.jpg",    alt: "Student at a microscope" },
+  { slot: "communities-banner",  group: "Inside the app", label: "Communities banner photo", src: "img/hero-study.jpg",          alt: "Students studying together" },
 ];
 const COMMUNITY_IMAGES = {
   "anatomy": "img/community-anatomy.jpg",
   "surgery": "img/community-surgery.jpg",
   "public-health": "img/community-public-health.jpg",
   "med-students-ke": "img/community-med-students-ke.jpg",
+  "course-mbchb": "img/community-course-mbchb.jpg",
+  "course-nursing": "img/community-course-nursing.jpg",
+  "course-clinmed": "img/community-course-clinmed.jpg",
+  "course-pharmacy": "img/community-course-pharmacy.jpg",
+  "course-dentistry": "img/community-course-dentistry.jpg",
 };
 const COMMUNITY_FALLBACK_COLORS = ["#1A56F0", "#FF7A1A", "#FF4F9A", "#10B39E", "#7B61FF", "#F5A300"];
+
+/* ---------------------------------------------------------------------
+   EXAM BANK
+   Subjects offered by the open MedMCQA question bank (Apache-2.0,
+   https://huggingface.co/datasets/openlifescienceai/medmcqa), which the
+   admin page can import from. "label" is what students see.
+--------------------------------------------------------------------- */
+const EXAM_SUBJECTS = [
+  { id: "Anatomy", label: "Anatomy" },
+  { id: "Physiology", label: "Physiology" },
+  { id: "Biochemistry", label: "Biochemistry" },
+  { id: "Pathology", label: "Pathology" },
+  { id: "Pharmacology", label: "Pharmacology" },
+  { id: "Microbiology", label: "Microbiology" },
+  { id: "Forensic Medicine", label: "Forensic Medicine" },
+  { id: "Social & Preventive Medicine", label: "Community Health" },
+  { id: "Medicine", label: "Internal Medicine" },
+  { id: "Surgery", label: "Surgery" },
+  { id: "Gynaecology & Obstetrics", label: "Obstetrics & Gynaecology" },
+  { id: "Pediatrics", label: "Paediatrics" },
+  { id: "Psychiatry", label: "Psychiatry" },
+  { id: "Ophthalmology", label: "Ophthalmology" },
+  { id: "ENT", label: "ENT" },
+  { id: "Radiology", label: "Radiology" },
+  { id: "Anaesthesia", label: "Anaesthesia" },
+  { id: "Orthopaedics", label: "Orthopaedics" },
+  { id: "Skin", label: "Dermatology" },
+  { id: "Dental", label: "Dental" },
+];
+const SUBJECT_COLORS = ["#1A56F0", "#FF7A1A", "#FF4F9A", "#10B39E", "#7B61FF", "#F5A300", "#0EA5E9"];
+function subjectColor(name) {
+  let h = 0;
+  for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return SUBJECT_COLORS[h % SUBJECT_COLORS.length];
+}

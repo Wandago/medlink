@@ -206,12 +206,14 @@
     }
     function flush() {
       clearTimeout(timer); timer = null;
-      if (!client) return;
+      if (!client) return Promise.resolve();
+      var sends = [];
       while (queue.length) {
-        client.from("events").insert(queue.splice(0, 20)).then(function (res) {
+        sends.push(client.from("events").insert(queue.splice(0, 20)).then(function (res) {
           if (res.error) console.warn("[MedLink] analytics:", res.error.message);
-        });
+        }));
       }
+      return Promise.all(sends);
     }
     function push(row) {
       queue.push(row);
@@ -266,6 +268,10 @@
         flush();
       },
       action: function (name, props) { push(build("action", name, props)); },
+      // Send now and wait (briefly) — for events right before a redirect.
+      flushNow: function (ms) {
+        return Promise.race([flush(), new Promise(function (r) { setTimeout(r, ms || 800); })]).catch(function () {});
+      },
       visitorId: function () { return visitorId; },
     };
   })();
@@ -478,6 +484,7 @@
         ctx.me = found[0];
         ctx.role = found[1].role;
         ctx.suspension = found[1].suspension;
+        if (ctx.me && !ctx.role) ctx.role = await claimInvite(clerk.user.id);
       } catch (err) {
         console.error(err);
         renderNotice("Couldn't reach the database", [errorMessage(err), databaseHint(err)]);
@@ -506,6 +513,18 @@
     if (opts.shell && ctx.me) renderShell(opts.page, ctx.me);
     ready();
     return ctx;
+  }
+
+  // An admin may have invited this email to a role; check once per browser session.
+  async function claimInvite(userId) {
+    var key = "ml_invite_checked";
+    try { if (sessionStorage.getItem(key) === userId) return null; } catch (e) { /* private mode */ }
+    try {
+      var res = await sb().rpc("claim_role_invite");
+      try { sessionStorage.setItem(key, userId); } catch (e) { /* private mode */ }
+      if (res.data) { setTimeout(function () { toast("You've been made " + (ROLE_LABELS[res.data] || res.data) + " — the Admin page is in the menu.", "success"); }, 600); }
+      return res.data || null;
+    } catch (err) { return null; }
   }
 
   // Count a sign-in the first time we see a user on this browser (cleared on sign-out).
@@ -815,6 +834,62 @@
       return (res[0].count || 0) * 20 + (res[1].count || 0) * 5 + (res[2].count || 0) * 2;
     },
 
+    // ---- community extras ----
+    communityPreview: async function (id) {
+      return must(await sb().rpc("community_preview", { cid: id }));
+    },
+    // Latest members of every community, for the avatar stacks and "recent activity".
+    communityFaces: async function (limit) {
+      var rows = must(await sb().from("community_members")
+        .select("community_id,joined_at,user:profiles!user_id(id,username,full_name,color,course_id,year,university_id)")
+        .order("joined_at", { ascending: false }).limit(limit || 400));
+      var map = {};
+      rows.forEach(function (r) { if (r.user) (map[r.community_id] = map[r.community_id] || []).push(r.user); });
+      return { byCommunity: map, recent: rows.filter(function (r) { return r.user; }) };
+    },
+    communityMembers: async function (id) {
+      var rows = must(await sb().from("community_members").select("joined_at,user:profiles!user_id(" + PROFILE_COLS + ")")
+        .eq("community_id", id).order("joined_at", { ascending: false }).limit(300));
+      return rows.map(function (r) { return r.user; }).filter(Boolean);
+    },
+    // Most active posters over the last N days.
+    topContributors: async function (days, limit) {
+      var since = new Date(Date.now() - (days || 30) * 864e5).toISOString();
+      var rows = must(await sb().from("posts").select("author_id," + AUTHOR).gte("created_at", since).limit(600));
+      var tally = {};
+      rows.forEach(function (r) {
+        if (!r.author) return;
+        var t = tally[r.author_id] = tally[r.author_id] || { profile: r.author, posts: 0 };
+        t.posts++;
+      });
+      return Object.values(tally).sort(function (a, b) { return b.posts - a.posts; }).slice(0, limit || 5);
+    },
+
+    // ---- exam bank ----
+    examSets: async function () {
+      return must(await sb().from("exam_sets").select("*,exam_questions(count)").order("created_at", { ascending: false }).limit(300));
+    },
+    examSet: async function (id) {
+      if (!/^[0-9a-f-]{36}$/i.test(id || "")) return null;
+      var set = must(await sb().from("exam_sets").select("*").eq("id", id).maybeSingle());
+      if (!set) return null;
+      set.questions = must(await sb().from("exam_questions").select("*").eq("set_id", id).order("position"));
+      return set;
+    },
+    myAttempts: async function () {
+      return must(await sb().from("exam_attempts").select("set_id,score,total,created_at").eq("user_id", myId())
+        .order("created_at", { ascending: false }).limit(500));
+    },
+    saveAttempt: async function (setId, score, total) {
+      must(await sb().from("exam_attempts").insert({ user_id: myId(), set_id: setId, score: score, total: total }));
+    },
+    examPapers: async function () {
+      return must(await sb().from("exam_papers").select("*").order("created_at", { ascending: false }).limit(300));
+    },
+    examSources: async function () {
+      return must(await sb().from("exam_sources").select("*").order("position"));
+    },
+
     // ---- site images (public read) ----
     siteImages: async function () {
       return must(await sb().from("site_images").select("*").order("slot"));
@@ -894,7 +969,7 @@
       return must(await q.order("created_at", { ascending: false }).limit(o.limit || 50));
     },
     saveCommunity: async function (c, isNew) {
-      var fields = { name: c.name, description: c.description, image_url: c.image_url || "" };
+      var fields = { name: c.name, description: c.description, image_url: c.image_url || "", kind: c.kind || "topic", course_id: c.course_id || null };
       if (isNew) return must(await sb().from("communities").insert(Object.assign({ id: c.id }, fields)).select("*").single());
       return must(await sb().from("communities").update(fields).eq("id", c.id).select("*").single());
     },
@@ -929,6 +1004,52 @@
     deleteMedia: async function (name) {
       must(await sb().storage.from(MEDIA_BUCKET).remove([name]));
       track("admin_media_delete", { name: name });
+    },
+
+    // exam bank
+    createExamSet: async function (set, questions) {
+      var row = must(await sb().from("exam_sets").insert(set).select("id").single());
+      for (var i = 0; i < questions.length; i += 100) {
+        var chunk = questions.slice(i, i + 100).map(function (q, j) {
+          return { set_id: row.id, position: i + j, question: q.question, options: q.options, correct: q.correct,
+                   explanation: q.explanation || "", source_ref: q.source_ref || "" };
+        });
+        var res = await sb().from("exam_questions").insert(chunk);
+        if (res.error) { await sb().from("exam_sets").delete().eq("id", row.id); throw res.error; }
+      }
+      track("admin_exam_set_create", { id: row.id, questions: questions.length, source: set.source });
+      return row;
+    },
+    setExamPublished: async function (id, on) {
+      must(await sb().from("exam_sets").update({ published: !!on }).eq("id", id));
+    },
+    deleteExamSet: async function (id) {
+      must(await sb().from("exam_sets").delete().eq("id", id));
+    },
+    addPaper: async function (p) {
+      return must(await sb().from("exam_papers").insert(p).select("*").single());
+    },
+    deletePaper: async function (id) {
+      must(await sb().from("exam_papers").delete().eq("id", id));
+    },
+    saveSource: async function (src, isNew) {
+      if (isNew) return must(await sb().from("exam_sources").insert(src).select("*").single());
+      return must(await sb().from("exam_sources").update(src).eq("id", src.id).select("*").single());
+    },
+    deleteSource: async function (id) {
+      must(await sb().from("exam_sources").delete().eq("id", id));
+    },
+
+    // role invites (claimed by the invitee's verified email on their next visit)
+    invites: async function () {
+      return must(await sb().from("role_invites").select("*").order("created_at", { ascending: false }));
+    },
+    invite: async function (email, role) {
+      must(await sb().from("role_invites").insert({ email: String(email).trim().toLowerCase(), role: role }));
+      track("admin_invite", { role: role });
+    },
+    revokeInvite: async function (email) {
+      must(await sb().from("role_invites").delete().eq("email", email));
     },
   };
 
@@ -967,35 +1088,34 @@
     profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     settings: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
     admin: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+    share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
     logout: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/>',
   };
   var ROLE_LABELS = { super_admin: "Super admin", admin: "Admin", moderator: "Moderator" };
 
   function renderShell(active, me) {
     var isStaff = !!ctx.role;
-    // [page, href, label, icon colour]
     var menu = [
-      ["dashboard", "dashboard.html", "Home", "#1A56F0"],
-      ["study", "study.html", "Study Library", "#FF7A1A"],
-      ["exams", "exams.html", "Exam Bank", "#FF4F9A"],
-      ["units", "units.html", "Current Units", "#10B39E"],
-      ["communities", "communities.html", "Communities", "#7B61FF"],
-      ["discover", "discover.html", "Discover", "#0EA5E9"],
-      ["news", "news.html", "Medical News", "#F5A300"],
-      ["messages", "messages.html", "Messages", "#1A56F0"],
+      ["dashboard", "dashboard.html", "Home"],
+      ["study", "study.html", "Study library"],
+      ["exams", "exams.html", "Exam bank"],
+      ["communities", "communities.html", "Communities"],
+      ["messages", "messages.html", "Messages"],
     ];
     var general = [
-      ["saved", "saved.html", "Saved", "#FF4F9A"],
-      ["profile", profileHref(me), "Profile", "#7B61FF"],
-      ["settings", "settings.html", "Settings", "#10B39E"],
+      ["units", "units.html", "My units"],
+      ["discover", "discover.html", "Discover"],
+      ["news", "news.html", "Medical news"],
+      ["saved", "saved.html", "Saved"],
+      ["settings", "settings.html", "Settings"],
     ];
-    if (isStaff) general.push(["admin", "admin.html", "Admin", "#FF7A1A"]);
+    if (isStaff) general.push(["admin", "admin.html", "Admin"]);
     var bottom = [
       ["dashboard", "dashboard.html", "Home"],
       ["study", "study.html", "Study"],
+      ["exams", "exams.html", "Exams"],
       ["communities", "communities.html", "Groups"],
       ["messages", "messages.html", "Messages"],
-      ["profile", profileHref(me), "Profile"],
     ];
 
     var searchInput = el("input", { type: "text", name: "q", placeholder: "Search notes, @students, communities…", "aria-label": "Search", value: active === "search" ? (param("q") || "") : null });
@@ -1004,14 +1124,13 @@
 
     var topbar = el("header", { class: "topbar" }, [
       el("div", { class: "topbar-inner" }, [
-        el("a", { href: "index.html", class: "back-btn", "aria-label": "Back to home page", html: ICON_BACK }),
         el("a", { href: "dashboard.html", class: "brand" }, [
           el("span", { class: "brand-mark", html: ICON_MARK }), " ", el("span", { class: "brand-text" }, ["MedLink KE"]),
         ]),
         searchForm,
         isStaff ? el("a", { class: "icon-btn admin-quick", href: "admin.html", "aria-label": "Admin dashboard", title: "Admin dashboard", html: icon(ICONS.admin, 18) }) : null,
         el("button", { class: "icon-btn theme-toggle", "data-theme-toggle": true, type: "button", "aria-label": "Switch theme", html: ICON_THEME }),
-        el("a", { class: "topbar-me", href: profileHref(me) }, [
+        el("a", { class: "topbar-me", href: profileHref(me), "aria-label": "Your profile" }, [
           avatarNode(me, "", false),
           el("span", { class: "topbar-me-text" }, [
             el("span", { class: "topbar-me-name" }, [me.full_name]),
@@ -1023,26 +1142,22 @@
 
     var badgeSlots = [];
     var navItem = function (item) {
-      var a = el("a", { href: item[1], class: "nav-item" + (item[0] === active ? " active" : ""), style: "--ic:" + item[3] }, [
+      var a = el("a", { href: item[1], class: "nav-item" + (item[0] === active ? " active" : "") }, [
         el("span", { class: "nav-icon", html: icon(ICONS[item[0]], 19) }), el("span", {}, [item[2]]),
       ]);
       if (item[0] === "messages") badgeSlots.push(a);
       return a;
     };
-    var points = el("div", { class: "mp-points" }, ["…"]);
-    var sidebar = el("nav", { class: "sidebar", "aria-label": "Main" }, [
-      el("div", { class: "nav-label" }, ["Menu"]),
-    ].concat(menu.map(navItem), [el("div", { class: "nav-label" }, ["General"])], general.map(navItem), [
-      el("button", { type: "button", class: "nav-item", style: "--ic:#78849B", onclick: signOut }, [
-        el("span", { class: "nav-icon", html: icon(ICONS.logout, 19) }), el("span", {}, ["Sign out"]),
-      ]),
-      el("div", { class: "medpoints-card" }, [
-        el("div", { class: "mp-label" }, ["🏅 Your MedPoints"]),
-        points,
-        el("div", { class: "desc" }, ["Share notes (+20), post (+5) and help in comments (+2)."]),
-        el("a", { href: "study.html?upload=1", class: "mp-btn" }, ["Upload notes"]),
-      ]),
-    ]));
+    var points = el("b", {}, ["…"]);
+    var sidebar = el("nav", { class: "sidebar", "aria-label": "Main" }, [el("div", { class: "nav-label" }, ["Menu"])]
+      .concat(menu.map(navItem), [el("div", { class: "nav-label" }, ["General"])], general.map(navItem), [
+        el("div", { class: "sidebar-foot" }, [
+          el("a", { class: "mp-row", href: profileHref(me), title: "Share notes (+20), post (+5), comment (+2)" }, [el("span", {}, ["🏅 MedPoints"]), points]),
+          el("button", { type: "button", class: "nav-item signout", onclick: function () { signOut(); } }, [
+            el("span", { class: "nav-icon", html: icon(ICONS.logout, 19) }), el("span", {}, ["Sign out"]),
+          ]),
+        ]),
+      ]));
     var bottomNav = el("nav", { class: "bottom-nav", "aria-label": "Main" }, bottom.map(function (item) {
       var a = el("a", { href: item[1], class: item[0] === active ? "active" : "" }, [
         el("span", { class: "bn-icon", html: icon(ICONS[item[0]], 21) }), item[2],
@@ -1089,20 +1204,18 @@
   function resourceCardNode(r) {
     var author = r.author;
     var ts = typeStyle(r.type);
-    var card = el("a", { class: "card resource-card", href: "resource.html?id=" + encodeURIComponent(r.id), style: "--tc:" + ts.color + ";--tc-soft:" + ts.soft }, [
-      el("div", { class: "top-row" }, [
-        el("span", { class: "rc-icon", "aria-hidden": "true" }, [ts.icon]),
+    return el("a", { class: "card resource-card", href: "resource.html?id=" + encodeURIComponent(r.id), style: "--tc:" + ts.color + ";--tc-soft:" + ts.soft }, [
+      el("div", { class: "rc-cover", "aria-hidden": "true" }, [
         el("span", { class: "rc-type" }, [r.type]),
-        el("span", { class: "file-ext" }, [fileExt(r.file_name)]),
+        el("span", { class: "rc-ext" }, [fileExt(r.file_name)]),
       ]),
       el("div", { class: "title" }, [r.title]),
       el("div", { class: "meta" }, [r.unit + (author ? " · " + uniAbbr(author.university_id) : "")]),
       el("div", { class: "bottom-row" }, [
-        el("span", { class: "author-link" }, author ? [author.full_name + " ", el("span", { class: "handle" }, ["@" + author.username])] : ["MedLink student"]),
-        el("span", { class: "rc-stats" }, ["👁 " + (r.views || 0) + "  🔖 " + count(r.saved_resources)]),
+        el("span", { class: "author-link" }, author ? [author.full_name] : ["MedLink student"]),
+        el("span", { class: "rc-stats" }, ["👁 " + (r.views || 0) + " · 🔖 " + count(r.saved_resources)]),
       ]),
     ]);
-    return card;
   }
   function fileExt(name) {
     var m = /\.([A-Za-z0-9]{1,5})$/.exec(name || "");
@@ -1273,6 +1386,7 @@
     return row;
   }
 
+  var KIND_LABELS = { general: "Everyone", course: "Course", topic: "Topic" };
   function communityCoverNode(c, cls) {
     var img = communityImage(c);
     var cover = el("div", { class: cls || "cc-cover", style: "--cc:" + communityColor(c) });
@@ -1280,19 +1394,100 @@
     else cover.appendChild(el("span", { class: "cc-letter" }, [c.name.charAt(0)]));
     return cover;
   }
-  function communityCardNode(c, joined) {
-    var cover = communityCoverNode(c);
-    if (joined) cover.appendChild(el("span", { class: "cc-badge" }, ["✓ Joined"]));
-    return el("a", { href: "communities.html?c=" + encodeURIComponent(c.id), class: "card community-card" }, [
+  function facesNode(people, total) {
+    people = (people || []).slice(0, 4);
+    var wrap = el("div", { class: "faces" }, people.map(function (p) { return avatarNode(p, "sm", false); }));
+    var extra = (total || 0) - people.length;
+    wrap.appendChild(el("span", { class: "more" }, [extra > 0 ? "+" + extra.toLocaleString() : plural(total || 0, "member")]));
+    return wrap;
+  }
+  // opts: { joined, faces, onChange(joined) } — a boolean second argument still means "joined".
+  function communityCardNode(c, opts) {
+    if (typeof opts !== "object" || !opts) opts = { joined: !!opts };
+    var joined = !!opts.joined;
+    var href = "communities.html?c=" + encodeURIComponent(c.id);
+    var members = count(c.community_members);
+    var cover = el("a", { href: href, class: "cc-cover", style: "--cc:" + communityColor(c), "aria-label": c.name });
+    var img = communityImage(c);
+    if (img) cover.style.backgroundImage = cssUrl(img); else cover.appendChild(el("span", { class: "cc-letter" }, [c.name.charAt(0)]));
+    cover.appendChild(el("span", { class: "cc-kind" }, [KIND_LABELS[c.kind] || "Community"]));
+    cover.appendChild(el("button", { type: "button", class: "cc-share", "aria-label": "Invite people to " + c.name, title: "Invite people",
+      html: icon(ICONS.share, 16), onclick: function (e) { e.preventDefault(); shareCommunity(c); } }));
+    var btn = el("button", { type: "button", class: "btn btn-sm " + (joined ? "is-on" : "btn-dark") }, [joined ? "Joined ✓" : "Join"]);
+    btn.addEventListener("click", async function () {
+      btn.disabled = true;
+      try {
+        joined = !joined;
+        await api.setMember(c.id, joined);
+        members += joined ? 1 : -1;
+        btn.className = "btn btn-sm " + (joined ? "is-on" : "btn-dark");
+        btn.textContent = joined ? "Joined ✓" : "Join";
+        if (joined) toast("Joined " + c.name + ".", "success");
+        if (opts.onChange) opts.onChange(joined);
+      } catch (err) { joined = !joined; reportError(err); }
+      btn.disabled = false;
+    });
+    return el("div", { class: "card community-card" }, [
       cover,
       el("div", { class: "cc-body" }, [
-        el("div", { class: "community-name" }, [c.name]),
-        el("div", { class: "faint community-count" }, [plural(count(c.community_members), "member")]),
-        el("div", { class: "muted community-desc" }, [c.description]),
-        el("span", { class: "btn btn-block " + (joined ? "btn-primary" : "btn-ghost") }, [joined ? "Open community" : "View community"]),
+        el("a", { href: href, class: "community-name" }, [c.name]),
+        el("div", { class: "community-desc" }, [c.description]),
+        el("div", { class: "cc-foot" }, [facesNode(opts.faces, members), btn]),
       ]),
     ]);
   }
+
+  // Invite links carry the channel as utm_source so the admin Traffic tab shows which ones work.
+  function inviteLink(c, channel) {
+    var u = new URL("join.html", location.href);
+    u.searchParams.set("c", c.id);
+    if (ctx.me) u.searchParams.set("ref", ctx.me.username);
+    u.searchParams.set("utm_source", channel || "invite");
+    u.searchParams.set("utm_medium", "invite");
+    u.searchParams.set("utm_campaign", "community-" + c.id);
+    return u.href;
+  }
+  function shareCommunity(c) {
+    var text = "Join me in the " + c.name + " community on MedLink KE — free notes, past papers and study help for medical students.";
+    var link = inviteLink(c, "link");
+    var input = el("input", { type: "text", readonly: true, value: link, "aria-label": "Invite link" });
+    var copy = el("button", { type: "button", class: "btn btn-primary btn-sm" }, ["Copy link"]);
+    copy.addEventListener("click", async function () {
+      try { await navigator.clipboard.writeText(link); copy.textContent = "Copied ✓"; } catch (e) { input.select(); }
+      track("invite_share", { community: c.id, channel: "copy" });
+    });
+    var channels = [
+      ["WhatsApp", "#25D366", "💬", function () { return "https://wa.me/?text=" + encodeURIComponent(text + "\n" + inviteLink(c, "whatsapp")); }],
+      ["Telegram", "#229ED9", "✈️", function () { return "https://t.me/share/url?url=" + encodeURIComponent(inviteLink(c, "telegram")) + "&text=" + encodeURIComponent(text); }],
+      ["X", "#111827", "𝕏", function () { return "https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(inviteLink(c, "x")); }],
+      ["Facebook", "#1877F2", "f", function () { return "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(inviteLink(c, "facebook")); }],
+      ["Email", "#7B61FF", "✉️", function () { return "mailto:?subject=" + encodeURIComponent("Join " + c.name + " on MedLink KE") + "&body=" + encodeURIComponent(text + "\n\n" + inviteLink(c, "email")); }],
+      ["SMS", "#10B39E", "📱", function () { return "sms:?&body=" + encodeURIComponent(text + " " + inviteLink(c, "sms")); }],
+    ];
+    var grid = el("div", { class: "share-grid" }, channels.map(function (ch) {
+      return el("a", { href: ch[3](), target: "_blank", rel: "noopener", onclick: function () { track("invite_share", { community: c.id, channel: ch[0].toLowerCase() }); } }, [
+        el("span", { class: "ic", style: "background:" + ch[1] }, [ch[2]]), ch[0],
+      ]);
+    }));
+    var body = el("div", {}, [
+      el("p", { class: "muted", style: "margin:0;font-size:13.5px;line-height:1.5" }, ["Anyone with this link can see " + c.name + " and join in one tap — new students are taken through sign-up first."]),
+      el("div", { class: "share-link" }, [input, copy]),
+      grid,
+      navigator.share ? el("button", { type: "button", class: "btn btn-ghost btn-block", style: "margin-top:10px", onclick: function () {
+        track("invite_share", { community: c.id, channel: "native" });
+        navigator.share({ title: c.name + " on MedLink KE", text: text, url: inviteLink(c, "share") }).catch(function () {});
+      } }, ["More options…"]) : null,
+    ]);
+    modal("Invite people to " + c.name, body);
+  }
+
+  // A community someone chose on an invite page, remembered through sign-up/onboarding.
+  var PENDING_KEY = "ml_pending_join";
+  var pendingJoin = {
+    get: function () { try { return localStorage.getItem(PENDING_KEY); } catch (e) { return null; } },
+    set: function (id) { try { localStorage.setItem(PENDING_KEY, id); } catch (e) { /* private mode */ } },
+    clear: function () { try { localStorage.removeItem(PENDING_KEY); } catch (e) { /* private mode */ } },
+  };
 
   // ---------------------------------------------------------------------
   // Exports
@@ -1323,10 +1518,16 @@
     studentRowNode: studentRowNode,
     communityCardNode: communityCardNode,
     communityCoverNode: communityCoverNode,
+    facesNode: facesNode,
+    shareCommunity: shareCommunity,
+    inviteLink: inviteLink,
+    pendingJoin: pendingJoin,
+    KIND_LABELS: KIND_LABELS,
     communityImage: communityImage,
     communityColor: communityColor,
     fileExt: fileExt,
     track: track,
+    flushTracking: tracker.flushNow,
     visitorId: tracker.visitorId,
     signOut: signOut,
     icon: icon,

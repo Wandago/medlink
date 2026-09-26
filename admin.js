@@ -213,11 +213,11 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
   const loaded = {};
   const TABS = [
     ["overview", "📊 Overview"], ["traffic", "🚦 Traffic"], ["activity", "⚡ Activity"], ["users", "👥 Users & roles"],
-    ["content", "📚 Content"], ["reports", "🚩 Reports"], ["communities", "🏘️ Communities"],
+    ["content", "📚 Content"], ["exams", "✅ Exam bank"], ["reports", "🚩 Reports"], ["communities", "🏘️ Communities"],
   ].concat(isAdmin ? [["images", "🖼️ Site images"]] : []);
   const RENDER = {
     overview: renderOverview, traffic: renderTraffic, activity: renderActivity, users: renderUsers,
-    content: renderContent, reports: renderReports, communities: renderCommunities, images: renderImages,
+    content: renderContent, exams: renderExams, reports: renderReports, communities: renderCommunities, images: renderImages,
   };
 
   qs("#adminWho").textContent = `Signed in as @${me.username} · ${ROLE_LABELS[role]}`;
@@ -648,7 +648,8 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
       card("Users & roles", isAdmin ? "Assign roles, edit profiles and suspend accounts." : "Moderators can view users; admins manage roles.", el("div", {}, [
         el("div", { class: "a-toolbar" }, [search, filterSel]),
         body, pager,
-      ])),
+      ]), isAdmin ? el("button", { type: "button", class: "btn btn-primary btn-sm", onclick: () => openAddAdmin(load) }, ["+ Add admin or moderator"]) : null),
+      isAdmin ? invitesCard(load) : null,
       card("What each role can do", "", el("div", { class: "a-grid c111", style: "margin:0" }, [
         ["super_admin", "Everything — including making other admins and super admins, and suspending staff."],
         ["admin", "Everything except managing admins: site images, communities, users, moderator roles, suspensions."],
@@ -656,6 +657,71 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
       ].map(([r, text]) => el("div", {}, [el("span", { class: "badge " + r }, [ROLE_LABELS[r]]), el("p", { class: "a-note" }, [text])])))),
     );
     await load();
+  }
+
+  // Search anyone on MedLink and give them a role in two clicks.
+  function openAddAdmin(reload) {
+    const roleChoices = isSuper ? ["moderator", "admin", "super_admin"] : ["moderator"];
+    const roleSel = el("select", { class: "role-select", "aria-label": "Role to give" }, roleChoices.map(r => el("option", { value: r }, [ROLE_LABELS[r]])));
+    const q = el("input", { type: "search", placeholder: "Search by name, @username or email…", "aria-label": "Find a user", style: "flex:1;min-width:0;font:inherit;font-size:13.5px;padding:10px 14px;border-radius:999px;border:1px solid var(--border-strong);background:var(--input-bg);color:var(--text)" });
+    const results = el("div", { class: "feed", style: "max-height:46vh;overflow-y:auto;margin-top:8px" });
+    const run = async () => {
+      if (q.value.trim().length < 2) { results.replaceChildren(el("div", { class: "faint", style: "font-size:13px;padding:8px 0" }, ["Type at least 2 letters."])); return; }
+      try {
+        const rows = await A.users({ q: q.value.trim(), limit: 20 });
+        results.replaceChildren(...(rows.length ? rows.map(u => {
+          const allowed = u.id !== me.id && (isSuper || !["admin", "super_admin"].includes(u.role));
+          const give = el("button", { type: "button", class: "a-btn primary", disabled: !allowed }, ["Give role"]);
+          give.addEventListener("click", async () => {
+            const r = roleSel.value;
+            if (!confirm(`Make @${u.username} ${ROLE_LABELS[r]}?`)) return;
+            give.disabled = true;
+            try { await A.setRole(u.id, r); toast(`@${u.username} is now ${ROLE_LABELS[r]}.`, "success"); give.textContent = "Done ✓"; reload(); }
+            catch (e) { fail(e); give.disabled = false; }
+          });
+          return el("div", { class: "feed-row", style: "grid-template-columns:minmax(0,1fr) auto auto" }, [
+            userCell(u, "@" + u.username + (u.email ? " · " + u.email : "")),
+            el("span", { class: "badge " + (u.role || "student") }, [u.role ? ROLE_LABELS[u.role] : "Student"]),
+            give,
+          ]);
+        }) : [el("div", { class: "faint", style: "font-size:13px;padding:8px 0" }, ["Nobody found. If they haven't joined yet, invite them by email below."])]));
+      } catch (e) { fail(e); }
+    };
+    let t = null;
+    q.addEventListener("input", () => { clearTimeout(t); t = setTimeout(run, 300); });
+    const email = el("input", { type: "email", placeholder: "their.email@example.com", "aria-label": "Email to invite", style: "flex:1;min-width:0;font:inherit;font-size:13.5px;padding:10px 14px;border-radius:999px;border:1px solid var(--border-strong);background:var(--input-bg);color:var(--text)" });
+    const inviteBtn = el("button", { type: "button", class: "btn btn-dark btn-sm" }, ["Invite"]);
+    inviteBtn.addEventListener("click", async () => {
+      const v = email.value.trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return toast("Enter a valid email.", "error");
+      try { await A.invite(v, roleSel.value); toast(`Invited ${v} as ${ROLE_LABELS[roleSel.value]}.`, "success"); email.value = ""; reload(); }
+      catch (e) { fail(e); }
+    });
+    MedLink.modal("Add an admin or moderator", el("div", {}, [
+      el("div", { class: "a-toolbar", style: "margin-bottom:6px" }, [el("span", { style: "font-size:13px;font-weight:700" }, ["Role:"]), roleSel]),
+      el("div", { style: "display:flex;gap:8px" }, [q]),
+      results,
+      el("div", { class: "img-group-title", style: "margin-top:18px" }, ["Not on MedLink yet? Invite by email"]),
+      el("div", { style: "display:flex;gap:8px" }, [email, inviteBtn]),
+      el("p", { class: "a-note" }, ["They get the role automatically the next time they sign in with that email (after finishing their profile). This needs the email in Clerk's session token — see README → Admin invites."]),
+    ]), { wide: true });
+    run();
+    q.focus();
+  }
+
+  function invitesCard(reload) {
+    const box = el("div", {}, [MedLink.loadingState()]);
+    A.invites().then(rows => {
+      box.replaceChildren(rows.length ? table([
+        { label: "Email", render: r => r.email },
+        { label: "Role", render: r => el("span", { class: "badge " + r.role }, [ROLE_LABELS[r.role]]) },
+        { label: "Invited", cls: "nowrap", render: r => timeAgo(r.created_at) },
+        { label: "", render: r => el("div", { class: "a-actions" }, [
+          el("button", { type: "button", class: "a-btn danger", onclick: () => confirmDo(`Cancel the invite for ${r.email}?`, async () => { await A.revokeInvite(r.email); reload(); }) }, ["Cancel"]),
+        ]) },
+      ], rows) : el("div", { class: "faint", style: "font-size:13px" }, ["No pending invites. Use “Add admin or moderator” to invite someone by email."]));
+    }).catch(e => box.replaceChildren(el("div", { class: "a-note" }, [MedLink.errorMessage(e) + " — run the latest supabase/schema.sql."])));
+    return card("Pending invites", "Roles waiting for someone to sign in", box);
   }
 
   async function toggleSuspend(u, reload) {
@@ -890,7 +956,13 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
 
   function editCommunity(c, reload) {
     const isNew = !c;
-    c = c || { id: "", name: "", description: "", image_url: "" };
+    c = c || { id: "", name: "", description: "", image_url: "", kind: "topic", course_id: null };
+    const kind = el("select", { class: "role-select" }, [["topic", "Topic — e.g. Surgery, Research"], ["course", "Course — everyone on one programme"], ["general", "Everyone"]]
+      .map(([v, l]) => el("option", { value: v, selected: (c.kind || "topic") === v }, [l])));
+    const course = el("select", { class: "role-select" }, [el("option", { value: "" }, ["—"])].concat(COURSES.map(x => el("option", { value: x.id, selected: c.course_id === x.id }, [x.name]))));
+    const courseField = el("div", { class: "field" }, [el("label", {}, ["Course (new students on it join automatically)"]), course]);
+    const syncKind = () => { courseField.hidden = kind.value !== "course"; };
+    kind.addEventListener("change", syncKind);
     const name = el("input", { type: "text", value: c.name, maxlength: "60", required: true });
     const slug = el("input", { type: "text", value: c.id, maxlength: "40", pattern: "[a-z0-9\\-]{2,40}", required: true, disabled: !isNew });
     const desc = el("textarea", { rows: "3", maxlength: "300" }, [c.description || ""]);
@@ -908,20 +980,346 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
       el("div", { class: "field" }, [el("label", {}, ["Name"]), name]),
       el("div", { class: "field" }, [el("label", {}, ["Link name"]), slug, el("div", { class: "field-hint" }, ["communities.html?c=… — lowercase letters, numbers and dashes. Can't be changed later."])]),
       el("div", { class: "field" }, [el("label", {}, ["Description"]), desc]),
+      el("div", { class: "field" }, [el("label", {}, ["Type"]), kind]),
+      courseField,
       el("div", { class: "field" }, [el("label", {}, ["Cover photo"]), preview, el("div", { class: "a-actions", style: "justify-content:flex-start" }, [
         el("button", { type: "button", class: "a-btn", onclick: async () => { const url = await pickImage("Community cover"); if (url) { imageUrl = url; paint(); } } }, ["Choose photo…"]),
         el("button", { type: "button", class: "a-btn", onclick: () => { imageUrl = ""; paint(); } }, ["Use default"]),
       ])]),
       save,
     ]);
+    syncKind();
     const close = MedLink.modal(isNew ? "New community" : "Edit " + c.name, form);
     form.addEventListener("submit", async e => {
       e.preventDefault();
       if (!/^[a-z0-9-]{2,40}$/.test(slug.value)) return toast("Link name: 2–40 lowercase letters, numbers or dashes.", "error");
       save.disabled = true;
       try {
-        await A.saveCommunity({ id: slug.value, name: name.value.trim(), description: desc.value.trim(), image_url: imageUrl }, isNew);
+        await A.saveCommunity({ id: slug.value, name: name.value.trim(), description: desc.value.trim(), image_url: imageUrl,
+          kind: kind.value, course_id: kind.value === "course" ? (course.value || null) : null }, isNew);
         toast(isNew ? "Community created." : "Community saved.", "success"); close(); reload();
+      } catch (err) { fail(err); save.disabled = false; }
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // EXAM BANK — import free questions, type your own, link papers
+  // ------------------------------------------------------------------
+  // MedMCQA: 182k medical MCQs with explanations, Apache-2.0 licensed, served by
+  // Hugging Face's public datasets API (which allows requests from browsers).
+  const MEDMCQA = {
+    base: "https://datasets-server.huggingface.co",
+    ds: "dataset=openlifescienceai%2Fmedmcqa&config=default&split=train",
+    total: 182822,
+    url: "https://huggingface.co/datasets/openlifescienceai/medmcqa",
+    label: "MedMCQA (open, Apache-2.0)",
+  };
+  const subjectLabel = id => (EXAM_SUBJECTS.find(x => x.id === id) || { label: id }).label;
+  async function fetchJSON(url, ms) {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), ms || 20000);
+    try {
+      const r = await fetch(url, { signal: ctl.signal });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return await r.json();
+    } finally { clearTimeout(t); }
+  }
+  // Skip questions that need a picture we don't have, and anything malformed.
+  const usable = r => r && r.question && [r.opa, r.opb, r.opc, r.opd].every(o => o != null && String(o).trim())
+    && r.cop >= 0 && r.cop <= 3 && r.question.length < 1500
+    && !/\b(image|figure|diagram|picture|photograph|shown (below|above|here)|given below|following (image|figure|x-?ray))\b/i.test(r.question);
+  const toQuestion = r => ({
+    question: String(r.question).trim(), options: [r.opa, r.opb, r.opc, r.opd].map(o => String(o).trim()), correct: r.cop,
+    explanation: String(r.exp || "").trim().slice(0, 3900), source_ref: "medmcqa:" + r.id, topic: r.topic_name || "",
+  });
+  // wanted: { "Anatomy": 20, ... } → { "Anatomy": [question, ...], ... }
+  async function collectMedMCQA(wanted, onProgress) {
+    const out = {}, seen = new Set();
+    Object.keys(wanted).forEach(k => { out[k] = []; });
+    const need = () => Object.keys(wanted).some(k => out[k].length < wanted[k]);
+    const take = rows => rows.forEach(x => {
+      const r = x.row;
+      if (!r || !(r.subject_name in out) || seen.has(r.id) || out[r.subject_name].length >= wanted[r.subject_name] || !usable(r)) return;
+      seen.add(r.id);
+      out[r.subject_name].push(toQuestion(r));
+    });
+    // Fast path: the indexed filter (not always ready on Hugging Face's side).
+    let filterWorks = true;
+    for (const subject of Object.keys(wanted)) {
+      if (!filterWorks) break;
+      try {
+        const where = encodeURIComponent(`"subject_name"='${subject.replace(/'/g, "''")}'`);
+        const d = await fetchJSON(`${MEDMCQA.base}/filter?${MEDMCQA.ds}&where=${where}&offset=${Math.floor(Math.random() * 400)}&length=100`, 12000);
+        take(d.rows || []);
+        onProgress(out);
+      } catch (e) { filterWorks = false; }
+    }
+    // Fallback: read random pages and keep the subjects we want.
+    let pages = 0, failures = 0;
+    while (need() && pages < 45) {
+      pages++;
+      try {
+        const d = await fetchJSON(`${MEDMCQA.base}/rows?${MEDMCQA.ds}&offset=${Math.floor(Math.random() * (MEDMCQA.total - 100))}&length=100`, 20000);
+        take(d.rows || []);
+      } catch (e) {
+        if (++failures >= 4) throw new Error("Couldn't reach the question bank (" + e.message + "). Check your connection and try again.");
+      }
+      onProgress(out);
+    }
+    return out;
+  }
+
+  // "Q: …" / "A) …" / "B) … *" / "Answer: B" / "Explanation: …", blank line between questions.
+  function parseTyped(text) {
+    const questions = [], errors = [];
+    text.replace(/\r/g, "").split(/\n\s*\n/).map(b => b.trim()).filter(Boolean).forEach((block, i) => {
+      const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+      const q = { question: "", options: [], correct: -1, explanation: "" };
+      lines.forEach(line => {
+        let m;
+        if ((m = /^([A-F])[\).:\-]\s*(.+?)\s*(\*)?$/i.exec(line))) {
+          if (m[3]) q.correct = q.options.length;
+          q.options.push(m[2]);
+        } else if ((m = /^answer\s*[:\-]\s*([A-F])\b/i.exec(line))) {
+          q.correct = m[1].toUpperCase().charCodeAt(0) - 65;
+        } else if ((m = /^(explanation|why)\s*[:\-]\s*(.*)$/i.exec(line))) {
+          q.explanation = m[2];
+        } else if (q.explanation) {
+          q.explanation += " " + line;
+        } else {
+          q.question += (q.question ? "\n" : "") + line.replace(/^(q(uestion)?\s*\d*\s*[:.)\-]\s*|\d+[.)]\s*)/i, "");
+        }
+      });
+      if (!q.question) errors.push(`Question ${i + 1}: missing the question text.`);
+      else if (q.options.length < 2) errors.push(`Question ${i + 1}: needs at least two options (A), B)…).`);
+      else if (q.correct < 0 || q.correct >= q.options.length) errors.push(`Question ${i + 1}: mark the right answer with * or add “Answer: B”.`);
+      else questions.push(q);
+    });
+    return { questions, errors };
+  }
+
+  function questionPreview(qs_, selectable) {
+    return el("div", { class: "feed" }, qs_.map((q, i) => {
+      const box = selectable ? el("input", { type: "checkbox", checked: true, "aria-label": "Include question " + (i + 1) }) : null;
+      if (box) box.addEventListener("change", () => { q.skip = !box.checked; });
+      return el("div", { class: "feed-row", style: "grid-template-columns:" + (selectable ? "24px " : "") + "minmax(0,1fr);align-items:start" }, [
+        box,
+        el("div", { class: "feed-text" }, [
+          el("b", {}, [(i + 1) + ". " + q.question]),
+          el("div", { style: "margin:6px 0 4px;display:grid;gap:2px" }, q.options.map((o, j) => el("div", {
+            style: j === q.correct ? "color:var(--success-text);font-weight:700" : "color:var(--text-2)",
+          }, [String.fromCharCode(65 + j) + ". " + o + (j === q.correct ? "  ✓" : "")]))),
+          q.explanation ? el("span", { class: "detail", style: "white-space:normal" }, [q.explanation.slice(0, 260) + (q.explanation.length > 260 ? "…" : "")]) : null,
+        ]),
+      ]);
+    }));
+  }
+
+  async function renderExams(p) {
+    const setsBox = el("div", {}, [MedLink.loadingState()]);
+    const papersBox = el("div", {}, [MedLink.loadingState()]);
+    const sourcesBox = el("div", {}, [MedLink.loadingState()]);
+
+    const loadSets = async () => {
+      try {
+        const sets = await api.examSets();
+        setsBox.replaceChildren(table([
+          { label: "Set", render: s => el("a", { href: "practice.html?id=" + s.id, style: "font-weight:700" }, [s.title]) },
+          { label: "Subject", render: s => s.subject || "—" },
+          { label: "Questions", cls: "num", render: s => fmt(count(s.exam_questions)) },
+          { label: "Source", render: s => el("span", { class: "muted-cell" }, [s.source || "—"]) },
+          { label: "Status", render: s => el("span", { class: "badge " + (s.published ? "ok" : "warn") }, [s.published ? "Live" : "Draft"]) },
+          { label: "Added", cls: "nowrap", render: s => timeAgo(s.created_at) },
+          { label: "", render: s => el("div", { class: "a-actions" }, [
+            el("button", { type: "button", class: "a-btn", onclick: async () => { try { await A.setExamPublished(s.id, !s.published); loadSets(); } catch (e) { fail(e); } } }, [s.published ? "Unpublish" : "Publish"]),
+            el("button", { type: "button", class: "a-btn danger", onclick: () => confirmDo(`Delete “${s.title}” and its questions?`, async () => { await A.deleteExamSet(s.id); toast("Set deleted."); loadSets(); }) }, ["Delete"]),
+          ]) },
+        ], sets, "No practice sets yet — import some above."));
+      } catch (e) { setsBox.replaceChildren(el("p", { class: "a-note" }, [MedLink.errorMessage(e) + " — run the latest supabase/schema.sql."])); }
+    };
+
+    // ---- import from the open question bank ----
+    const subjectSel = el("select", { class: "role-select" }, EXAM_SUBJECTS.map(x => el("option", { value: x.id }, [x.label])));
+    const countSel = el("select", { class: "role-select" }, [10, 20, 30, 50].map(n => el("option", { value: n, selected: n === 20 }, [n + " questions"])));
+    const publishBox = el("input", { type: "checkbox", checked: true });
+    const status = el("div", { class: "a-note" });
+    const preview = el("div");
+    const fetchBtn = el("button", { type: "button", class: "btn btn-primary btn-sm" }, ["Fetch questions"]);
+    const starterBtn = el("button", { type: "button", class: "btn btn-lime btn-sm" }, ["⚡ One-click starter pack"]);
+    const busy = on => { fetchBtn.disabled = starterBtn.disabled = on; };
+
+    fetchBtn.addEventListener("click", async () => {
+      const subject = subjectSel.value, n = Number(countSel.value);
+      busy(true); preview.replaceChildren(); status.textContent = "Looking for " + subjectLabel(subject) + " questions…";
+      try {
+        const got = await collectMedMCQA({ [subject]: n }, o => { status.textContent = `Found ${o[subject].length} of ${n} ${subjectLabel(subject)} questions…`; });
+        const qs_ = got[subject];
+        if (!qs_.length) { status.textContent = "No usable questions found this time — try again."; return; }
+        status.textContent = `Found ${qs_.length}. Untick any you don't want, then create the set. (Subject labels in the source are occasionally wrong — worth a quick skim.)`;
+        const title = el("input", { type: "text", value: subjectLabel(subject) + " — practice set " + new Date().toLocaleDateString(undefined, { day: "numeric", month: "short" }), maxlength: "140", style: "flex:1;min-width:200px;font:inherit;font-size:13.5px;padding:9px 14px;border-radius:999px;border:1px solid var(--border-strong);background:var(--input-bg);color:var(--text)" });
+        const create = el("button", { type: "button", class: "btn btn-dark btn-sm" }, ["Create set"]);
+        create.addEventListener("click", async () => {
+          const chosen = qs_.filter(q => !q.skip);
+          if (!chosen.length) return toast("Tick at least one question.", "error");
+          create.disabled = true;
+          try {
+            await A.createExamSet({ title: title.value.trim() || subjectLabel(subject) + " practice", subject: subjectLabel(subject), source: MEDMCQA.label, source_url: MEDMCQA.url, published: publishBox.checked }, chosen);
+            toast(`Created a set with ${chosen.length} questions.`, "success");
+            preview.replaceChildren(); status.textContent = ""; loadSets();
+          } catch (e) { fail(e); create.disabled = false; }
+        });
+        preview.replaceChildren(el("div", { class: "a-toolbar", style: "margin-top:12px" }, [title, create]), questionPreview(qs_, true));
+      } catch (e) { status.textContent = MedLink.errorMessage(e); }
+      finally { busy(false); }
+    });
+
+    const STARTER = ["Anatomy", "Physiology", "Biochemistry", "Pathology", "Pharmacology", "Microbiology"];
+    starterBtn.addEventListener("click", async () => {
+      if (!confirm(`Create ${STARTER.length} practice sets (15 questions each): ${STARTER.map(subjectLabel).join(", ")}?`)) return;
+      busy(true); preview.replaceChildren();
+      try {
+        const wanted = Object.fromEntries(STARTER.map(sj => [sj, 15]));
+        const got = await collectMedMCQA(wanted, o => {
+          status.textContent = "Collecting… " + STARTER.map(sj => `${subjectLabel(sj)} ${o[sj].length}/15`).join(" · ");
+        });
+        let made = 0;
+        for (const sj of STARTER) {
+          if (!got[sj].length) continue;
+          await A.createExamSet({ title: subjectLabel(sj) + " — starter set", subject: subjectLabel(sj), source: MEDMCQA.label, source_url: MEDMCQA.url, published: publishBox.checked }, got[sj]);
+          made++;
+        }
+        status.textContent = `Done — created ${made} sets.`;
+        toast(`Created ${made} practice sets.`, "success");
+        loadSets();
+      } catch (e) { status.textContent = MedLink.errorMessage(e); fail(e); }
+      finally { busy(false); }
+    });
+
+    // ---- typed / pasted questions ----
+    const tTitle = el("input", { type: "text", placeholder: "e.g. UoN Anatomy CAT 1 — 2024", maxlength: "140" });
+    const tSubject = el("input", { type: "text", placeholder: "e.g. Anatomy", maxlength: "80", list: "subjectList" });
+    const tUnit = el("input", { type: "text", placeholder: "Unit (optional)", maxlength: "120" });
+    const tText = el("textarea", { rows: "10", placeholder: "Q: Which nerve supplies the deltoid?\nA) Radial\nB) Axillary *\nC) Median\nD) Ulnar\nExplanation: The axillary nerve (C5–C6) supplies deltoid and teres minor.\n\nQ: Next question…" });
+    const tPreview = el("div");
+    const tBtn = el("button", { type: "button", class: "btn btn-dark btn-sm" }, ["Check & create set"]);
+    tBtn.addEventListener("click", async () => {
+      const { questions, errors } = parseTyped(tText.value);
+      if (errors.length) { tPreview.replaceChildren(el("div", { class: "error-state" }, errors.slice(0, 8).map(e => el("div", {}, [e])))); return; }
+      if (!questions.length) return toast("Paste at least one question.", "error");
+      if (tTitle.value.trim().length < 3) return toast("Give the set a title.", "error");
+      tBtn.disabled = true;
+      try {
+        await A.createExamSet({ title: tTitle.value.trim(), subject: tSubject.value.trim(), unit: tUnit.value.trim(), source: "Added by MedLink staff", published: publishBox.checked }, questions);
+        toast(`Created a set with ${questions.length} questions.`, "success");
+        tText.value = ""; tPreview.replaceChildren(); loadSets();
+      } catch (e) { fail(e); }
+      tBtn.disabled = false;
+    });
+    tText.addEventListener("input", () => {
+      const { questions, errors } = parseTyped(tText.value);
+      tPreview.replaceChildren(el("div", { class: "a-note" }, [`${questions.length} question${questions.length === 1 ? "" : "s"} ready` + (errors.length ? ` · ${errors.length} need fixing` : "")]));
+    });
+
+    // ---- past papers ----
+    const pTitle = el("input", { type: "text", placeholder: "e.g. Human Anatomy I — End of semester 2023", maxlength: "160" });
+    const pUrl = el("input", { type: "url", placeholder: "https://… link to the PDF or repository page" });
+    const pUnit = el("input", { type: "text", placeholder: "Unit (optional)", maxlength: "120" });
+    const pUni = el("select", {}, [el("option", { value: "" }, ["University (optional)"])].concat(UNIVERSITIES.map(u => el("option", { value: u.id }, [u.name]))));
+    const pYear = el("input", { type: "text", placeholder: "Year", maxlength: "20", style: "max-width:100px" });
+    const pBtn = el("button", { type: "button", class: "btn btn-dark btn-sm" }, ["Add paper"]);
+    const loadPapers = async () => {
+      try {
+        const rows = await api.examPapers();
+        papersBox.replaceChildren(table([
+          { label: "Paper", render: r => el("a", { href: r.url, target: "_blank", rel: "noopener", style: "font-weight:700" }, [r.title]) },
+          { label: "Details", render: r => el("span", { class: "muted-cell" }, [[r.unit, uniAbbr(r.university_id), r.year].filter(Boolean).join(" · ") || "—"]) },
+          { label: "Added", cls: "nowrap", render: r => timeAgo(r.created_at) },
+          { label: "", render: r => el("div", { class: "a-actions" }, [el("button", { type: "button", class: "a-btn danger", onclick: () => confirmDo(`Remove “${r.title}”?`, async () => { await A.deletePaper(r.id); loadPapers(); }) }, ["Remove"])]) },
+        ], rows, "No papers linked yet."));
+      } catch (e) { papersBox.replaceChildren(el("p", { class: "a-note" }, [MedLink.errorMessage(e)])); }
+    };
+    pBtn.addEventListener("click", async () => {
+      if (pTitle.value.trim().length < 3) return toast("Add a title.", "error");
+      if (!/^https?:\/\/\S+$/.test(pUrl.value.trim())) return toast("Paste a full link starting with https://", "error");
+      pBtn.disabled = true;
+      try {
+        await A.addPaper({ title: pTitle.value.trim(), url: pUrl.value.trim(), unit: pUnit.value.trim(), university_id: pUni.value, year: pYear.value.trim() });
+        pTitle.value = pUrl.value = pUnit.value = pYear.value = ""; toast("Paper added.", "success"); loadPapers();
+      } catch (e) { fail(e); }
+      pBtn.disabled = false;
+    });
+
+    // ---- where to look online (editable list) ----
+    const loadSources = async () => {
+      try {
+        const rows = await api.examSources();
+        sourcesBox.replaceChildren(table([
+          { label: "Source", render: r => el("a", { href: r.home_url, target: "_blank", rel: "noopener", style: "font-weight:700" }, [r.name]) },
+          { label: "Search link", render: r => el("span", { class: "muted-cell", style: "word-break:break-all" }, [r.search_url || "—"]) },
+          { label: "", render: r => isAdmin ? el("div", { class: "a-actions" }, [
+            el("button", { type: "button", class: "a-btn", onclick: () => editSource(r, loadSources) }, ["Edit"]),
+            el("button", { type: "button", class: "a-btn danger", onclick: () => confirmDo(`Remove ${r.name}?`, async () => { await A.deleteSource(r.id); loadSources(); }) }, ["Remove"]),
+          ]) : null },
+        ], rows, "No sources."));
+      } catch (e) { sourcesBox.replaceChildren(el("p", { class: "a-note" }, [MedLink.errorMessage(e)])); }
+    };
+
+    const formRow = (...kids) => el("div", { class: "utm-grid", style: "grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:10px" }, kids.map(k => el("label", {}, [k.placeholder || "", k])));
+    p.replaceChildren(
+      el("div", { class: "a-grid c11" }, [
+        card("Import free questions", "From MedMCQA — 182,000+ medical MCQs with answers and explanations (open licence).", el("div", {}, [
+          el("div", { class: "a-toolbar" }, [subjectSel, countSel, fetchBtn]),
+          el("div", { class: "a-toolbar" }, [starterBtn, el("label", { class: "row-gap", style: "font-size:13px;font-weight:600" }, [publishBox, "Publish straight away"])]),
+          status, preview,
+          el("datalist", { id: "subjectList" }, EXAM_SUBJECTS.map(x => el("option", { value: x.label }))),
+        ])),
+        card("Type or paste questions", "For questions from Kenyan papers you have permission to share.", el("div", {}, [
+          el("div", { class: "utm-grid", style: "grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:10px" }, [
+            el("label", {}, ["Title", tTitle]), el("label", {}, ["Subject", tSubject]), el("label", {}, ["Unit", tUnit]),
+          ]),
+          el("div", { class: "field" }, [tText]),
+          el("div", { class: "a-toolbar" }, [tBtn]), tPreview,
+          el("p", { class: "a-note" }, ["Format: “Q:” then options “A)” “B)”… Mark the right one with * (or add “Answer: B”). Optional “Explanation:”. Leave a blank line between questions."]),
+        ])),
+      ]),
+      card("Practice sets", "What students see in the Exam bank", setsBox),
+      el("div", { style: "height:16px" }),
+      el("div", { class: "a-grid c11" }, [
+        card("Past papers", "Link papers hosted on university sites or in the library", el("div", {}, [
+          formRow(pTitle, pUrl), formRow(pUnit, pUni, pYear), el("div", { class: "a-toolbar" }, [pBtn]), papersBox,
+        ])),
+        card("Where students search online", "Kenyan university repositories and past-paper sites ({q} = the search words)", el("div", {}, [
+          sourcesBox,
+          isAdmin ? el("button", { type: "button", class: "a-btn", style: "margin-top:10px", onclick: () => editSource(null, loadSources) }, ["+ Add source"]) : null,
+        ])),
+      ]),
+    );
+    await Promise.all([loadSets(), loadPapers(), loadSources()]);
+  }
+
+  function editSource(src, reload) {
+    const isNew = !src;
+    src = src || { id: "", name: "", home_url: "https://", search_url: "", position: 50 };
+    const name = el("input", { type: "text", value: src.name, maxlength: "120", required: true });
+    const home = el("input", { type: "url", value: src.home_url, required: true });
+    const search = el("input", { type: "text", value: src.search_url, placeholder: "https://www.google.com/search?q=site%3Aexample.ac.ke+{q}" });
+    const save = el("button", { class: "btn btn-primary", type: "submit" }, [isNew ? "Add source" : "Save"]);
+    const form = el("form", {}, [
+      el("div", { class: "field" }, [el("label", {}, ["Name"]), name]),
+      el("div", { class: "field" }, [el("label", {}, ["Website"]), home]),
+      el("div", { class: "field" }, [el("label", {}, ["Search link (use {q} where the search words go)"]), search,
+        el("div", { class: "field-hint" }, ["Tip: a Google site search works for any site — https://www.google.com/search?q=site%3Asite.ac.ke+{q}"])]),
+      save,
+    ]);
+    const close = MedLink.modal(isNew ? "Add a source" : "Edit " + src.name, form);
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      if (search.value && !search.value.includes("{q}")) return toast("The search link needs {q} where the words go.", "error");
+      save.disabled = true;
+      try {
+        const id = isNew ? name.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) : src.id;
+        await A.saveSource({ id, name: name.value.trim(), home_url: home.value.trim(), search_url: search.value.trim(), position: src.position }, isNew);
+        close(); reload();
       } catch (err) { fail(err); save.disabled = false; }
     });
   }

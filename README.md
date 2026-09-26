@@ -77,12 +77,13 @@ scripts/build.mjs   Vercel build: copies files to dist/ and writes config.js fro
 - **Onboarding** — username (unique), course → university → year, current units, interests. Editable later.
 - **Study Library** — upload PDFs, Word, PowerPoint, images (≤ 20 MB) per unit; filter, preview, download,
   save, report, delete your own.
-- **Unit study groups** — every unit has a shared feed; see how many students take it.
-- **Communities** — join/leave, post, like, comment.
+- **My units** — your units with their notes and past-paper search (discussions live in your course community).
+- **Communities** — one per course plus topics and a general one; join from the card, post, like, comment, invite links.
 - **Messages** — direct messages with unread badges (refreshes every 5 seconds).
 - **Profiles** — follow/unfollow, followers, posts, resources, communities, MedPoints.
 - **Search** — resources, students, communities and discussions.
-- Exam Bank practice questions and Medical News are static content in `data.js`.
+- **Exam bank** — practice sets from the database with scores saved, past papers, and Kenyan repository search.
+- Medical News is static content in `data.js`.
 
 ## Admin dashboard (`admin.html`)
 
@@ -120,11 +121,38 @@ Every rule is enforced in the database (RLS + `set_user_role`, `set_user_suspend
   (suspended users can read but not post, upload, comment or message); edit name / bio; per-user timeline
   of visits, traffic sources and actions.
 - **Content** — edit or delete any resource, post or comment.
+- **Exam bank** — import, type or link questions and papers (see below).
 - **Reports** — resolve, dismiss, reopen, or delete the reported resource.
-- **Communities** — create, rename, re-describe, change the cover photo, delete.
+- **Communities** — create, rename, re-describe, change type (course / topic / everyone) and cover photo, delete.
 - **Site images** — every photo on the site has a slot; replace it by uploading, picking from the media
   library, or pasting a link, and reset to the built-in photo any time. The media library lists uploads with
   where each one is used, and lets you delete them.
+
+### Admin invites (optional)
+**Admin → Users & roles → Add admin or moderator** lets you search anyone on MedLink and give them a role.
+To give a role to someone who hasn't joined yet, invite their email in the same window — they get the role the
+next time they sign in. For that, Clerk must put the (verified) email in its session token:
+**Clerk dashboard → Sessions → Customize session token** → add `{ "email": "{{user.primary_email_address}}" }` → Save.
+
+### Exam bank
+**Admin → Exam bank**:
+- **Import free questions** — pulls exam-style MCQs with answers and explanations from
+  [MedMCQA](https://huggingface.co/datasets/openlifescienceai/medmcqa) (182,000+ questions, Apache-2.0 licence)
+  by subject, shows a preview so you can untick any, then publishes them as a practice set.
+  **One-click starter pack** creates Anatomy, Physiology, Biochemistry, Pathology, Pharmacology and Microbiology sets.
+  (MedMCQA comes from Indian postgraduate entrance exams; the medicine is the same, the style is close to Kenyan MCQs.)
+- **Type or paste questions** — for questions from Kenyan papers you have permission to share (`Q:` / `A)` … `*` format).
+- **Past papers** — link PDFs hosted by universities or elsewhere.
+- **Where students search online** — Kenyan university repositories (UoN, KU, Moi, JKUAT, Egerton, Maseno, MKU, AKU)
+  and KenyaPlex, searched with a site-limited Google search so it works whatever software each repository runs.
+Students see practice sets (with their best score), past papers, and a "Find papers online" search for their units.
+
+### Communities
+Kept broad on purpose: one per course (created automatically), a few topics, and one for everyone. New students
+join their course community and the general one automatically; year and course show on every post. Every
+community has an **invite link** (`join.html?c=…`) with WhatsApp / Telegram / X / Facebook / email / SMS buttons —
+new students are walked through sign-up and land inside the community. Each share is tagged
+(`utm_source=whatsapp` etc.) so **Admin → Traffic** shows which channels bring people in.
 
 ### What's tracked
 `app.js` records page views, clicks on anything marked `data-track`, links to other sites, key actions

@@ -8,10 +8,10 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <title>MedLink KE — Your medical school, all in one place</title>
-<meta name="description" content="Free study resources, exam practice, unit study groups and communities, built for medical students in Kenya.">
+<meta name="description" content="Free study notes, past-paper practice and communities for medical students in Kenya.">
 <meta name="theme-color" content="#FFFFFF">
 <meta property="og:title" content="MedLink KE — Your medical school, all in one place">
-<meta property="og:description" content="Free notes, past-paper practice and study groups for medical students in Kenya.">
+<meta property="og:description" content="Free notes, past-paper practice and study communities for medical students in Kenya.">
 <meta property="og:image" content="img/hero-main.jpg">
 <script src="theme.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,156 +20,99 @@
 <link rel="stylesheet" href="landing.css">
 </head>
 <body class="lp-page">
-
-<div class="lp-shell">
-
-  <!-- ================= NAV ================= -->
-  <nav class="lp-nav">
-    <a href="index.html" class="lp-brand">
-      <span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></span>
-      MedLink KE
-    </a>
-    <div class="lp-links">
-      <a href="#features">Features</a>
-      <a href="#how">How it works</a>
-      <a href="#communities">Communities</a>
-    </div>
-    <div class="lp-nav-actions">
-      <button class="icon-btn theme-toggle" data-theme-toggle aria-label="Switch theme">
-        <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-        <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>
-      </button>
-      <a href="sign-in.html" class="lp-signin" id="signInLink" data-track="cta_nav_sign_in">Sign in</a>
-      <a href="sign-up.html" class="btn btn-primary" id="ctaNav" data-track="cta_nav_get_started">Get started</a>
-    </div>
-  </nav>
+<div class="lp-wrap">
 
   <!-- ================= HERO ================= -->
-  <header class="lp-hero">
-    <div>
-      <span class="lp-pill"><span class="dot"></span> Free for every medical student in Kenya</span>
-      <h1>Study smarter.<br><span class="lp-under">Pass <span class="lp-hl">together.</span></span></h1>
-      <p class="lp-lede">
-        Notes filed by unit, past-paper practice, study groups for every unit you're taking and a
-        community of medical students who've sat the same exams — all in one bright, simple place.
-      </p>
-      <div class="lp-cta-row">
-        <a href="sign-up.html" class="btn btn-primary" id="ctaHero" data-track="cta_hero_get_started">
-          Get started — it's free
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </a>
-        <a href="#features" class="btn btn-ghost" data-track="cta_hero_explore">See what's inside</a>
+  <header class="lp-hero" data-slot="hero-sky">
+    <nav class="lp-nav">
+      <a href="index.html" class="lp-brand">
+        <span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></span>
+        MedLink KE
+      </a>
+      <div class="lp-links">
+        <a href="#about">About</a>
+        <a href="#features">Features</a>
+        <a href="#communities">Communities</a>
       </div>
-      <div class="lp-proof">
-        <div class="lp-faces" aria-hidden="true">
-          <span style="background:#1A56F0">UoN</span><span style="background:#FF7A1A">Moi</span><span style="background:#FF4F9A">KU</span><span style="background:#10B39E">AKU</span>
-        </div>
-        <div class="lp-proof-text"><strong id="uniCount">Built for Kenyan universities</strong>MBChB, nursing, pharmacy, clinical medicine &amp; more</div>
+      <div class="lp-nav-actions">
+        <a href="sign-in.html" class="lp-signin" id="signInLink" data-track="cta_nav_sign_in">Sign in</a>
+        <a href="sign-up.html" class="btn btn-lime" id="ctaNav" data-track="cta_nav_get_started">Get started</a>
+      </div>
+    </nav>
+
+    <div class="lp-hero-center">
+      <span class="lp-glass-pill"><i></i> Free for every medical student in Kenya</span>
+      <h1>Your medical school,<br>all in one place.</h1>
+      <p>Notes filed by unit, exam-style practice questions, past papers and a community of classmates from every Kenyan medical school.</p>
+      <div class="lp-cta-row">
+        <a href="#features" class="btn lp-btn-glass" data-track="cta_hero_explore">See what's inside</a>
+        <a href="sign-up.html" class="btn btn-lime" id="ctaHero" data-track="cta_hero_get_started">Get started free <span class="lp-arrow">↗</span></a>
       </div>
     </div>
 
-    <div class="lp-collage">
-      <span class="lp-blob b1"></span><span class="lp-blob b2"></span>
-      <img class="lp-photo lp-photo-main" data-slot="hero-main" src="img/hero-main.jpg" alt="Medical students reviewing a scan together">
-      <img class="lp-photo lp-photo-a" data-slot="hero-lab" src="img/hero-lab.jpg" alt="Student in a laboratory">
-      <img class="lp-photo lp-photo-b" data-slot="hero-study" src="img/hero-study.jpg" alt="Students studying together">
-      <div class="lp-float f1"><span class="ic">📘</span><span><strong>Brachial Plexus notes</strong><small>Human Anatomy I · Notes</small></span></div>
-      <div class="lp-float f2"><span class="ic">✅</span><span><strong>Practice MCQs</strong><small>With explanations</small></span></div>
-      <div class="lp-float f3"><span class="ic">👥</span><span><strong>Surgery community</strong><small>New discussion</small></span></div>
+    <div class="lp-cards" aria-hidden="true">
+      <div class="lp-card"><div class="cover"><b>Notes</b></div><div class="t">Brachial plexus summary</div><div class="s">Human Anatomy I</div></div>
+      <div class="lp-card"><div class="s">Practice score</div><div class="big">80%</div><div class="s">Physiology · 10 questions</div><div class="bar"><i></i></div></div>
+      <div class="lp-card glass"><div class="plus">+</div><div class="t">Share your notes</div><div class="s" style="opacity:.85">Earn MedPoints</div></div>
+      <div class="lp-card dark"><div class="t">A community for every course</div><div class="s">MBChB · Nursing · Pharmacy</div><div class="dots"><span style="background:#1A56F0"></span><span style="background:#FF7A1A"></span><span style="background:#FF4F9A"></span><span style="background:#C9F26B"></span></div></div>
+      <div class="lp-card"><div class="s">Units organised</div><div class="big" id="cardUnits">170+</div><div class="bars"><i style="height:40%"></i><i style="height:60%"></i><i style="height:48%"></i><i style="height:90%"></i><i style="height:70%"></i></div></div>
     </div>
+    <div class="lp-under-cards" id="uniCount">Built for Kenyan universities and colleges</div>
   </header>
 
-  <!-- ================= STATS ================= -->
-  <section class="lp-band" aria-label="MedLink in numbers">
-    <div class="lp-stat"><div class="n">100%</div><div class="l">Free study material</div></div>
-    <div class="lp-stat"><div class="n" id="statUnis">—</div><div class="l">Universities &amp; colleges</div></div>
-    <div class="lp-stat"><div class="n" id="statCourses">—</div><div class="l">Programmes supported</div></div>
-    <div class="lp-stat"><div class="n" id="statUnits">—</div><div class="l">Units with study groups</div></div>
+  <!-- ================= UNIVERSITIES ================= -->
+  <div class="lp-logos" aria-label="Universities on MedLink"><div class="lp-logos-track" id="logos"></div></div>
+
+  <!-- ================= ABOUT ================= -->
+  <section class="lp-section" id="about">
+    <div class="lp-label">About</div>
+    <h2 class="lp-h2">One place for your notes, <span class="lp-bubble">✚</span> your exams<br><span class="soft">and your classmates <span class="lp-bubble lime">✓</span></span></h2>
+    <div class="lp-bento">
+      <div class="lp-tile photo" data-slot="hero-main" role="img" aria-label="Medical students reviewing a scan together">
+        <div class="overlay"><div class="num" id="statUnis">13+</div><div class="cap">Universities and colleges, every programme and year of study.</div></div>
+      </div>
+      <div class="lp-tile grey">
+        <div><div class="small" style="color:var(--text-3)">Free study material</div><div class="num" style="margin-top:6px">100%</div></div>
+        <div class="faces"><span style="background:#1A56F0">UoN</span><span style="background:#FF7A1A">Moi</span><span style="background:#FF4F9A">KU</span><span style="background:#10B39E">+10</span></div>
+        <div class="quote">“The notes that get you through first year shouldn't live on one laptop, in a group chat that disappears after exams.”</div>
+      </div>
+      <div class="lp-stack">
+        <div class="lp-tile lime"><div class="small">Units organised by year &amp; semester</div><div class="num" style="margin-top:10px" id="statUnits">170+</div><div class="cap">Find notes for exactly what you're studying.</div></div>
+        <div class="lp-tile dark"><div class="small">Programmes</div><div class="num" id="statCourses">5</div></div>
+      </div>
+    </div>
   </section>
 
   <!-- ================= FEATURES ================= -->
   <section class="lp-section" id="features">
-    <div class="lp-head">
-      <div>
-        <span class="lp-kicker">What's inside</span>
-        <h2>Everything a med student opens on a study night.</h2>
-      </div>
-      <p>Six tools, one account — organised the way your course is: by year, semester and unit.</p>
+    <div class="lp-head-row">
+      <div class="lp-label">Features</div>
+      <h2 class="lp-h2">Everything you need on a study night</h2>
+      <p class="lp-lede" style="max-width:520px">Simple tools, one account — organised the way your course is.</p>
+      <a href="sign-up.html" class="btn btn-dark" data-track="cta_features">Get started <span class="lp-arrow" style="background:var(--lime);color:#0B1533">↗</span></a>
     </div>
     <div class="lp-features">
-      <article class="lp-feature">
-        <div class="lp-feature-img"><img data-slot="feature-library" src="img/feature-library.jpg" alt="Handwritten study notes" loading="lazy"><span class="lp-tag" style="background:#1A56F0">Library</span></div>
-        <div class="lp-feature-body"><h3>Study Resources</h3><p>Notes, summaries, slides and practical guides filed by unit — shared by students who sat the same exam last year.</p></div>
-      </article>
-      <article class="lp-feature">
-        <div class="lp-feature-img"><img data-slot="feature-exams" src="img/feature-exams.jpg" alt="Doctor reading an X-ray" loading="lazy"><span class="lp-tag" style="background:#FF4F9A">Exam Bank</span></div>
-        <div class="lp-feature-body"><h3>Past-paper practice</h3><p>Work through questions one at a time and see the explanation the moment you answer.</p></div>
-      </article>
-      <article class="lp-feature">
-        <div class="lp-feature-img"><img data-slot="feature-units" src="img/feature-units.jpg" alt="Anatomical model of the heart" loading="lazy"><span class="lp-tag" style="background:#10B39E">Units</span></div>
-        <div class="lp-feature-body"><h3>Unit study groups</h3><p>Every unit you're taking gets its own feed with the classmates taking it too.</p></div>
-      </article>
-      <article class="lp-feature">
-        <div class="lp-feature-img"><img data-slot="feature-communities" src="img/feature-communities.jpg" alt="Students laughing around a table" loading="lazy"><span class="lp-tag" style="background:#7B61FF">Communities</span></div>
-        <div class="lp-feature-body"><h3>Communities</h3><p>Anatomy, surgery, public health and more — ask questions, share tips, find your people.</p></div>
-      </article>
-      <article class="lp-feature">
-        <div class="lp-feature-img"><img data-slot="feature-chat" src="img/feature-chat.jpg" alt="Doctor using a phone" loading="lazy"><span class="lp-tag" style="background:#FF7A1A">Messages</span></div>
-        <div class="lp-feature-body"><h3>Student chat</h3><p>Find a classmate by @username and message them. Organising a 9pm revision call takes seconds.</p></div>
-      </article>
-      <article class="lp-feature">
-        <div class="lp-feature-img"><img data-slot="feature-news" src="img/feature-news.jpg" alt="Colourful sample tubes in a lab" loading="lazy"><span class="lp-tag" style="background:#F5A300">News</span></div>
-        <div class="lp-feature-body"><h3>Medical news</h3><p>A short daily read on internships, guidelines and research that matters to Kenyan healthcare.</p></div>
-      </article>
-    </div>
-  </section>
-
-  <!-- ================= HOW IT WORKS ================= -->
-  <section class="lp-section" id="how">
-    <div class="lp-head">
-      <div>
-        <span class="lp-kicker">How it works</span>
-        <h2>Set up in two minutes. Study smarter all semester.</h2>
-      </div>
-      <p>Groups are temporary, knowledge is permanent — everything shared in a unit stays in the library for the year below you.</p>
-    </div>
-    <div class="lp-steps">
-      <div class="lp-step s1"><div class="num">1</div><h3>Create your profile</h3><p>Pick your university, programme and year. Choose a username your classmates can find.</p></div>
-      <div class="lp-step s2"><div class="num">2</div><h3>Join this semester's units</h3><p>You land in a library and study groups that already know what you're studying.</p></div>
-      <div class="lp-step s3"><div class="num">3</div><h3>Share, practise, earn</h3><p>Upload notes, answer questions and help in comments to earn MedPoints.</p></div>
+      <div class="lp-feature"><span class="ic">📘</span><h3>Study library</h3><p>Notes, summaries, slides and past papers filed by unit — shared by students who sat the same exams.</p></div>
+      <div class="lp-feature"><span class="ic">✅</span><h3>Exam bank</h3><p>Exam-style MCQs by subject with explanations, plus links to past papers from Kenyan universities.</p></div>
+      <div class="lp-feature"><span class="ic">👥</span><h3>Communities</h3><p>One for your course and one for everyone. Share an invite link and your class joins in a tap.</p></div>
+      <div class="lp-feature photo" data-slot="feature-communities" role="img" aria-label="Students laughing around a table"></div>
+      <div class="lp-feature photo" data-slot="feature-exams" role="img" aria-label="Doctor reading an X-ray"></div>
+      <div class="lp-feature"><span class="ic">💬</span><h3>Messages</h3><p>Find a classmate by @username and message them. Organising a revision call takes seconds.</p></div>
+      <div class="lp-feature"><span class="ic">🔎</span><h3>Search</h3><p>One search across notes, students, communities and discussions.</p></div>
+      <div class="lp-feature"><span class="ic">🏅</span><h3>MedPoints</h3><p>Earn points for sharing notes and helping others — your profile shows what you've given back.</p></div>
     </div>
   </section>
 
   <!-- ================= COMMUNITIES ================= -->
   <section class="lp-section" id="communities">
-    <div class="lp-head">
-      <div>
-        <span class="lp-kicker">Communities</span>
-        <h2>Find your people.</h2>
-      </div>
-      <a href="sign-up.html" class="btn btn-ghost" data-track="cta_communities">Join a community ›</a>
-    </div>
+    <div class="lp-label">Communities</div>
+    <h2 class="lp-h2">Find your people</h2>
+    <p class="lp-lede">Broad on purpose — your year and course show on every post.</p>
     <div class="lp-comms">
-      <a href="sign-up.html" class="lp-comm" data-community="anatomy" data-track="lp_community_anatomy"><span class="lp-tag" style="background:#1A56F0">Pre-clinical</span><h3>Anatomy</h3><p>Mnemonics, dissection-week survival tips and high-yield summaries.</p></a>
-      <a href="sign-up.html" class="lp-comm" data-community="surgery" data-track="lp_community_surgery"><span class="lp-tag" style="background:#FF4F9A">Clinical</span><h3>Surgery</h3><p>For students on surgical rotations and future surgeons.</p></a>
-      <a href="sign-up.html" class="lp-comm" data-community="public-health" data-track="lp_community_public_health"><span class="lp-tag" style="background:#10B39E">Community</span><h3>Public Health</h3><p>Epidemiology, placements and research chats.</p></a>
-      <a href="sign-up.html" class="lp-comm" data-community="med-students-ke" data-track="lp_community_general"><span class="lp-tag" style="background:#FF7A1A">Everyone</span><h3>Medical Students in Kenya</h3><p>Announcements, opportunities and banter.</p></a>
-    </div>
-  </section>
-
-  <!-- ================= WHY ================= -->
-  <section class="lp-section">
-    <div class="lp-quote">
-      <div class="lp-quote-img" data-slot="quote-photo" role="img" aria-label="Students studying together"></div>
-      <div class="lp-quote-body">
-        <div class="mark">“</div>
-        <blockquote>The notes that get you through first year shouldn't live on one person's laptop, in a group chat that
-          disappears after exams. MedLink keeps them for everyone who comes next.</blockquote>
-        <div class="lp-quote-by">
-          <span class="brand-mark" style="width:44px;height:44px;border-radius:14px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></span>
-          <div><div class="lp-quote-name">Why we built MedLink</div><div class="lp-quote-meta">By medical students, for medical students</div></div>
-        </div>
-      </div>
+      <a class="lp-comm" href="join.html?c=course-mbchb" data-community="course-mbchb" data-track="lp_community"><div class="img"><b>Course</b></div><h3>MBChB</h3><p>Everyone studying medicine — every year, every university.</p><span class="go">Take a look →</span></a>
+      <a class="lp-comm" href="join.html?c=course-nursing" data-community="course-nursing" data-track="lp_community"><div class="img"><b>Course</b></div><h3>Nursing</h3><p>Placements, notes and support from nursing students across Kenya.</p><span class="go">Take a look →</span></a>
+      <a class="lp-comm" href="join.html?c=surgery" data-community="surgery" data-track="lp_community"><div class="img"><b>Topic</b></div><h3>Surgery</h3><p>For students on surgical rotations and future surgeons.</p><span class="go">Take a look →</span></a>
+      <a class="lp-comm" href="join.html?c=med-students-ke" data-community="med-students-ke" data-track="lp_community"><div class="img"><b>Everyone</b></div><h3>Medical Students in Kenya</h3><p>Announcements, opportunities and banter.</p><span class="go">Take a look →</span></a>
     </div>
   </section>
 
@@ -178,26 +121,21 @@
     <div class="lp-cta-inner">
       <h2>Study together, not alone.</h2>
       <p>Create your profile, pick this semester's units and start with a library that already knows what you're studying.</p>
-      <a href="sign-up.html" class="btn btn-lime" id="ctaClose" data-track="cta_close_get_started">
-        Create your free profile
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
+      <a href="sign-up.html" class="btn btn-lime" id="ctaClose" data-track="cta_close_get_started">Create your free account <span class="lp-arrow">↗</span></a>
     </div>
   </section>
 
-  <!-- ================= FOOTER ================= -->
   <footer class="lp-footer">
-    <div class="lp-brand" style="font-size:16px;">
+    <div class="lp-brand">
       <span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></span>
       MedLink KE
     </div>
     <div class="lp-footer-links">
-      <a href="#features">Features</a><a href="#how">How it works</a><a href="sign-in.html">Sign in</a><a href="sign-up.html">Create account</a>
+      <a href="#features">Features</a><a href="#communities">Communities</a><a href="sign-in.html">Sign in</a><a href="sign-up.html">Create account</a>
     </div>
     <p class="note">Student-created and open-access material only — report anything that shouldn't be here.
       We collect anonymous usage statistics (pages visited, how you found us) to improve MedLink.</p>
   </footer>
-
 </div>
 
 <script src="config.js"></script>
@@ -208,27 +146,28 @@
   const unitCount = new Set(Object.values(UNIT_CATALOG).flatMap(y => Object.values(y).flatMap(s => Object.values(s).flat()))).size;
   qs("#statUnis").textContent = UNIVERSITIES.length + "+";
   qs("#statCourses").textContent = COURSES.length;
-  qs("#statUnits").textContent = unitCount + "+";
-  qs("#uniCount").textContent = `Built for ${UNIVERSITIES.length}+ Kenyan universities`;
+  qs("#statUnits").textContent = qs("#cardUnits").textContent = unitCount + "+";
+  qs("#uniCount").textContent = `Built for ${UNIVERSITIES.length}+ Kenyan universities and colleges`;
+  const names = UNIVERSITIES.map(u => u.name);
+  qs("#logos").replaceChildren(...names.concat(names).map(n => el("span", {}, [n])));
   qsa("[data-community]").forEach(n => {
     const img = MedLink.communityImage({ id: n.dataset.community });
-    if (img) n.style.backgroundImage = MedLink.cssUrl(img);
+    if (img) qs(".img", n).style.backgroundImage = MedLink.cssUrl(img);
   });
 
-  // Signed-in visitors get sent to their dashboard instead of sign-up.
   MedLink.run({ auth: "optional", profile: "optional", shell: false, allowUnconfigured: true }, async ({ clerk, me }) => {
     if (!clerk || !clerk.user) return;
+    qs("#signInLink")?.remove();
     const target = me ? "dashboard.html" : "onboarding.html";
-    const signIn = document.getElementById("signInLink");
-    if (signIn) signIn.remove();
-    ["ctaNav", "ctaHero", "ctaClose"].forEach(id => {
-      const a = document.getElementById(id);
-      if (!a) return;
-      a.href = target;
-      const arrow = a.querySelector("svg");
-      a.textContent = me ? (id === "ctaNav" ? "Dashboard" : "Go to your dashboard") : (id === "ctaNav" ? "Finish sign-up" : "Finish setting up your profile");
-      if (arrow) a.appendChild(arrow);
-    });
+    [["ctaNav", me ? "Dashboard" : "Finish sign-up"], ["ctaHero", me ? "Go to your dashboard" : "Finish setting up your profile"], ["ctaClose", me ? "Go to your dashboard" : "Finish setting up your profile"]]
+      .forEach(([id, label]) => {
+        const a = document.getElementById(id);
+        if (!a) return;
+        const arrow = a.querySelector(".lp-arrow");
+        a.href = target;
+        a.textContent = label + " ";
+        if (arrow) a.appendChild(arrow);
+      });
   });
 </script>
 </body>

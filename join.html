@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#FFFFFF">
+<title>You're invited — MedLink KE</title>
+<meta name="description" content="Join a community of medical students on MedLink KE — free notes, past papers and study help.">
+<meta property="og:title" content="You're invited to MedLink KE">
+<meta property="og:description" content="Free notes, past-paper practice and study communities for medical students in Kenya.">
+<meta property="og:image" content="img/hero-main.jpg">
+<script src="theme.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .join-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 22px 16px 40px; }
+  .join-top { width: 100%; max-width: 560px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+  .join-card { width: 100%; max-width: 560px; padding: 12px; }
+  .join-card .cc-cover { height: 220px; border-radius: 18px; }
+  .join-body { padding: 20px 14px 10px; text-align: center; }
+  .join-body .invited { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+  .join-body h1 { font-size: 28px; margin: 0 0 8px; }
+  .join-body p { margin: 0 auto 16px; color: var(--text-2); line-height: 1.55; font-size: 14.5px; max-width: 420px; }
+  .join-stats { display: flex; justify-content: center; align-items: center; gap: 14px; margin-bottom: 20px; font-size: 13px; color: var(--text-3); flex-wrap: wrap; }
+  .join-actions { display: flex; flex-direction: column; gap: 10px; max-width: 360px; margin: 0 auto; }
+  .join-perks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 560px; margin-top: 16px; }
+  .join-perks div { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; font-size: 12.5px; color: var(--text-2); line-height: 1.45; }
+  .join-perks b { display: block; color: var(--text); font-size: 13.5px; margin-bottom: 2px; }
+  @media (max-width: 520px) { .join-perks { grid-template-columns: 1fr; } .join-card .cc-cover { height: 170px; } }
+</style>
+</head>
+<body>
+<div class="join-page">
+  <div class="join-top">
+    <a href="index.html" class="brand" style="width:auto"><span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></span> MedLink KE</a>
+    <a href="index.html" class="btn btn-ghost btn-sm">What's MedLink?</a>
+  </div>
+  <div class="card join-card" id="joinCard"><div class="loading-state" style="text-align:center">Loading invite…</div></div>
+  <div class="join-perks">
+    <div><b>📘 Free notes</b>Filed by unit, shared by students who sat the same exams.</div>
+    <div><b>✅ Practice questions</b>Past-paper style MCQs with explanations.</div>
+    <div><b>👥 Your class, online</b>Ask, answer and message classmates.</div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+MedLink.run({ auth: "optional", profile: "optional", shell: false }, async ({ api, clerk, me }) => {
+  const box = qs("#joinCard");
+  const id = param("c") || "";
+  const ref = (param("ref") || "").replace(/[^a-z0-9._]/g, "").slice(0, 20);
+  const here = "join.html?c=" + encodeURIComponent(id);
+  let c = null;
+  try { c = /^[a-z0-9-]{2,40}$/.test(id) ? await api.communityPreview(id) : null; } catch (err) { console.warn(err); }
+  if (!c) {
+    box.replaceChildren(el("div", { class: "join-body" }, [
+      el("h1", {}, ["This invite link isn't valid"]),
+      el("p", {}, ["The community may have been renamed or removed. You can still join MedLink and browse every community."]),
+      el("div", { class: "join-actions" }, [el("a", { class: "btn btn-primary", href: "sign-up.html" }, ["Create your free account"])]),
+    ]));
+    return;
+  }
+  document.title = "Join " + c.name + " — MedLink KE";
+  MedLink.track("invite_open", { community: c.id, ref, signed_in: !!clerk.user });
+
+  const cover = MedLink.communityCoverNode(c);
+  cover.appendChild(el("span", { class: "cc-kind" }, [MedLink.KIND_LABELS[c.kind] || "Community"]));
+  const faces = el("div", { class: "faces" }, (c.faces || []).map(f =>
+    el("div", { class: "avatar sm", style: "background:" + safeColor(f.color) }, [f.initials || "•"])));
+  const actions = el("div", { class: "join-actions" });
+
+  box.replaceChildren(cover, el("div", { class: "join-body" }, [
+    el("div", { class: "invited" }, [ref ? "@" + ref + " invited you to join" : "You're invited to join"]),
+    el("h1", {}, [c.name]),
+    el("p", {}, [c.description || "A community of medical students on MedLink KE."]),
+    el("div", { class: "join-stats" }, [faces, el("span", {}, [plural(c.members, "member")]), el("span", {}, ["·"]), el("span", {}, [plural(c.posts, "post")])]),
+    actions,
+  ]));
+
+  const openCommunity = () => MedLink.go("communities.html?c=" + encodeURIComponent(c.id) + "&joined=1");
+  async function joinNow(btn) {
+    if (btn) { btn.disabled = true; btn.textContent = "Joining…"; }
+    try {
+      const mine = await api.myCommunityIds();
+      if (!mine.has(c.id)) await api.setMember(c.id, true);
+      MedLink.pendingJoin.clear();
+      MedLink.track("invite_accept", { community: c.id, ref });
+      await MedLink.flushTracking();
+      openCommunity();
+    } catch (err) { MedLink.reportError(err); if (btn) { btn.disabled = false; btn.textContent = "Join " + c.name; } }
+  }
+
+  if (!clerk.user) {
+    // New here: remember the community, create the account, set up the profile, then come back and join.
+    const signUp = el("a", { class: "btn btn-primary", href: "sign-up.html", onclick: () => MedLink.pendingJoin.set(c.id) }, ["Create a free account & join"]);
+    const signIn = el("a", { class: "btn btn-ghost", href: "sign-in.html?redirect=" + encodeURIComponent(here), onclick: () => MedLink.pendingJoin.set(c.id) }, ["I already have an account"]);
+    actions.replaceChildren(signUp, signIn, el("div", { class: "faint", style: "font-size:12px" }, ["Takes about 2 minutes. Free for every medical student in Kenya."]));
+    return;
+  }
+  if (!me) {
+    MedLink.pendingJoin.set(c.id);
+    actions.replaceChildren(el("a", { class: "btn btn-primary", href: "onboarding.html" }, ["Finish your profile & join"]),
+      el("div", { class: "faint", style: "font-size:12px" }, ["You'll be added to " + c.name + " as soon as your profile is ready."]));
+    return;
+  }
+  const mine = await api.myCommunityIds();
+  if (mine.has(c.id)) {
+    MedLink.pendingJoin.clear();
+    actions.replaceChildren(el("a", { class: "btn btn-primary", href: "communities.html?c=" + encodeURIComponent(c.id) }, ["You're a member — open " + c.name]));
+    return;
+  }
+  // They chose to join before signing in/up: finish the job without another click.
+  if (MedLink.pendingJoin.get() === c.id) { await joinNow(); return; }
+  const btn = el("button", { type: "button", class: "btn btn-primary" }, ["Join " + c.name]);
+  btn.addEventListener("click", () => joinNow(btn));
+  actions.replaceChildren(btn, el("a", { class: "btn btn-ghost", href: "communities.html" }, ["Browse all communities"]));
+});
+</script>
+</body>
+</html>

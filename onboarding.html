@@ -377,7 +377,8 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
     try {
       if (editing) await api.updateProfile(fields);
       else await api.createProfile(fields);
-      MedLink.go(editing ? "settings.html?saved=1" : "dashboard.html");
+      const pending = !editing && MedLink.pendingJoin.get();
+      MedLink.go(editing ? "settings.html?saved=1" : pending ? "join.html?c=" + encodeURIComponent(pending) : "dashboard.html");
     } catch (err) {
       nextBtn.disabled = false;
       if (/duplicate key|profiles_username_key/i.test(err.message || "")) {

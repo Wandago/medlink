@@ -17,10 +17,16 @@
 <body>
 <main id="page" hidden>
 <div class="fade-in">
-  <h1 class="disp" style="font-size:24px;margin:0 0 6px;">Exam Bank</h1>
-  <p class="muted" style="font-size:14px;margin:0 0 22px;">Practice question sets with instant explanations. Looking for real past papers? They're shared in the
-    <a href="study.html" class="handle">Study Library</a> under the "Past Paper" type.</p>
-  <div class="grid grid-fill-260" id="examGrid"></div>
+  <div class="page-head">
+    <div>
+      <h1>Exam bank</h1>
+      <p>Practise with exam-style questions, open past papers, and search Kenyan university repositories.</p>
+    </div>
+    <div class="pill-tabs" id="tabs"></div>
+  </div>
+  <section id="tab-practice"></section>
+  <section id="tab-papers" hidden></section>
+  <section id="tab-online" hidden></section>
 </div>
 </main>
 
@@ -28,17 +34,106 @@
 <script src="data.js"></script>
 <script src="app.js"></script>
 <script>
-MedLink.run({ page: "exams" }, async () => {
-  const grid = qs("#examGrid");
-  EXAM_SETS.forEach(e => grid.appendChild(el("div", { class: "card pad" }, [
-    el("span", { class: "chip" }, [e.unit]),
-    el("div", { style: "font-weight:700;font-size:15px;margin:12px 0 6px;" }, [e.title]),
-    el("div", { class: "faint", style: "font-size:12px;margin-bottom:16px;" }, [`${SAMPLE_QUIZ.length} practice questions · ${e.university}`]),
-    el("div", { class: "row-gap" }, [
-      el("a", { href: "practice.html?id=" + encodeURIComponent(e.id), class: "btn btn-primary btn-block", "data-track": "exam_open" }, ["Practice"]),
-      el("a", { href: "study.html?unit=" + encodeURIComponent(e.unit), class: "btn btn-ghost btn-block" }, ["Related notes"]),
+MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
+  const TABS = [["practice", "Practice questions"], ["papers", "Past papers"], ["online", "Find papers online"]];
+  const tabs = qs("#tabs");
+  const show = key => {
+    TABS.forEach(([k]) => { qs("#tab-" + k).hidden = k !== key; });
+    qsa("button", tabs).forEach(b => b.classList.toggle("on", b.dataset.key === key));
+    history.replaceState(null, "", "#" + key);
+  };
+  TABS.forEach(([key, label]) => tabs.appendChild(el("button", { type: "button", "data-key": key, onclick: () => show(key) }, [label])));
+  show(TABS.some(t => "#" + t[0] === location.hash) ? location.hash.slice(1) : "practice");
+  const staffNote = role ? el("a", { class: "btn btn-primary btn-sm", href: "admin.html#exams" }, ["+ Add questions or papers"]) : null;
+
+  // ---------- practice sets ----------
+  const practice = qs("#tab-practice");
+  practice.appendChild(MedLink.loadingState());
+  const [sets, attempts, papers, sources] = await Promise.all([
+    api.examSets().catch(() => []), api.myAttempts().catch(() => []), api.examPapers().catch(() => []), api.examSources().catch(() => []),
+  ]);
+  const best = {};
+  attempts.forEach(a => { const pct = a.score / a.total; if (!(a.set_id in best) || pct > best[a.set_id]) best[a.set_id] = pct; });
+  const subjects = Array.from(new Set(sets.map(s => s.subject).filter(Boolean))).sort();
+  let subject = "", q = "";
+  const filterRow = el("div", { class: "pill-tabs" });
+  const search = el("input", { type: "search", class: "filter-select", placeholder: "Search sets…", style: "border-radius:999px;min-width:180px", "aria-label": "Search practice sets" });
+  const grid = el("div", { class: "grid grid-fill-260" });
+  const setCard = s => {
+    const color = subjectColor(s.subject);
+    const n = count(s.exam_questions);
+    return el("div", { class: "card set-card", style: `--sc:${color};--sc-soft:color-mix(in srgb, ${color} 12%, transparent)` }, [
+      el("span", { class: "subject" }, [s.subject || "General"]),
+      el("h3", {}, [s.title]),
+      el("div", { class: "set-meta" }, [plural(n, "question") + (s.source ? " · " + s.source : "") + (s.published ? "" : " · Draft")]),
+      s.id in best ? el("div", { class: "best" }, ["Your best: " + Math.round(best[s.id] * 100) + "%"]) : null,
+      el("a", { class: "btn btn-dark btn-block", href: "practice.html?id=" + encodeURIComponent(s.id), "data-track": "exam_open" }, [s.id in best ? "Practise again" : "Start practising"]),
+    ]);
+  };
+  const paint = () => {
+    const shown = sets.filter(s => (!subject || s.subject === subject) && (!q || (s.title + " " + s.subject + " " + s.unit).toLowerCase().includes(q)));
+    grid.replaceChildren(...(shown.length ? shown.map(setCard) : [MedLink.emptyState("No sets match.")]));
+  };
+  [["", "All"]].concat(subjects.map(x => [x, x])).forEach(([val, label]) => filterRow.appendChild(el("button", {
+    type: "button", class: val === subject ? "on" : null,
+    onclick: ev => { subject = val; qsa("button", filterRow).forEach(b => b.classList.remove("on")); ev.currentTarget.classList.add("on"); paint(); },
+  }, [label])));
+  search.addEventListener("input", () => { q = search.value.trim().toLowerCase(); paint(); });
+
+  if (sets.length) {
+    practice.replaceChildren(el("div", { class: "section-heading", style: "flex-wrap:wrap" }, [filterRow, el("div", { class: "row-gap" }, [search, staffNote])]), grid);
+    paint();
+  } else {
+    // Nothing imported yet: offer the built-in starter quiz, honestly labelled.
+    practice.replaceChildren(
+      el("div", { class: "grid grid-fill-260" }, [el("div", { class: "card set-card" }, [
+        el("span", { class: "subject" }, ["Mixed"]),
+        el("h3", {}, ["Starter quiz"]),
+        el("div", { class: "set-meta" }, [plural(SAMPLE_QUIZ.length, "question") + " · anatomy, physiology & biochemistry"]),
+        el("a", { class: "btn btn-dark btn-block", href: "practice.html?id=starter" }, ["Start practising"]),
+      ])]),
+      el("p", { class: "muted", style: "font-size:13.5px;margin-top:18px" }, [role
+        ? "No question sets yet. Import hundreds of free, explained MCQs by subject from Admin → Exam bank."
+        : "More question sets are on the way."]),
+      ...(staffNote ? [staffNote] : []),
+    );
+  }
+
+  // ---------- past papers ----------
+  const papersBox = qs("#tab-papers");
+  papersBox.replaceChildren(papers.length ? el("div", { class: "card pad" }, papers.map(p => el("div", { class: "paper-row" }, [
+    el("span", { class: "thumb", style: "background:" + subjectColor(p.unit || p.title) }, ["📄"]),
+    el("div", { class: "who" }, [el("b", {}, [p.title]), el("span", {}, [[p.unit, uniAbbr(p.university_id), p.year].filter(Boolean).join(" · ") || "Past paper"])]),
+    el("a", { class: "btn btn-soft btn-sm", href: p.url, target: "_blank", rel: "noopener", onclick: () => MedLink.track("paper_open", { id: p.id, title: p.title }) }, ["Open ↗"]),
+  ]))) : el("div", {}, [
+    MedLink.emptyState("No past papers linked yet. Students also share papers in the Study Library under “Past Paper”.",
+      el("a", { class: "btn btn-ghost btn-sm", href: "study.html" }, ["Open Study Library"])),
+    ...(staffNote ? [staffNote] : []),
+  ]));
+
+  // ---------- find papers online ----------
+  const online = qs("#tab-online");
+  const query = el("input", { type: "search", class: "filter-select", style: "border-radius:999px;flex:1;min-width:220px", value: me.current_units[0] || "", placeholder: "Unit or topic, e.g. Human Anatomy I", "aria-label": "What to search for" });
+  const unitChips = el("div", { class: "wrap-gap", style: "margin:10px 0 18px" }, me.current_units.map(u => el("button", { type: "button", class: "chip-toggle", onclick: () => { query.value = u; } }, [u])));
+  const searchUrl = src => src.search_url.replace("{q}", encodeURIComponent((query.value.trim() || "medicine") + " past paper exam"));
+  online.replaceChildren(
+    el("div", { class: "card pad" }, [
+      el("div", { class: "row-gap", style: "flex-wrap:wrap" }, [query]),
+      me.current_units.length ? unitChips : null,
+      el("div", {}, sources.map(src => el("div", { class: "paper-row" }, [
+        el("span", { class: "thumb", style: "background:" + subjectColor(src.name) }, ["🏛️"]),
+        el("div", { class: "who" }, [el("b", {}, [src.name]), el("span", {}, [src.home_url.replace(/^https?:\/\//, "")])]),
+        src.search_url ? el("button", { type: "button", class: "btn btn-dark btn-sm", onclick: () => {
+          MedLink.track("paper_search", { source: src.id, q: query.value.trim().slice(0, 80) });
+          window.open(searchUrl(src), "_blank", "noopener");
+        } }, ["Search"]) : null,
+        el("a", { class: "btn btn-ghost btn-sm", href: src.home_url, target: "_blank", rel: "noopener" }, ["Visit"]),
+      ]))),
+      el("p", { class: "faint", style: "font-size:12.5px;line-height:1.5;margin:14px 0 0" }, [
+        "These are university repositories and past-paper sites run by others — each university decides what's public, and some papers need your student login. Found a good one? Share it in the Study Library.",
+      ]),
     ]),
-  ])));
+  );
 });
 </script>
 </body>

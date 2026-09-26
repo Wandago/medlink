@@ -16,21 +16,23 @@
 </head>
 <body>
 <main id="page" hidden>
-<div class="fade-in" style="max-width:620px;">
-  <a href="exams.html" class="btn btn-ghost" style="margin-bottom:16px;">‹ Exit practice</a>
-  <div class="row" style="justify-content:space-between;margin-bottom:14px;gap:10px;">
-    <span class="chip" id="examTitle"></span>
+<div class="fade-in" style="max-width:680px;margin:0 auto;">
+  <a href="exams.html" class="btn btn-ghost btn-sm" style="margin-bottom:16px;">‹ Exam bank</a>
+  <div class="row" style="justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap">
+    <div><div class="faint" style="font-size:12.5px" id="examSubject"></div><h1 class="disp" style="font-size:20px" id="examTitle">Loading…</h1></div>
     <span style="font-size:13px;font-weight:700;color:var(--text-2);" id="scoreLabel"></span>
   </div>
+  <div class="quiz-progress"><div id="progress" style="width:0%"></div></div>
   <div class="card" style="padding:24px;" id="quizCard">
     <div class="handle" style="font-size:12px;font-weight:700;margin-bottom:10px;" id="qLabel"></div>
-    <div style="font-size:16px;font-weight:600;line-height:1.5;margin-bottom:20px;" id="qText"></div>
+    <div style="font-size:16px;font-weight:600;line-height:1.5;margin-bottom:20px;white-space:pre-wrap" id="qText"></div>
     <div id="options"></div>
     <div class="quiz-explain hidden" id="explain"></div>
     <div style="margin-top:18px;text-align:right;">
       <button class="btn btn-primary" id="nextQ" type="button" disabled>Next question ›</button>
     </div>
   </div>
+  <div class="quiz-source" id="source"></div>
 </div>
 </main>
 
@@ -38,32 +40,51 @@
 <script src="data.js"></script>
 <script src="app.js"></script>
 <script>
-MedLink.run({ page: "exams" }, async () => {
-  const examSet = EXAM_SETS.find(e => e.id === param("id")) || EXAM_SETS[0];
-  qs("#examTitle").textContent = examSet.title;
-  const total = SAMPLE_QUIZ.length;
+MedLink.run({ page: "exams" }, async ({ api }) => {
+  const id = param("id");
+  let set = await api.examSet(id).catch(() => null);
+  if (!set) {
+    // Built-in starter quiz (also used before any sets are imported).
+    set = { id: null, title: "Starter quiz", subject: "Mixed", source: "",
+      questions: SAMPLE_QUIZ.map(x => ({ question: x.q, options: x.options, correct: x.correct, explanation: x.explain })) };
+  }
+  if (!set.questions.length) { qs("#quizCard").replaceChildren(MedLink.emptyState("This set has no questions yet.")); return; }
+  document.title = set.title + " — MedLink KE";
+  qs("#examTitle").textContent = set.title;
+  qs("#examSubject").textContent = set.subject || "";
+  if (set.source) {
+    qs("#source").replaceChildren("Questions: ", set.source_url
+      ? el("a", { href: set.source_url, target: "_blank", rel: "noopener", class: "handle" }, [set.source]) : set.source);
+  }
+  const questions = set.questions;
+  const total = questions.length;
   let idx = 0, picked = null, score = 0;
+  MedLink.track("quiz_start", { set: set.id || "starter", title: set.title });
 
   function render() {
+    qs("#progress").style.width = Math.round((idx + (picked !== null ? 1 : 0)) / total * 100) + "%";
     if (idx >= total) {
+      const pct = Math.round(score / total * 100);
       qs("#scoreLabel").textContent = `Score: ${score}/${total}`;
-      MedLink.track("quiz_complete", { exam: examSet.id, score, total, percent: Math.round(score / total * 100) });
+      MedLink.track("quiz_complete", { set: set.id || "starter", score, total, percent: pct });
+      if (set.id) api.saveAttempt(set.id, score, total).catch(err => console.warn(err));
       qs("#quizCard").replaceChildren(
-        el("h2", { class: "disp", style: "font-size:20px;margin:0 0 8px;" }, [`You scored ${score} out of ${total}`]),
-        el("p", { class: "muted", style: "margin:0 0 18px;" }, [score === total ? "Perfect — well done! 🎉" : "Review the explanations and try again."]),
+        el("div", { style: "font-size:42px;font-weight:800;letter-spacing:-.03em;color:var(--accent)" }, [pct + "%"]),
+        el("h2", { class: "disp", style: "font-size:20px;margin:4px 0 8px;" }, [`You scored ${score} out of ${total}`]),
+        el("p", { class: "muted", style: "margin:0 0 18px;" }, [pct === 100 ? "Perfect — well done! 🎉" : pct >= 70 ? "Great work. Review the ones you missed and go again." : "Keep going — read the explanations and try again."]),
         el("div", { class: "row-gap" }, [
           el("button", { class: "btn btn-primary", type: "button", onclick: () => location.reload() }, ["Try again"]),
-          el("a", { class: "btn btn-ghost", href: "exams.html" }, ["Back to Exam Bank"]),
+          el("a", { class: "btn btn-ghost", href: "exams.html" }, ["More sets"]),
         ]),
       );
       return;
     }
-    const cur = SAMPLE_QUIZ[idx];
+    const cur = questions[idx];
     qs("#scoreLabel").textContent = `Score: ${score}/${idx + (picked !== null ? 1 : 0)}`;
     qs("#qLabel").textContent = `QUESTION ${idx + 1} OF ${total}`;
-    qs("#qText").textContent = cur.q;
+    qs("#qText").textContent = cur.question;
     qs("#options").replaceChildren(...cur.options.map((o, i) => {
-      const btn = el("button", { class: "quiz-option", type: "button" }, [o]);
+      const btn = el("button", { class: "quiz-option", type: "button" }, [String.fromCharCode(65 + i) + ".  " + o]);
       if (picked !== null) {
         if (i === cur.correct) btn.classList.add("correct");
         else if (i === picked) btn.classList.add("incorrect");
@@ -72,7 +93,6 @@ MedLink.run({ page: "exams" }, async () => {
         if (picked !== null) return;
         picked = i;
         if (i === cur.correct) score += 1;
-        if (idx === 0) MedLink.track("quiz_start", { exam: examSet.id });
         render();
       });
       return btn;
@@ -80,7 +100,7 @@ MedLink.run({ page: "exams" }, async () => {
     const ex = qs("#explain");
     if (picked !== null) {
       ex.classList.remove("hidden");
-      ex.replaceChildren(el("strong", {}, [picked === cur.correct ? "Correct — " : "Not quite — "]), cur.explain);
+      ex.replaceChildren(el("strong", {}, [picked === cur.correct ? "Correct — " : "Not quite — the answer is " + String.fromCharCode(65 + cur.correct) + ". "]), cur.explanation || "");
     } else ex.classList.add("hidden");
     const next = qs("#nextQ");
     next.disabled = picked === null;

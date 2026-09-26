@@ -16,88 +16,36 @@
 </head>
 <body>
 <main id="page" hidden>
-<div class="fade-in">
-  <section class="dash-hero">
-    <div class="dash-hero-text">
-      <span class="eyebrow-pill" id="today"></span>
-      <h1 id="greeting">Hello 👋</h1>
-      <p class="dash-meta" id="meMeta"></p>
-      <div class="wrap-gap" id="unitsChips"></div>
-      <div class="dash-hero-actions">
-        <a href="study.html?upload=1" class="btn btn-lime" data-track="dash_upload">↑ Upload notes</a>
-        <a href="exams.html" class="btn btn-white" data-track="dash_practice">✅ Practice questions</a>
-      </div>
-    </div>
-    <div class="dash-hero-photo" data-slot="dashboard-banner" role="img" aria-label="Student at a microscope"></div>
-  </section>
+<div class="fade-in with-rail">
+  <div>
+    <div class="hero-carousel" id="hero"></div>
+    <div class="hero-dots" id="heroDots"></div>
 
-  <div class="stat-grid">
-    <a class="stat-card solid" href="profile.html" id="statPointsCard">
-      <div class="stat-top">MedPoints <span class="stat-ic">🏅</span></div>
-      <div class="stat-num" id="statPoints">…</div>
-      <div class="stat-sub">Earned by helping others</div>
-    </a>
-    <a class="stat-card c-orange" href="study.html">
-      <div class="stat-top">Notes you've shared <span class="stat-ic">📘</span></div>
-      <div class="stat-num" id="statUploads">…</div>
-      <div class="stat-sub">+20 MedPoints each</div>
-    </a>
-    <a class="stat-card c-pink" href="saved.html">
-      <div class="stat-top">Saved for later <span class="stat-ic">🔖</span></div>
-      <div class="stat-num" id="statSaved">…</div>
-      <div class="stat-sub">Your revision pile</div>
-    </a>
-    <a class="stat-card c-purple" href="communities.html">
-      <div class="stat-top">Communities <span class="stat-ic">👥</span></div>
-      <div class="stat-num" id="statCommunities">…</div>
-      <div class="stat-sub">Groups you've joined</div>
-    </a>
+    <div class="section-heading" style="flex-wrap:wrap">
+      <h2>Continue studying</h2>
+      <div class="pill-tabs" id="resTabs"></div>
+    </div>
+    <div class="grid grid-fill-230" style="margin-bottom:32px;" id="resGrid"></div>
+
+    <div class="section-heading">
+      <h2>Latest discussions</h2>
+      <a href="communities.html" class="btn btn-ghost btn-sm">Communities ›</a>
+    </div>
+    <div id="composer" style="margin-bottom:12px;"></div>
+    <div id="feedList" class="feed-list"></div>
   </div>
 
-  <div class="home-grid">
-    <div>
-      <div class="section-heading">
-        <div><div class="eyebrow">From your current units</div><h2>Continue Studying</h2></div>
-        <a href="study.html" class="btn btn-ghost btn-sm">See all ›</a>
-      </div>
-      <div class="grid grid-fill-230" style="margin-bottom:30px;" id="continueStudying"></div>
-
-      <div class="section-heading">
-        <div><div class="eyebrow">Most viewed across MedLink</div><h2>Popular Right Now</h2></div>
-        <a href="discover.html" class="btn btn-ghost btn-sm">Discover ›</a>
-      </div>
-      <div class="grid grid-fill-230" style="margin-bottom:30px;" id="popular"></div>
-
-      <div class="section-heading">
-        <div><div class="eyebrow">Everyone on MedLink</div><h2>Latest Discussions</h2></div>
-        <a href="communities.html" class="btn btn-ghost btn-sm">Communities ›</a>
-      </div>
-      <div id="composer" style="margin-bottom:12px;"></div>
-      <div id="feedList" class="feed-list"></div>
+  <aside class="rail">
+    <div class="rail-card" id="meCard"></div>
+    <div class="rail-card">
+      <div class="rail-head"><h3>Your communities</h3><a href="communities.html">See all</a></div>
+      <div class="rail-list" id="communitiesMini"></div>
     </div>
-
-    <div class="home-side">
-      <div class="card pad">
-        <div class="side-card-title">Quick actions</div>
-        <div class="quick-grid">
-          <a class="quick-tile" href="study.html" style="--qt-bg:var(--accent-soft);--qt-text:var(--accent-on-soft)"><span class="qt-ic">📚</span>Study library</a>
-          <a class="quick-tile" href="exams.html" style="--qt-bg:var(--pink-soft);--qt-text:var(--pink-text)"><span class="qt-ic">📝</span>Exam bank</a>
-          <a class="quick-tile" href="units.html" style="--qt-bg:var(--teal-soft);--qt-text:var(--teal-text)"><span class="qt-ic">🩺</span>My units</a>
-          <a class="quick-tile" href="messages.html" style="--qt-bg:var(--orange-soft);--qt-text:var(--orange-text)"><span class="qt-ic">💬</span>Messages</a>
-        </div>
-      </div>
-      <div class="card pad">
-        <div class="side-card-title">Your Communities</div>
-        <div id="communitiesMini"></div>
-        <a href="communities.html" class="btn btn-ghost btn-block" style="margin-top:8px;">Browse all</a>
-      </div>
-      <div class="card pad">
-        <div class="side-card-title">Medical News</div>
-        <div id="newsMini"></div>
-        <a href="news.html" class="btn btn-ghost btn-block" style="margin-top:10px;">More news</a>
-      </div>
+    <div class="rail-card">
+      <div class="rail-head"><h3>Recent activity</h3></div>
+      <div class="rail-list" id="activity"></div>
     </div>
-  </div>
+  </aside>
 </div>
 </main>
 
@@ -108,34 +56,55 @@
 MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   const hour = new Date().getHours();
   const hello = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  qs("#today").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
-  qs("#greeting").textContent = `${hello}, ${me.full_name.split(" ")[0]} 👋`;
-  qs("#meMeta").textContent = `${courseName(me.course_id)} · ${me.year} · ${uniName(me.university_id)}`;
-  qs("#statPointsCard").href = profileHref(me);
-  me.current_units.forEach(u => qs("#unitsChips").appendChild(
-    el("a", { class: "chip", href: "study.html?unit=" + encodeURIComponent(u), style: "font-size:13px;padding:7px 14px;" }, [u])));
-  MedLink.applySiteImages();
+  const first = me.full_name.split(" ")[0];
 
-  const newsColors = ["var(--accent)", "var(--orange)", "var(--pink)", "var(--teal)", "var(--purple)"];
-  NEWS.forEach((n, i) => qs("#newsMini").appendChild(el("div", { class: "news-mini" }, [
-    el("span", { class: "news-dot", style: "background:" + newsColors[i % newsColors.length] }),
-    el("div", {}, [
-      el("div", { class: "news-mini-title" }, [n.title]),
-      el("div", { class: "faint", style: "font-size:11px;" }, [n.src + " · " + n.time]),
-    ]),
-  ])));
+  // ---- hero carousel ----
+  const slides = [
+    { kicker: new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }),
+      title: `${hello}, ${first}`, text: `${courseName(me.course_id)} · ${me.year} · ${uniName(me.university_id)}`,
+      photo: MedLink.siteImageUrl("dashboard-banner"),
+      actions: [el("a", { class: "btn btn-white", href: "study.html" }, ["Open library"]), el("a", { class: "btn btn-ghost-white", href: "exams.html" }, ["Practice questions"])] },
+    { kicker: "Earn 20 MedPoints", title: "Share your notes, help your class.",
+      text: "Upload summaries, slides or past papers for your units — they stay in the library for the year below you.",
+      photo: MedLink.siteImageUrl("hero-main"),
+      actions: [el("a", { class: "btn btn-lime", href: "study.html?upload=1", "data-track": "dash_upload" }, ["↑ Upload notes"])] },
+    { kicker: "Exam bank", title: "Practise with real exam-style MCQs.",
+      text: "Questions with explanations, grouped by subject. Your best scores are saved.",
+      photo: MedLink.siteImageUrl("feature-exams"),
+      actions: [el("a", { class: "btn btn-white", href: "exams.html", "data-track": "dash_practice" }, ["Start practising"])] },
+  ];
+  const hero = qs("#hero"), dots = qs("#heroDots");
+  let current = 0, timer = null;
+  slides.forEach((sl, i) => {
+    const photo = el("div", { class: "hero-photo" });
+    if (sl.photo) photo.style.backgroundImage = MedLink.cssUrl(sl.photo);
+    hero.appendChild(el("div", { class: "hero-slide" + (i === 0 ? " on" : "") }, [
+      el("div", { class: "hero-text" }, [el("div", { class: "kicker" }, [sl.kicker]), el("h2", {}, [sl.title]), el("p", {}, [sl.text]), el("div", { class: "hero-actions" }, sl.actions)]),
+      photo,
+    ]));
+    dots.appendChild(el("button", { type: "button", class: i === 0 ? "on" : null, "aria-label": "Slide " + (i + 1), onclick: () => { show(i); restart(); } }));
+  });
+  function show(i) {
+    current = (i + slides.length) % slides.length;
+    qsa(".hero-slide", hero).forEach((n, j) => n.classList.toggle("on", j === current));
+    qsa("button", dots).forEach((n, j) => n.classList.toggle("on", j === current));
+  }
+  function restart() { clearInterval(timer); timer = setInterval(() => show(current + 1), 7000); }
+  hero.addEventListener("mouseenter", () => clearInterval(timer));
+  hero.addEventListener("mouseleave", restart);
+  restart();
 
-  const cont = qs("#continueStudying"), popular = qs("#popular"), feed = qs("#feedList"), mini = qs("#communitiesMini");
-  [cont, popular, feed, mini].forEach(n => n.appendChild(MedLink.loadingState()));
-
+  const grid = qs("#resGrid"), feed = qs("#feedList"), mini = qs("#communitiesMini"), activity = qs("#activity");
+  [grid, feed, mini, activity].forEach(n => n.appendChild(MedLink.loadingState()));
   qs("#composer").appendChild(MedLink.composerNode({
     placeholder: "Ask a question or share something with MedLink…",
     onPosted: post => { qs(".empty-state", feed)?.remove(); feed.prepend(MedLink.feedPostNode(post, { liked: new Set() })); },
   }));
 
-  const [mine, top, posts, communities, joined, uploads, saved, points] = await Promise.all([
-    me.current_units.length ? api.resources({ units: me.current_units, limit: 3 }) : Promise.resolve([]),
-    api.resources({ order: "views", limit: 3 }),
+  const [mine, popular, recent, posts, communities, joined, uploads, saved, points] = await Promise.all([
+    me.current_units.length ? api.resources({ units: me.current_units, limit: 6 }) : Promise.resolve([]),
+    api.resources({ order: "views", limit: 6 }),
+    api.resources({ limit: 6 }),
     api.posts({ limit: 15 }),
     api.communities(),
     api.myCommunityIds(),
@@ -144,28 +113,54 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
     api.medPoints(me.id),
   ]);
 
-  qs("#statPoints").textContent = points.toLocaleString();
-  qs("#statUploads").textContent = uploads.length.toLocaleString();
-  qs("#statSaved").textContent = saved.size.toLocaleString();
-  qs("#statCommunities").textContent = joined.size.toLocaleString();
+  // ---- tabbed resources ----
+  const TABS = [["units", "Your units", mine], ["popular", "Popular", popular], ["new", "New", recent]];
+  const tabs = qs("#resTabs");
+  function paint(key) {
+    const [, , rows] = TABS.find(t => t[0] === key);
+    qsa("button", tabs).forEach(b => b.classList.toggle("on", b.dataset.key === key));
+    grid.replaceChildren(...(rows.length ? rows.map(MedLink.resourceCardNode) : [MedLink.emptyState(
+      key === "units" ? "No notes for your units yet — be the first to share." : "Nothing uploaded yet.",
+      el("a", { href: "study.html?upload=1", class: "btn btn-primary btn-sm" }, ["↑ Upload notes"]))]));
+  }
+  TABS.forEach(([key, label]) => tabs.appendChild(el("button", { type: "button", "data-key": key, onclick: () => paint(key) }, [label])));
+  paint(mine.length ? "units" : "popular");
 
-  cont.replaceChildren(...(mine.length ? mine.map(MedLink.resourceCardNode)
-    : [MedLink.emptyState("No notes for your units yet — be the first to share.", el("a", { href: "study.html?upload=1", class: "btn btn-primary btn-sm" }, ["↑ Upload notes"]))]));
-  popular.replaceChildren(...(top.length ? top.map(MedLink.resourceCardNode) : [MedLink.emptyState("Nothing uploaded yet.")]));
   await MedLink.renderPosts(feed, posts, "No discussions yet — start one above.");
 
-  const mineFirst = communities.filter(c => joined.has(c.id));
-  const list = mineFirst.length ? mineFirst : communities.slice(0, 3);
-  mini.replaceChildren(
-    ...(mineFirst.length ? [] : [el("p", { class: "faint", style: "font-size:12.5px;margin:0 0 6px;" }, ["You haven't joined any yet. Try:"])]),
-    ...list.map(c => el("a", { href: "communities.html?c=" + encodeURIComponent(c.id), class: "row-gap mini-row" }, [
-      MedLink.communityCoverNode(c, "cc-cover cc-sm"),
-      el("div", { style: "flex:1;min-width:0;" }, [
-        el("div", { style: "font-size:13.5px;font-weight:700;" }, [c.name]),
-        el("div", { class: "faint", style: "font-size:11.5px;" }, [plural(count(c.community_members), "member")]),
-      ]),
-    ])),
+  // ---- rail: me ----
+  const stat = (n, label, href) => el("a", { href, style: "text-align:center;flex:1" }, [
+    el("div", { style: "font-size:20px;font-weight:700" }, [Number(n).toLocaleString()]),
+    el("div", { class: "faint", style: "font-size:11.5px" }, [label]),
+  ]);
+  qs("#meCard").replaceChildren(
+    el("div", { class: "rail-item", style: "margin-bottom:14px" }, [
+      MedLink.avatarNode(me, "md", true),
+      el("div", { class: "who" }, [el("b", {}, [me.full_name]), el("span", {}, [MedLink.metaLine(me)])]),
+    ]),
+    el("div", { style: "display:flex;gap:6px;padding-top:12px;border-top:1px solid var(--border)" }, [
+      stat(points, "MedPoints", profileHref(me)), stat(uploads.length, "Notes shared", "study.html"), stat(saved.size, "Saved", "saved.html"),
+    ]),
   );
+
+  // ---- rail: communities ----
+  const mineFirst = communities.filter(c => joined.has(c.id));
+  const list = (mineFirst.length ? mineFirst : communities).slice(0, 5);
+  mini.replaceChildren(...list.map(c => el("div", { class: "rail-item" }, [
+    MedLink.communityCoverNode(c, "cc-cover cc-sm"),
+    el("a", { class: "who", href: "communities.html?c=" + encodeURIComponent(c.id) }, [el("b", {}, [c.name]), el("span", {}, [plural(count(c.community_members), "member")])]),
+    el("a", { class: "pill-btn", href: "communities.html?c=" + encodeURIComponent(c.id) }, [joined.has(c.id) ? "Open" : "View"]),
+  ])));
+
+  // ---- rail: recent activity (new notes + posts) ----
+  const items = recent.filter(r => r.author).map(r => ({ at: r.created_at, who: r.author, text: "shared “" + r.title + "”", href: "resource.html?id=" + r.id }))
+    .concat(posts.filter(p => p.author).map(p => ({ at: p.created_at, who: p.author, text: p.community ? "posted in " + p.community.name : "posted", href: p.community ? "communities.html?c=" + p.community.id : "#feedList" })))
+    .sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 6);
+  activity.replaceChildren(...(items.length ? items.map(i => el("a", { class: "rail-item", href: i.href }, [
+    MedLink.avatarNode(i.who, "sm", false),
+    el("div", { class: "who" }, [el("b", {}, [i.who.full_name]), el("span", {}, [i.text])]),
+    el("span", { class: "time" }, [timeAgo(i.at)]),
+  ])) : [el("div", { class: "faint", style: "font-size:13px" }, ["Nothing yet — be the first to share."])]));
 });
 </script>
 </body>

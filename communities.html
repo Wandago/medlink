@@ -26,94 +26,235 @@
 MedLink.run({ page: "communities" }, async ({ api, me }) => {
   const root = qs("#root");
   const communityId = param("c");
-  const unit = param("unit");
 
-  // ---- a unit study group ----
-  if (unit) {
-    document.title = unit + " — MedLink KE";
-    const feed = el("div", { class: "feed-list" }, [MedLink.loadingState()]);
-    const stats = el("div", { class: "faint", style: "font-size:12.5px;" }, ["…"]);
-    const inMyUnits = me.current_units.includes(unit);
-    root.replaceChildren(...[
-      el("a", { href: "units.html", class: "btn btn-ghost", style: "margin-bottom:16px;" }, ["‹ My units"]),
-      el("div", { class: "row-gap", style: "margin-bottom:18px;flex-wrap:wrap;" }, [
-        el("div", { class: "avatar lg", style: "background:var(--panel);" }, ["🩺"]),
-        el("div", { style: "flex:1;min-width:150px;" }, [
-          el("div", { class: "eyebrow-text" }, ["Unit study group"]),
-          el("h1", { class: "disp", style: "font-size:22px;" }, [unit]),
-          stats,
-        ]),
-        el("a", { class: "btn btn-ghost", href: "study.html?unit=" + encodeURIComponent(unit) }, ["📚 Unit notes"]),
-      ]),
-      inMyUnits ? null : el("p", { class: "muted", style: "font-size:13px;" }, ["This isn't one of your current units — you can still read and post."]),
-      el("div", { style: "margin-bottom:12px;" }, [MedLink.composerNode({
-        unit, placeholder: `Ask the ${unit} group something…`,
-        onPosted: post => { qs(".empty-state", feed)?.remove(); feed.prepend(MedLink.feedPostNode(post, { liked: new Set() })); },
-      })]),
-      feed,
-    ].filter(Boolean));
-    api.unitStats(unit).then(s => { stats.textContent = `${plural(s.members, "student")} taking it · ${plural(s.resources, "resource")}`; }).catch(() => {});
-    await MedLink.renderPosts(feed, await api.posts({ unit, limit: 40 }), "No posts in this group yet — start the conversation.");
-    return;
-  }
+  // Unit groups were folded into the broader communities; send old links to the unit's notes.
+  if (param("unit")) { location.replace("study.html?unit=" + encodeURIComponent(param("unit"))); return; }
 
-  // ---- a single community ----
+  const kindLabel = c => MedLink.KIND_LABELS[c.kind] || "Community";
+  const followBtn = (p, following) => {
+    let on = following.has(p.id);
+    const b = el("button", { type: "button", class: "pill-btn" + (on ? " on" : "") }, [on ? "Following" : "Follow"]);
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try { on = !on; await api.setFollowing(p.id, on); following[on ? "add" : "delete"](p.id); b.className = "pill-btn" + (on ? " on" : ""); b.textContent = on ? "Following" : "Follow"; }
+      catch (err) { on = !on; MedLink.reportError(err); }
+      b.disabled = false;
+    });
+    return b;
+  };
+  const railCard = (title, body, link) => el("div", { class: "rail-card" }, [
+    el("div", { class: "rail-head" }, [el("h3", {}, [title]), link || null]), body,
+  ]);
+
+  // ================= one community =================
   if (communityId) {
-    const [c, joined] = await Promise.all([api.community(communityId), api.myCommunityIds()]);
+    const [c, joined, following] = await Promise.all([api.community(communityId), api.myCommunityIds(), api.followingIds()]);
     if (!c) {
       root.replaceChildren(MedLink.emptyState("That community doesn't exist.", el("a", { href: "communities.html", class: "btn btn-ghost btn-sm" }, ["All communities"])));
       return;
     }
     document.title = c.name + " — MedLink KE";
+    if (param("joined") === "1") MedLink.toast("Welcome to " + c.name + "!", "success");
     let isMember = joined.has(c.id);
     let members = count(c.community_members);
-    const memberLabel = el("div", { class: "faint", style: "font-size:12.5px;" });
+    const facesSlot = el("div");
     const joinBtn = el("button", { type: "button" });
     const paint = () => {
-      memberLabel.textContent = plural(members, "member");
-      joinBtn.className = isMember ? "btn btn-ghost" : "btn btn-primary";
+      joinBtn.className = "btn " + (isMember ? "btn-white" : "btn-lime");
       joinBtn.textContent = isMember ? "Joined ✓" : "Join community";
     };
     paint();
     joinBtn.addEventListener("click", async () => {
       joinBtn.disabled = true;
-      try {
-        isMember = !isMember; members += isMember ? 1 : -1; paint();
-        await api.setMember(c.id, isMember);
-      } catch (err) { isMember = !isMember; members += isMember ? 1 : -1; paint(); MedLink.reportError(err); }
+      try { isMember = !isMember; members += isMember ? 1 : -1; paint(); await api.setMember(c.id, isMember); loadMembers(); }
+      catch (err) { isMember = !isMember; members += isMember ? 1 : -1; paint(); MedLink.reportError(err); }
       joinBtn.disabled = false;
     });
-    const feed = el("div", { class: "feed-list" }, [MedLink.loadingState()]);
-    root.replaceChildren(
-      el("a", { href: "communities.html", class: "btn btn-ghost", style: "margin-bottom:16px;" }, ["‹ All communities"]),
-      el("div", { class: "row-gap", style: "margin-bottom:14px;flex-wrap:wrap;" }, [
-        el("div", { class: "avatar lg", style: "background:var(--panel);" }, [c.name.charAt(0)]),
-        el("div", { style: "flex:1;min-width:150px;" }, [el("h1", { class: "disp", style: "font-size:22px;" }, [c.name]), memberLabel]),
-        joinBtn,
+
+    const hero = el("section", { class: "comm-hero", style: "--cc:" + MedLink.communityColor(c) });
+    const img = MedLink.communityImage(c);
+    if (img) hero.style.backgroundImage = MedLink.cssUrl(img);
+    hero.appendChild(el("div", { class: "comm-hero-body" }, [
+      el("div", {}, [
+        el("span", { class: "cc-kind" }, [kindLabel(c)]),
+        el("h1", {}, [c.name]),
+        el("p", {}, [c.description]),
+        el("div", { style: "margin-top:12px" }, [facesSlot]),
       ]),
-      el("p", { class: "muted", style: "font-size:14px;margin:0 0 18px;" }, [c.description]),
-      el("div", { style: "margin-bottom:12px;" }, [MedLink.composerNode({
-        communityId: c.id, placeholder: `Post to ${c.name}…`,
+      el("div", { class: "comm-actions" }, [
+        joinBtn,
+        el("button", { type: "button", class: "btn btn-white", onclick: () => MedLink.shareCommunity(c) }, ["Invite people"]),
+      ]),
+    ]));
+
+    const feed = el("div", { class: "feed-list" }, [MedLink.loadingState()]);
+    const membersBox = el("div", { class: "grid grid-fill-260", hidden: true });
+    const tabs = el("div", { class: "pill-tabs" });
+    [["posts", "Discussions"], ["members", "Members"]].forEach(([key, label], i) => tabs.appendChild(el("button", {
+      type: "button", class: i === 0 ? "on" : null,
+      onclick: ev => {
+        qsa("button", tabs).forEach(b => b.classList.remove("on")); ev.currentTarget.classList.add("on");
+        postsBox.hidden = key !== "posts"; membersBox.hidden = key !== "members";
+      },
+    }, [label])));
+    const postsBox = el("div", {}, [
+      el("div", { style: "margin-bottom:12px" }, [MedLink.composerNode({
+        communityId: c.id, placeholder: `Share something with ${c.name}…`,
         onPosted: post => { qs(".empty-state", feed)?.remove(); feed.prepend(MedLink.feedPostNode(post, { liked: new Set() })); },
       })]),
       feed,
+    ]);
+    const activeBox = el("div", { class: "rail-list" }, [MedLink.loadingState()]);
+
+    root.replaceChildren(
+      el("a", { href: "communities.html", class: "btn btn-ghost btn-sm", style: "margin-bottom:14px" }, ["‹ All communities"]),
+      hero,
+      el("div", { class: "with-rail" }, [
+        el("div", {}, [el("div", { class: "section-heading" }, [tabs]), postsBox, membersBox]),
+        el("aside", { class: "rail" }, [
+          railCard("About", el("div", { class: "muted", style: "font-size:13.5px;line-height:1.55" }, [
+            c.description || "No description yet.",
+            el("div", { class: "faint", style: "margin-top:10px;font-size:12.5px" }, [kindLabel(c) + " community · started " + new Date(c.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })]),
+          ])),
+          railCard("Most active here", activeBox),
+          railCard("Grow this community", el("div", {}, [
+            el("p", { class: "muted", style: "font-size:13px;line-height:1.5;margin:0 0 12px" }, ["Share an invite link on WhatsApp or your class group — anyone can join in one tap."]),
+            el("button", { type: "button", class: "btn btn-primary btn-block", onclick: () => MedLink.shareCommunity(c) }, ["Get invite link"]),
+          ])),
+        ]),
+      ]),
     );
-    await MedLink.renderPosts(feed, await api.posts({ communityId: c.id, limit: 40 }), "No posts yet — say hello!");
+
+    async function loadMembers() {
+      const people = await api.communityMembers(c.id);
+      facesSlot.replaceChildren(MedLink.facesNode(people, members));
+      membersBox.replaceChildren(...(people.length ? people.map(p => MedLink.studentRowNode(p, { following })) : [MedLink.emptyState("No members yet — be the first.")]));
+    }
+    const posts = await api.posts({ communityId: c.id, limit: 40 });
+    await Promise.all([MedLink.renderPosts(feed, posts, "No posts yet — say hello!"), loadMembers()]);
+    const tally = {};
+    posts.forEach(p => { if (p.author) (tally[p.author_id] = tally[p.author_id] || { profile: p.author, n: 0 }).n++; });
+    const top = Object.values(tally).sort((a, b) => b.n - a.n).slice(0, 5);
+    activeBox.replaceChildren(...(top.length ? top.map((t, i) => el("div", { class: "rail-item" }, [
+      el("span", { class: "rank" }, [String(i + 1)]), MedLink.avatarNode(t.profile, "sm", true),
+      el("div", { class: "who" }, [el("b", {}, [t.profile.full_name]), el("span", {}, [MedLink.metaLine(t.profile)])]),
+      el("span", { class: "time" }, [plural(t.n, "post")]),
+    ])) : [el("div", { class: "faint", style: "font-size:13px" }, ["Nobody has posted yet."])]));
     return;
   }
 
-  // ---- all communities ----
-  const grid = el("div", { class: "grid grid-fill-260" }, [MedLink.loadingState()]);
-  const unitRow = el("div", { class: "wrap-gap", style: "margin-bottom:26px;" },
-    me.current_units.map(u => el("a", { class: "chip", href: "communities.html?unit=" + encodeURIComponent(u), style: "font-size:13px;padding:8px 14px;" }, ["🩺 " + u])));
-  root.replaceChildren(
-    el("h1", { class: "disp", style: "font-size:24px;margin:0 0 20px;" }, ["Communities"]),
-    ...(me.current_units.length ? [el("div", { class: "section-heading" }, [el("h2", {}, ["Your unit groups"])]), unitRow] : []),
-    el("div", { class: "section-heading" }, [el("h2", {}, ["Communities"])]),
-    grid,
-  );
-  const [list, joined] = await Promise.all([api.communities(), api.myCommunityIds()]);
-  grid.replaceChildren(...list.map(c => MedLink.communityCardNode(c, joined.has(c.id))));
+  // ================= all communities (a small landing page) =================
+  const heroBox = el("div", { class: "hero-carousel" });
+  const dots = el("div", { class: "hero-dots" });
+  const tabs = el("div", { class: "pill-tabs" });
+  const search = el("input", { type: "search", placeholder: "Search communities…", "aria-label": "Search communities", class: "filter-select", style: "border-radius:999px;min-width:200px" });
+  const grid = el("div", { class: "grid grid-fill-220", id: "communityGrid", style: "margin-bottom:34px" }, [MedLink.loadingState()]);
+  const feed = el("div", { class: "feed-list" }, [MedLink.loadingState()]);
+  const topBox = el("div", { class: "rail-list" }, [MedLink.loadingState()]);
+  const activityBox = el("div", { class: "rail-list" }, [MedLink.loadingState()]);
+  const inviteBtn = el("button", { type: "button", class: "btn btn-primary btn-block" }, ["Invite classmates"]);
+
+  root.replaceChildren(el("div", { class: "with-rail" }, [
+    el("div", {}, [
+      heroBox, dots,
+      el("div", { class: "section-heading", style: "flex-wrap:wrap" }, [el("h2", {}, ["Communities"]), el("div", { class: "row-gap", style: "flex-wrap:wrap" }, [tabs, search])]),
+      grid,
+      el("div", { class: "section-heading" }, [el("h2", {}, ["Latest discussions"])]),
+      feed,
+    ]),
+    el("aside", { class: "rail" }, [
+      railCard("Top contributors", topBox, el("a", { href: "discover.html" }, ["See all"])),
+      railCard("Recent activity", activityBox),
+      railCard("Bring your class", el("div", {}, [
+        el("p", { class: "muted", style: "font-size:13px;line-height:1.5;margin:0 0 12px" }, ["Every community has a share link. Drop it in your class WhatsApp group and people join in one tap."]),
+        inviteBtn,
+      ])),
+    ]),
+  ]));
+
+  const [list, joined, faces, posts, top, following] = await Promise.all([
+    api.communities(), api.myCommunityIds(), api.communityFaces(400), api.posts({ limit: 12 }),
+    api.topContributors(30, 5), api.followingIds(),
+  ]);
+  const byMembers = list.slice().sort((a, b) => count(b.community_members) - count(a.community_members));
+  const general = list.find(c => c.kind === "general") || byMembers[0];
+  if (general) inviteBtn.addEventListener("click", () => MedLink.shareCommunity(general));
+
+  // ---- hero carousel: a welcome slide + the biggest communities ----
+  const slides = [{
+    kicker: "Communities", title: "Find your people.",
+    text: "One community per course, a few big topics, and one for everyone. Your year and course show on every post, so you always know who's talking.",
+    photo: MedLink.siteImageUrl("communities-banner"),
+    actions: [
+      el("a", { class: "btn btn-white", href: "#communityGrid" }, ["Explore"]),
+      general ? el("button", { type: "button", class: "btn btn-ghost-white", onclick: () => MedLink.shareCommunity(general) }, ["Invite friends"]) : null,
+    ],
+  }].concat(byMembers.slice(0, 3).map(c => ({
+    kicker: "Featured · " + plural(count(c.community_members), "member"), title: c.name, text: c.description,
+    photo: MedLink.communityImage(c),
+    actions: [
+      el("a", { class: "btn btn-white", href: "communities.html?c=" + encodeURIComponent(c.id) }, [joined.has(c.id) ? "Open" : "Take a look"]),
+      el("button", { type: "button", class: "btn btn-ghost-white", onclick: () => MedLink.shareCommunity(c) }, ["Invite"]),
+    ],
+  })));
+  let current = 0, timer = null;
+  slides.forEach((sl, i) => {
+    const photo = el("div", { class: "hero-photo" });
+    if (sl.photo) photo.style.backgroundImage = MedLink.cssUrl(sl.photo);
+    heroBox.appendChild(el("div", { class: "hero-slide" + (i === 0 ? " on" : "") }, [
+      el("div", { class: "hero-text" }, [el("div", { class: "kicker" }, [sl.kicker]), el("h2", {}, [sl.title]), el("p", {}, [sl.text]), el("div", { class: "hero-actions" }, sl.actions)]),
+      photo,
+    ]));
+    dots.appendChild(el("button", { type: "button", class: i === 0 ? "on" : null, "aria-label": "Slide " + (i + 1), onclick: () => { go(i); restart(); } }));
+  });
+  function go(i) {
+    current = (i + slides.length) % slides.length;
+    qsa(".hero-slide", heroBox).forEach((n, j) => n.classList.toggle("on", j === current));
+    qsa("button", dots).forEach((n, j) => n.classList.toggle("on", j === current));
+  }
+  function restart() { clearInterval(timer); timer = setInterval(() => go(current + 1), 6000); }
+  heroBox.addEventListener("mouseenter", () => clearInterval(timer));
+  heroBox.addEventListener("mouseleave", restart);
+  restart();
+
+  // ---- filterable grid ----
+  let filter = "all";
+  const FILTERS = [["all", "All"], ["joined", "Joined"], ["course", "Courses"], ["topic", "Topics"], ["general", "Everyone"]];
+  FILTERS.forEach(([key, label]) => tabs.appendChild(el("button", {
+    type: "button", class: key === filter ? "on" : null,
+    onclick: ev => { filter = key; qsa("button", tabs).forEach(b => b.classList.remove("on")); ev.currentTarget.classList.add("on"); paintGrid(); },
+  }, [label])));
+  search.addEventListener("input", paintGrid);
+  function paintGrid() {
+    const q = search.value.trim().toLowerCase();
+    const shown = byMembers.filter(c =>
+      (filter === "all" || (filter === "joined" ? joined.has(c.id) : c.kind === filter)) &&
+      (!q || (c.name + " " + c.description).toLowerCase().includes(q)));
+    grid.replaceChildren(...(shown.length ? shown.map(c => MedLink.communityCardNode(c, {
+      joined: joined.has(c.id), faces: faces.byCommunity[c.id],
+      onChange: on => joined[on ? "add" : "delete"](c.id),
+    })) : [MedLink.emptyState(filter === "joined" ? "You haven't joined any yet." : "No communities match.")]));
+  }
+  paintGrid();
+
+  await MedLink.renderPosts(feed, posts, "No discussions yet — open a community and start one.");
+
+  // ---- rail ----
+  topBox.replaceChildren(...(top.length ? top.filter(t => t.profile).map((t, i) => el("div", { class: "rail-item" }, [
+    el("span", { class: "rank" }, [String(i + 1)]), MedLink.avatarNode(t.profile, "sm", true),
+    el("div", { class: "who" }, [el("b", {}, [t.profile.full_name]), el("span", {}, [plural(t.posts, "post") + " this month"])]),
+    t.profile.id === me.id ? null : followBtn(t.profile, following),
+  ])) : [el("div", { class: "faint", style: "font-size:13px" }, ["No posts this month yet."])]));
+
+  const names = Object.fromEntries(list.map(c => [c.id, c]));
+  const events = faces.recent.slice(0, 12).map(r => ({ at: r.joined_at, who: r.user, text: "joined " + (names[r.community_id] ? names[r.community_id].name : "a community"), c: names[r.community_id] }))
+    .concat(posts.filter(p => p.author).map(p => ({ at: p.created_at, who: p.author, text: p.community ? "posted in " + p.community.name : "posted", c: p.community ? names[p.community.id] : null })))
+    .sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 7);
+  activityBox.replaceChildren(...(events.length ? events.map(e => el("div", { class: "rail-item" }, [
+    MedLink.avatarNode(e.who, "sm", true),
+    el("div", { class: "who" }, [el("b", {}, [e.who.full_name]), el("span", {}, [e.text])]),
+    el("span", { class: "time" }, [timeAgo(e.at)]),
+  ])) : [el("div", { class: "faint", style: "font-size:13px" }, ["Nothing yet."])]));
 });
 </script>
 </body>

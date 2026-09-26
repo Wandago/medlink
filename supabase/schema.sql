@@ -610,6 +610,19 @@ begin
       v_entity := 'user'; v_id := r->>'user_id';
       v_action := case tg_op when 'DELETE' then 'user_unsuspended' else 'user_suspended' end;
       v_det := jsonb_build_object('reason', r->>'reason');
+    when 'exam_sets' then
+      v_entity := 'exam'; v_id := r->>'id'; v_action := 'exam_set_' || verb;
+      v_det := jsonb_build_object('title', r->>'title', 'subject', r->>'subject', 'source', r->>'source');
+    when 'exam_attempts' then
+      v_entity := 'exam'; v_id := r->>'set_id'; v_action := 'exam_completed';
+      v_det := jsonb_build_object('score', r->>'score', 'total', r->>'total');
+    when 'exam_papers' then
+      v_entity := 'paper'; v_id := r->>'id'; v_action := 'exam_paper_' || verb;
+      v_det := jsonb_build_object('title', r->>'title', 'url', r->>'url');
+    when 'role_invites' then
+      v_entity := 'invite'; v_id := r->>'email';
+      v_action := case tg_op when 'DELETE' then 'role_invite_removed' else 'role_invited' end;
+      v_det := jsonb_build_object('email', r->>'email', 'role', r->>'role');
     when 'site_images' then
       v_entity := 'image'; v_id := r->>'slot';
       v_action := case tg_op when 'DELETE' then 'image_reset' else 'image_changed' end;
@@ -922,3 +935,254 @@ grant execute on function public.set_user_role(text, text) to authenticated;
 grant execute on function public.set_user_suspended(text, boolean, text) to authenticated;
 grant execute on function public.admin_stats(integer) to authenticated;
 grant execute on function public.admin_users(text, text, integer, integer) to authenticated;
+
+-- =========================================================
+-- v3 — simpler communities, invite links, exam bank,
+-- admin invites
+-- =========================================================
+
+-- One-off data fixes run once, keyed here.
+create table if not exists public.app_meta (
+  key        text primary key,
+  value      text not null default '',
+  updated_at timestamptz not null default now()
+);
+alter table public.app_meta enable row level security;  -- no policies: not reachable from the app
+
+-- ---------------------------------------------------------
+-- COMMUNITIES — broad on purpose: one per course, a few topics,
+-- and one for everyone. Year/course show on each member instead.
+-- ---------------------------------------------------------
+alter table public.communities add column if not exists kind text not null default 'topic';
+alter table public.communities add column if not exists course_id text;
+alter table public.communities drop constraint if exists communities_kind_check;
+alter table public.communities add constraint communities_kind_check check (kind in ('general', 'course', 'topic'));
+
+insert into public.communities (id, name, description, kind, course_id) values
+  ('course-mbchb',     'MBChB',             'Everyone studying medicine — every year, every university.',      'course', 'mbchb'),
+  ('course-nursing',   'Nursing',           'Nursing students across Kenya — placements, notes and support.',  'course', 'nursing'),
+  ('course-clinmed',   'Clinical Medicine', 'Clinical officers in training — rotations, exams and tips.',      'course', 'clinmed'),
+  ('course-pharmacy',  'Pharmacy',          'Pharmacology, pharmaceutics and everything in between.',          'course', 'pharmacy'),
+  ('course-dentistry', 'Dentistry',         'Dental students — clinics, techniques and study help.',           'course', 'dentistry')
+on conflict (id) do update set kind = excluded.kind, course_id = excluded.course_id;
+update public.communities set kind = 'general' where id = 'med-students-ke';
+
+-- Everyone joins the general community and their course community automatically.
+create or replace function public.auto_join_communities()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'UPDATE' and old.course_id is not distinct from new.course_id then
+    return null;
+  end if;
+  insert into public.community_members (community_id, user_id)
+  select c.id, new.id from public.communities c
+  where c.kind = 'general' or (c.kind = 'course' and c.course_id = new.course_id)
+  on conflict do nothing;
+  return null;
+end $$;
+drop trigger if exists auto_join_communities on public.profiles;
+create trigger auto_join_communities after insert or update on public.profiles
+  for each row execute function public.auto_join_communities();
+
+-- Existing students: add them once (never re-adds someone who later leaves).
+do $$
+begin
+  if not exists (select 1 from public.app_meta where key = 'backfill_course_communities_v1') then
+    insert into public.community_members (community_id, user_id)
+    select c.id, p.id from public.profiles p
+    join public.communities c on c.kind = 'general' or (c.kind = 'course' and c.course_id = p.course_id)
+    on conflict do nothing;
+    insert into public.app_meta (key, value) values ('backfill_course_communities_v1', 'done');
+  end if;
+end $$;
+
+-- What an invite link shows before someone signs up (initials only, no names).
+create or replace function public.community_preview(cid text)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'id', c.id, 'name', c.name, 'description', c.description, 'image_url', c.image_url, 'kind', c.kind,
+    'members', (select count(*) from public.community_members m where m.community_id = c.id),
+    'posts',   (select count(*) from public.posts p where p.community_id = c.id),
+    'faces',   (select coalesce(jsonb_agg(jsonb_build_object('initials', f.initials, 'color', f.color)), '[]')
+                from (select upper(left(split_part(pr.full_name, ' ', 1), 1) || left(split_part(pr.full_name, ' ', 2), 1)) as initials, pr.color
+                      from public.community_members m join public.profiles pr on pr.id = m.user_id
+                      where m.community_id = c.id order by m.joined_at desc limit 5) f))
+  from public.communities c where c.id = cid
+$$;
+grant execute on function public.community_preview(text) to anon, authenticated;
+
+-- ---------------------------------------------------------
+-- EXAM BANK — practice sets (imported or typed in by staff),
+-- links to past papers, and where to find more online.
+-- ---------------------------------------------------------
+create table if not exists public.exam_sets (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null check (char_length(title) between 3 and 140),
+  subject     text not null default '' check (char_length(subject) <= 80),
+  unit        text not null default '' check (char_length(unit) <= 120),
+  course_id   text,
+  description text not null default '' check (char_length(description) <= 500),
+  source      text not null default '' check (char_length(source) <= 200),
+  source_url  text not null default '' check (char_length(source_url) <= 500),
+  published   boolean not null default true,
+  created_by  text default public.requesting_user_id(),
+  created_at  timestamptz not null default now()
+);
+create index if not exists exam_sets_created_idx on public.exam_sets (created_at desc);
+alter table public.exam_sets enable row level security;
+
+drop policy if exists "exam_sets: readable" on public.exam_sets;
+create policy "exam_sets: readable" on public.exam_sets
+  for select to authenticated using (published or public.is_staff());
+drop policy if exists "exam_sets: staff write" on public.exam_sets;
+create policy "exam_sets: staff write" on public.exam_sets
+  for all to authenticated using (public.is_staff()) with check (public.is_staff());
+
+create table if not exists public.exam_questions (
+  id          uuid primary key default gen_random_uuid(),
+  set_id      uuid not null references public.exam_sets(id) on delete cascade,
+  position    integer not null default 0,
+  question    text not null check (char_length(question) between 1 and 3000),
+  options     text[] not null check (array_length(options, 1) between 2 and 6),
+  correct     integer not null check (correct >= 0 and correct < 6),
+  explanation text not null default '' check (char_length(explanation) <= 4000),
+  source_ref  text not null default '' check (char_length(source_ref) <= 200)
+);
+create index if not exists exam_questions_set_idx on public.exam_questions (set_id, position);
+alter table public.exam_questions enable row level security;
+
+drop policy if exists "exam_questions: readable" on public.exam_questions;
+create policy "exam_questions: readable" on public.exam_questions
+  for select to authenticated
+  using (exists (select 1 from public.exam_sets s where s.id = set_id and (s.published or public.is_staff())));
+drop policy if exists "exam_questions: staff write" on public.exam_questions;
+create policy "exam_questions: staff write" on public.exam_questions
+  for all to authenticated using (public.is_staff()) with check (public.is_staff());
+
+create table if not exists public.exam_attempts (
+  id         bigint generated always as identity primary key,
+  user_id    text not null default public.requesting_user_id() references public.profiles(id) on delete cascade,
+  set_id     uuid not null references public.exam_sets(id) on delete cascade,
+  score      integer not null check (score >= 0),
+  total      integer not null check (total > 0 and score <= total),
+  created_at timestamptz not null default now()
+);
+create index if not exists exam_attempts_user_idx on public.exam_attempts (user_id, created_at desc);
+alter table public.exam_attempts enable row level security;
+
+drop policy if exists "exam_attempts: own or staff" on public.exam_attempts;
+create policy "exam_attempts: own or staff" on public.exam_attempts
+  for select to authenticated using (user_id = public.requesting_user_id() or public.is_staff());
+drop policy if exists "exam_attempts: record own" on public.exam_attempts;
+create policy "exam_attempts: record own" on public.exam_attempts
+  for insert to authenticated with check (user_id = public.requesting_user_id());
+
+create table if not exists public.exam_papers (
+  id            uuid primary key default gen_random_uuid(),
+  title         text not null check (char_length(title) between 3 and 160),
+  unit          text not null default '' check (char_length(unit) <= 120),
+  university_id text not null default '' check (char_length(university_id) <= 40),
+  year          text not null default '' check (char_length(year) <= 20),
+  url           text not null check (char_length(url) <= 800 and url ~ '^https?://'),
+  notes         text not null default '' check (char_length(notes) <= 300),
+  created_by    text default public.requesting_user_id(),
+  created_at    timestamptz not null default now()
+);
+alter table public.exam_papers enable row level security;
+
+drop policy if exists "exam_papers: readable" on public.exam_papers;
+create policy "exam_papers: readable" on public.exam_papers
+  for select to authenticated using (true);
+drop policy if exists "exam_papers: staff write" on public.exam_papers;
+create policy "exam_papers: staff write" on public.exam_papers
+  for all to authenticated using (public.is_staff()) with check (public.is_staff());
+
+-- Where students can look for more papers. search_url uses {q} for the search words.
+create table if not exists public.exam_sources (
+  id            text primary key check (id ~ '^[a-z0-9-]{2,40}$'),
+  name          text not null check (char_length(name) between 2 and 120),
+  university_id text not null default '',
+  home_url      text not null check (home_url ~ '^https?://'),
+  search_url    text not null default '' check (search_url = '' or search_url ~ '^https?://'),
+  position      integer not null default 0
+);
+alter table public.exam_sources enable row level security;
+
+drop policy if exists "exam_sources: readable" on public.exam_sources;
+create policy "exam_sources: readable" on public.exam_sources
+  for select to authenticated using (true);
+drop policy if exists "exam_sources: admins write" on public.exam_sources;
+create policy "exam_sources: admins write" on public.exam_sources
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+insert into public.exam_sources (id, name, university_id, home_url, search_url, position) values
+  ('uon',      'University of Nairobi Digital Repository', 'uon',     'https://erepository.uonbi.ac.ke',   'https://www.google.com/search?q=site%3Aerepository.uonbi.ac.ke+{q}', 1),
+  ('ku',       'Kenyatta University Repository',           'ku',      'https://ir-library.ku.ac.ke',       'https://www.google.com/search?q=site%3Air-library.ku.ac.ke+{q}',     2),
+  ('moi',      'Moi University Repository',                'moi',     'https://ir.mu.ac.ke',               'https://www.google.com/search?q=site%3Air.mu.ac.ke+{q}',             3),
+  ('jkuat',    'JKUAT Repository',                         'jkuat',   'https://ir.jkuat.ac.ke',            'https://www.google.com/search?q=site%3Air.jkuat.ac.ke+{q}',          4),
+  ('egerton',  'Egerton University Repository',            'egerton', 'http://ir-library.egerton.ac.ke',   'https://www.google.com/search?q=site%3Air-library.egerton.ac.ke+{q}', 5),
+  ('maseno',   'Maseno University Repository',             'maseno',  'https://repository.maseno.ac.ke',   'https://www.google.com/search?q=site%3Arepository.maseno.ac.ke+{q}', 6),
+  ('mku',      'Mount Kenya University Repository',        'mku',     'https://repository.mku.ac.ke',      'https://www.google.com/search?q=site%3Arepository.mku.ac.ke+{q}',    7),
+  ('aku',      'Aga Khan University eCommons',             '',        'https://ecommons.aku.edu',          'https://www.google.com/search?q=site%3Aecommons.aku.edu+{q}',        8),
+  ('kenyaplex','KenyaPlex — university past papers',       '',        'https://www.kenyaplex.com/exams/',  'https://www.google.com/search?q=site%3Akenyaplex.com%2Fexams+{q}',   9)
+on conflict (id) do nothing;
+
+-- ---------------------------------------------------------
+-- ADMIN INVITES — give someone a role by email, before or after
+-- they join. Claimed on their next visit. Needs the email in the
+-- Clerk session token (Clerk > Sessions > Customize session token:
+--   { "email": "{{user.primary_email_address}}" } )
+-- so the database can trust it.
+-- ---------------------------------------------------------
+create table if not exists public.role_invites (
+  email      text primary key check (email = lower(email) and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  role       text not null check (role in ('super_admin', 'admin', 'moderator')),
+  invited_by text default public.requesting_user_id(),
+  created_at timestamptz not null default now()
+);
+alter table public.role_invites enable row level security;
+
+drop policy if exists "role_invites: admins read" on public.role_invites;
+create policy "role_invites: admins read" on public.role_invites
+  for select to authenticated using (public.is_admin());
+drop policy if exists "role_invites: admins invite" on public.role_invites;
+create policy "role_invites: admins invite" on public.role_invites
+  for insert to authenticated
+  with check (public.is_admin() and (role = 'moderator' or public.my_role() = 'super_admin'));
+drop policy if exists "role_invites: admins revoke" on public.role_invites;
+create policy "role_invites: admins revoke" on public.role_invites
+  for delete to authenticated
+  using (public.is_admin() and (role = 'moderator' or public.my_role() = 'super_admin'));
+
+create or replace function public.claim_role_invite()
+returns text language plpgsql security definer set search_path = public as $$
+declare
+  me      text := public.requesting_user_id();
+  v_email text := lower(nullif(auth.jwt() ->> 'email', ''));
+  inv     public.role_invites%rowtype;
+begin
+  if me is null or v_email is null then return null; end if;
+  select * into inv from public.role_invites where email = v_email;
+  if not found then return null; end if;
+  if not exists (select 1 from public.profiles where id = me) then return null; end if;  -- finish onboarding first
+  if not exists (select 1 from public.user_roles where user_id = me) then
+    insert into public.user_roles (user_id, role, granted_by) values (me, inv.role, inv.invited_by);
+  end if;
+  delete from public.role_invites where email = v_email;
+  return inv.role;
+end $$;
+revoke all on function public.claim_role_invite() from public, anon;
+grant execute on function public.claim_role_invite() to authenticated;
+
+-- Activity logging for the v3 tables (function defined above).
+do $$
+declare t text;
+begin
+  foreach t in array array['exam_sets', 'exam_attempts', 'exam_papers', 'role_invites'] loop
+    execute format('drop trigger if exists log_activity on public.%I', t);
+  end loop;
+end $$;
+create trigger log_activity after insert or delete on public.exam_sets     for each row execute function public.log_activity();
+create trigger log_activity after insert           on public.exam_attempts for each row execute function public.log_activity();
+create trigger log_activity after insert or delete on public.exam_papers   for each row execute function public.log_activity();
+create trigger log_activity after insert or delete on public.role_invites  for each row execute function public.log_activity();

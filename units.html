@@ -17,15 +17,13 @@
 <body>
 <main id="page" hidden>
 <div class="fade-in">
-  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
-    <h1 class="disp" style="font-size:24px;">Current Units</h1>
+  <div class="page-head">
+    <div>
+      <h1>My units</h1>
+      <p id="unitsSub"></p>
+    </div>
     <a href="onboarding.html?edit=1&amp;step=3" class="btn btn-ghost btn-sm">Edit my units</a>
   </div>
-  <p class="faint" style="font-size:13px;margin:0 0 10px;" id="unitsSub"></p>
-  <p class="muted" style="font-size:14px;margin:0 0 22px;max-width:560px;">
-    Every unit you're taking has a study group shared with everyone else taking it this semester —
-    discussions in the group, notes in the library.
-  </p>
   <div class="grid grid-fill-260" id="unitsGrid"></div>
 </div>
 </main>
@@ -36,23 +34,23 @@
 <script>
 MedLink.run({ page: "units" }, async ({ api, me }) => {
   const grid = qs("#unitsGrid");
-  const PALETTE = ["#7C3AED", "#0E9384", "#B45309", "#2563EB", "#BE185D", "#4F46E5"];
   const units = me.current_units;
-  qs("#unitsSub").textContent = `${courseName(me.course_id)} · ${me.year} — ${units.length} unit${units.length === 1 ? "" : "s"} this semester.`;
+  qs("#unitsSub").textContent = `${courseName(me.course_id)} · ${me.year} — ${plural(units.length, "unit")} this semester. Discussions happen in your course community.`;
 
   const cards = units.map((name, i) => {
     const stats = el("div", { class: "faint", style: "font-size:12.5px;margin:4px 0 14px;" }, ["Loading…"]);
-    const card = el("div", { class: "card unit-card", style: `border-top:4px solid ${PALETTE[i % PALETTE.length]};` }, [
+    const color = subjectColor(name);
+    const card = el("div", { class: "card set-card", style: `--sc:${color};--sc-soft:color-mix(in srgb, ${color} 12%, transparent)` }, [
+      el("span", { class: "subject" }, [semesterOfUnit(me.course_id, me.year, name) || "This semester"]),
       el("div", { style: "font-weight:700;font-size:15.5px;line-height:1.3;" }, [name]),
-      el("div", { class: "faint", style: "font-size:12px;margin-top:2px;" }, [semesterOfUnit(me.course_id, me.year, name)]),
       stats,
       el("div", { class: "row-gap" }, [
-        el("a", { class: "btn btn-primary btn-block", href: "communities.html?unit=" + encodeURIComponent(name) }, ["Open group"]),
-        el("a", { class: "btn btn-ghost", href: "study.html?unit=" + encodeURIComponent(name), title: "Notes for this unit" }, ["📚"]),
+        el("a", { class: "btn btn-dark btn-block", href: "study.html?unit=" + encodeURIComponent(name) }, ["Notes"]),
+        el("a", { class: "btn btn-ghost btn-block", href: "exams.html#online" }, ["Past papers"]),
       ]),
     ]);
     api.unitStats(name).then(s => {
-      stats.textContent = `${plural(s.members, "student")} · ${plural(s.posts, "post")} · ${plural(s.resources, "resource")}`;
+      stats.textContent = `${plural(s.resources, "resource")} shared · ${plural(s.members, "student")} taking it`;
     }).catch(() => { stats.textContent = ""; });
     return card;
   });
