@@ -421,7 +421,7 @@
   var ctx = { sb: null, clerk: null, me: null, role: null, suspension: null, api: null, configured: false };
 
   async function boot(opts) {
-    opts = Object.assign({ page: null, auth: "required", profile: "required", shell: true, allowUnconfigured: false, staff: false }, opts);
+    opts = Object.assign({ page: null, auth: "required", authPage: "sign-in.html", profile: "required", shell: true, allowUnconfigured: false, staff: false }, opts);
     var cfg = readConfig();
     if (cfg.problems.length) {
       if (opts.allowUnconfigured) { ready(); return ctx; }
@@ -460,7 +460,7 @@
     tracker.start(cfg.sbUrl, cfg.sbKey, getToken);
 
     if (opts.auth === "required" && !signedIn) {
-      go("sign-in.html?redirect=" + encodeURIComponent(currentPage()));
+      go(opts.authPage + "?redirect=" + encodeURIComponent(currentPage()));
       return halt();
     }
     if (opts.auth === "guest-only" && signedIn) {
@@ -527,10 +527,10 @@
         try { sessionStorage.setItem(key, mark); } catch (e) { /* private mode */ }
       });
   }
-  async function signOut() {
+  async function signOut(redirectTo) {
     track("sign_out");
-    try { localStorage.removeItem("ml_uid"); } catch (e) { /* private mode */ }
-    await ctx.clerk.signOut({ redirectUrl: new URL("index.html", location.href).href });
+    try { localStorage.removeItem("ml_uid"); sessionStorage.removeItem("ml_private_synced"); } catch (e) { /* private mode */ }
+    await ctx.clerk.signOut({ redirectUrl: new URL(redirectTo || "index.html", location.href).href });
   }
 
   async function run(opts, main) {

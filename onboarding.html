@@ -34,11 +34,13 @@
     <div class="onboard-step active" data-step="0">
       <div class="welcome-box">
         <img class="welcome-photo" data-slot="onboarding-side" src="img/onboarding-side.jpg" alt="Student holding a folder">
-        <h3 class="disp" style="font-size:20px;margin:0 0 8px;">Welcome to MedLink KE</h3>
+        <div class="account-done"><span class="account-done-tick">✓</span> Account created</div>
+        <p class="account-who" id="accountWho"></p>
         <p class="muted" style="max-width:400px;margin:0 auto;line-height:1.6;font-size:14px;">
-          Your account is ready. Now let's set up your study profile — the identity your classmates will
-          recognise, follow and message across MedLink.
+          Next, set up your study profile — your username, course, current units and interests. This is the
+          identity your classmates will recognise, follow and message across MedLink.
         </p>
+        <button type="button" class="link-btn account-switch" id="switchAccount">Not you? Use a different account</button>
       </div>
     </div>
 
@@ -131,12 +133,13 @@
 <script src="data.js"></script>
 <script src="app.js"></script>
 <script>
-MedLink.run({ auth: "required", profile: "optional", shell: false }, async ({ api, clerk, me }) => {
+// Signed-out visitors start at step 1 (creating the Clerk account) on sign-up.html.
+MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", shell: false }, async ({ api, clerk, me }) => {
   const editing = param("edit") === "1" && !!me;
   if (me && !editing) { MedLink.go("dashboard.html"); return; }
   qs("#page").hidden = false;
 
-  const STEPS = ["Welcome", "Your identity", "Your studies", "Current units", "Interests", "Review"];
+  const STEPS = ["Create your account", "Your identity", "Your studies", "Current units", "Interests", "Review"];
   const firstStep = editing ? 1 : 0;
   let step = firstStep;
   if (editing) {
@@ -148,7 +151,10 @@ MedLink.run({ auth: "required", profile: "optional", shell: false }, async ({ ap
   }
 
   const cu = clerk.user;
-  const emailLocal = ((cu.primaryEmailAddress && cu.primaryEmailAddress.emailAddress) || "").split("@")[0];
+  const email = (cu.primaryEmailAddress && cu.primaryEmailAddress.emailAddress) || "";
+  const emailLocal = email.split("@")[0];
+  qs("#accountWho").replaceChildren("Signed in as ", el("strong", {}, [email || cu.fullName || "your Clerk account"]));
+  qs("#switchAccount").addEventListener("click", () => MedLink.signOut("sign-up.html"));
   const data = me ? {
     name: me.full_name, username: me.username, photoColor: me.color,
     universityId: me.university_id, courseId: me.course_id, year: me.year,
@@ -324,7 +330,7 @@ MedLink.run({ auth: "required", profile: "optional", shell: false }, async ({ ap
     qsa(".onboard-step").forEach(s => s.classList.toggle("active", Number(s.dataset.step) === step));
     qsa(".seg", progressBar).forEach(s => s.classList.toggle("on", Number(s.dataset.seg) <= step));
     qs("#stepLabel").textContent = `Step ${step + 1} of ${STEPS.length}`;
-    qs("#stepTitle").textContent = STEPS[step];
+    qs("#stepTitle").textContent = step === 0 ? "Create your account ✓" : STEPS[step];
     backBtn.style.visibility = step === firstStep ? "hidden" : "visible";
     nextBtn.textContent = step === STEPS.length - 1 ? (editing ? "Save changes" : "Create profile — enter MedLink") : "Continue ›";
     if (step === 5) renderReview();

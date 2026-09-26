@@ -29,7 +29,15 @@
     <span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></span>
     MedLink KE
   </a>
-  <p class="muted auth-lede">Free for every medical student in Kenya. Create your account, then set up your study profile.</p>
+  <div class="signup-steps" aria-label="Sign-up progress">
+    <div class="progress-bar">
+      <div class="seg on"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+    </div>
+    <div class="step-label">Step 1 of 6</div>
+    <h1 class="signup-title">Create your account</h1>
+    <p class="muted auth-lede">Sign up with your email or Google. Next you'll pick a username, your course, this
+      semester's units and your interests.</p>
+  </div>
   <div id="clerk-mount" class="clerk-mount"></div>
 </div>
 </div>
@@ -38,7 +46,18 @@
 <script src="data.js"></script>
 <script src="app.js"></script>
 <script>
-  MedLink.run({ auth: "guest-only", profile: "optional", shell: false }, async ({ clerk }) => {
+  MedLink.run({ auth: "optional", profile: "optional", shell: false }, async ({ clerk, me }) => {
+    if (clerk.user) {
+      // Already signed in (e.g. an earlier attempt): say who, and offer to continue or switch.
+      const email = clerk.user.primaryEmailAddress ? clerk.user.primaryEmailAddress.emailAddress : "";
+      qs("#clerk-mount").replaceChildren(el("div", { class: "card pad signed-in-card" }, [
+        el("div", { class: "account-done" }, [el("span", { class: "account-done-tick" }, ["✓"]), " You already have an account"]),
+        el("p", { class: "account-who" }, ["Signed in as ", el("strong", {}, [email || clerk.user.fullName || "your account"])]),
+        el("a", { class: "btn btn-primary btn-block", href: me ? "dashboard.html" : "onboarding.html" }, [me ? "Go to your dashboard" : "Continue to step 2 — your profile ›"]),
+        el("button", { class: "btn btn-ghost btn-block", type: "button", onclick: () => MedLink.signOut("sign-up.html") }, ["Use a different account"]),
+      ]));
+      return;
+    }
     clerk.mountSignUp(qs("#clerk-mount"), {
       signInUrl: new URL("sign-in.html", location.href).href,
       forceRedirectUrl: new URL("onboarding.html", location.href).href,

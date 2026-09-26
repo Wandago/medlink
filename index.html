@@ -216,16 +216,17 @@
   });
 
   // Signed-in visitors get sent to their dashboard instead of sign-up.
-  MedLink.run({ auth: "optional", profile: "optional", shell: false, allowUnconfigured: true }, async ({ clerk }) => {
+  MedLink.run({ auth: "optional", profile: "optional", shell: false, allowUnconfigured: true }, async ({ clerk, me }) => {
     if (!clerk || !clerk.user) return;
+    const target = me ? "dashboard.html" : "onboarding.html";
     const signIn = document.getElementById("signInLink");
     if (signIn) signIn.remove();
     ["ctaNav", "ctaHero", "ctaClose"].forEach(id => {
       const a = document.getElementById(id);
       if (!a) return;
-      a.href = "dashboard.html";
+      a.href = target;
       const arrow = a.querySelector("svg");
-      a.textContent = id === "ctaNav" ? "Dashboard" : "Go to your dashboard";
+      a.textContent = me ? (id === "ctaNav" ? "Dashboard" : "Go to your dashboard") : (id === "ctaNav" ? "Finish sign-up" : "Finish setting up your profile");
       if (arrow) a.appendChild(arrow);
     });
   });
