@@ -1093,6 +1093,42 @@
   };
   var ROLE_LABELS = { super_admin: "Super admin", admin: "Admin", moderator: "Moderator" };
 
+  // Avatar button with a small menu: profile, settings, admin and sign out — reachable on every screen size.
+  function accountMenu(me) {
+    var wrap = el("div", { class: "me-wrap" });
+    var btn = el("button", { type: "button", class: "topbar-me", "aria-haspopup": "menu", "aria-expanded": "false", "aria-label": "Account menu" }, [
+      avatarNode(me, "", false),
+      el("span", { class: "topbar-me-text" }, [
+        el("span", { class: "topbar-me-name" }, [me.full_name]),
+        el("span", { class: "topbar-me-sub" }, [ctx.role ? ROLE_LABELS[ctx.role] : "@" + me.username]),
+      ]),
+    ]);
+    var item = function (href, text, iconName) {
+      return el("a", { href: href, class: "me-item", role: "menuitem" }, [el("span", { class: "nav-icon", html: icon(ICONS[iconName], 18) }), text]);
+    };
+    var menu = el("div", { class: "me-menu", role: "menu", hidden: true }, [
+      el("div", { class: "me-head" }, [el("b", {}, [me.full_name]), el("span", {}, ["@" + me.username])]),
+      item(profileHref(me), "Your profile", "profile"),
+      item("settings.html", "Settings", "settings"),
+      item("saved.html", "Saved", "saved"),
+      ctx.role ? item("admin.html", "Admin dashboard", "admin") : null,
+      el("div", { class: "me-sep" }),
+      el("button", { type: "button", class: "me-item me-signout", role: "menuitem", onclick: function () { signOut(); } }, [
+        el("span", { class: "nav-icon", html: icon(ICONS.logout, 18) }), "Sign out",
+      ]),
+    ]);
+    var close = function () { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); };
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      menu.hidden = !menu.hidden;
+      btn.setAttribute("aria-expanded", String(!menu.hidden));
+    });
+    document.addEventListener("click", function (e) { if (!wrap.contains(e.target)) close(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+    wrap.append(btn, menu);
+    return wrap;
+  }
+
   function renderShell(active, me) {
     var isStaff = !!ctx.role;
     var menu = [
@@ -1130,13 +1166,7 @@
         searchForm,
         isStaff ? el("a", { class: "icon-btn admin-quick", href: "admin.html", "aria-label": "Admin dashboard", title: "Admin dashboard", html: icon(ICONS.admin, 18) }) : null,
         el("button", { class: "icon-btn theme-toggle", "data-theme-toggle": true, type: "button", "aria-label": "Switch theme", html: ICON_THEME }),
-        el("a", { class: "topbar-me", href: profileHref(me), "aria-label": "Your profile" }, [
-          avatarNode(me, "", false),
-          el("span", { class: "topbar-me-text" }, [
-            el("span", { class: "topbar-me-name" }, [me.full_name]),
-            el("span", { class: "topbar-me-sub" }, [ctx.role ? ROLE_LABELS[ctx.role] : "@" + me.username]),
-          ]),
-        ]),
+        accountMenu(me),
       ]),
     ]);
 

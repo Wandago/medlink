@@ -1034,9 +1034,34 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
   const usable = r => r && r.question && [r.opa, r.opb, r.opc, r.opd].every(o => o != null && String(o).trim())
     && r.cop >= 0 && r.cop <= 3 && r.question.length < 1500
     && !/\b(image|figure|diagram|picture|photograph|shown (below|above|here)|given below|following (image|figure|x-?ray))\b/i.test(r.question);
+  // MedMCQA's text lost the letters "rt" in many words ("veebrae", "hea", "aery"). Put back the
+  // unambiguous ones — none of these broken forms is a real word.
+  const RT_FIXES = {
+    aery: "artery", aeries: "arteries", aerial: "arterial", aeriole: "arteriole", aerioles: "arterioles",
+    aeriovenous: "arteriovenous", aeriosclerosis: "arteriosclerosis", aeritis: "arteritis", aeriography: "arteriography",
+    hea: "heart", heas: "hearts", heabeat: "heartbeat", heaburn: "heartburn",
+    veebra: "vertebra", veebrae: "vertebrae", veebral: "vertebral", inveebral: "intervertebral", inteeebral: "intervertebral",
+    coex: "cortex", coical: "cortical", coices: "cortices", coisol: "cortisol", coicosteroid: "corticosteroid",
+    coicosteroids: "corticosteroids", coicospinal: "corticospinal", subcoical: "subcortical", neocoex: "neocortex",
+    aoa: "aorta", aoic: "aortic", caotid: "carotid", poal: "portal", poion: "portion", poions: "portions",
+    hyperophy: "hypertrophy", hyperophic: "hypertrophic", aophy: "atrophy", hyperension: "hypertension",
+    hypeension: "hypertension", hypeensive: "hypertensive", hyperonic: "hypertonic", impoant: "important",
+    ceain: "certain", paial: "partial", paially: "partially", paicle: "particle", paicles: "particles",
+    paicular: "particular", paicularly: "particularly", inseion: "insertion", asseion: "assertion",
+    conveed: "converted", conveing: "converting", inveed: "inverted", aificial: "artificial", aicular: "articular",
+    aiculation: "articulation", aiculates: "articulates", aefact: "artifact", fuher: "further", sho: "short",
+    shoer: "shorter", shoest: "shortest", shoening: "shortening", shoness: "shortness", sta: "start", staed: "started",
+    staing: "starting", moality: "mortality", neveheless: "nevertheless", suppo: "support", suppoive: "supportive",
+    expe: "expert", pa: "part", pas: "parts",
+  };
+  const fixText = t => String(t || "").replace(/[A-Za-z]+/g, w => {
+    const fix = RT_FIXES[w.toLowerCase()];
+    if (!fix || (w.toLowerCase() === "pa" && w === "PA")) return w;   // leave abbreviations like PA alone
+    return w === w.toUpperCase() && w.length > 1 ? fix.toUpperCase() : w[0] === w[0].toUpperCase() ? fix[0].toUpperCase() + fix.slice(1) : fix;
+  });
   const toQuestion = r => ({
-    question: String(r.question).trim(), options: [r.opa, r.opb, r.opc, r.opd].map(o => String(o).trim()), correct: r.cop,
-    explanation: String(r.exp || "").trim().slice(0, 3900), source_ref: "medmcqa:" + r.id, topic: r.topic_name || "",
+    question: fixText(String(r.question).trim()), options: [r.opa, r.opb, r.opc, r.opd].map(o => fixText(String(o).trim())), correct: r.cop,
+    explanation: fixText(String(r.exp || "").trim()).slice(0, 3900), source_ref: "medmcqa:" + r.id, topic: r.topic_name || "",
   });
   // wanted: { "Anatomy": 20, ... } → { "Anatomy": [question, ...], ... }
   async function collectMedMCQA(wanted, onProgress) {

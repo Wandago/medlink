@@ -895,3 +895,17 @@ h1, .disp { font-weight: 700; letter-spacing: -0.025em; }
   .comm-hero h1 { font-size: 24px; }
   .comm-hero-body { padding: 20px; }
 }
+
+/* account menu */
+.me-wrap { position: relative; flex-shrink: 0; }
+button.topbar-me { background: var(--surface); font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.me-menu { position: absolute; right: 0; top: calc(100% + 8px); width: 240px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-lg); padding: 6px; z-index: 60; animation: fadeIn .15s ease both; }
+.me-head { padding: 10px 12px 8px; display: flex; flex-direction: column; }
+.me-head b { font-size: 14px; }
+.me-head span { font-size: 12px; color: var(--text-3); }
+.me-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 10px; font-size: 14px; font-weight: 600; color: var(--text-2); background: none; border: none; font-family: inherit; text-align: left; }
+.me-item:hover { background: var(--surface-2); color: var(--text); }
+.me-item .nav-icon { color: var(--text-3); }
+.me-sep { height: 1px; background: var(--border); margin: 6px 4px; }
+.me-signout:hover { background: var(--error-bg); color: var(--error); }
+.me-signout:hover .nav-icon { color: var(--error); }

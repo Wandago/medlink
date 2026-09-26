@@ -1510,3 +1510,7 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.admin_users(text, text, integer, integer) from public, anon;
 grant execute on function public.admin_users(text, text, integer, integer) to authenticated;
+
+-- Make the API see new tables and columns straight away
+-- (fixes "Could not find the table … in the schema cache").
+notify pgrst, 'reload schema';

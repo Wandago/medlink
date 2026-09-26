@@ -21,6 +21,7 @@ const UNIVERSITIES = [
   { id: "kemu",    name: "Kenya Methodist University",                        abbreviation: "KeMU",    location: "Meru",     type: "Private" },
   { id: "uzima",   name: "Uzima University",                                  abbreviation: "Uzima",   location: "Kisumu",   type: "Private" },
   { id: "aku",     name: "Aga Khan University (Nairobi)",                     abbreviation: "AKU",     location: "Nairobi",  type: "Private" },
+  { id: "kmtc",    name: "Kenya Medical Training College",                    abbreviation: "KMTC",    location: "Nationwide", type: "Public" },
 ];
 
 // Not every institution offers every programme, so the university list is
@@ -30,12 +31,13 @@ const UNIVERSITIES = [
 //   Pharmacy   — Pharmacy & Poisons Board approved schools within this list
 //   Nursing    — offered across the list
 //   Aga Khan   — Medical College (MBChB) and School of Nursing & Midwifery, Nairobi
+//   KMTC       — diplomas in nursing, clinical medicine and pharmacy at campuses nationwide
 //   Clin. Med. — degree-level programmes; not offered at UoN or JKUAT
 const COURSE_UNIVERSITIES = {
   mbchb:     ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "aku"],
-  nursing:   ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "aku"],
-  clinmed:   ["moi", "ku", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima"],
-  pharmacy:  ["uon", "ku", "jkuat", "maseno", "kisii", "mku", "kemu"],
+  nursing:   ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "aku", "kmtc"],
+  clinmed:   ["moi", "ku", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "kmtc"],
+  pharmacy:  ["uon", "ku", "jkuat", "maseno", "kisii", "mku", "kemu", "kmtc"],
   dentistry: ["uon", "moi"],
 };
 function universitiesForCourse(courseId) {
