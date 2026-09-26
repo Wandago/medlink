@@ -1,0 +1,32 @@
+# ---------------------------------------------------------
+# MedLink KE
+# ---------------------------------------------------------
+
+# Local Supabase credentials — never commit.
+# Commit config.example.js instead; each developer copies it
+# to config.js and fills in their own project values.
+config.js
+
+# Environment files (if a build step is added later)
+.env
+.env.*
+!.env.example
+
+# Dependencies (if a package manager is adopted later)
+node_modules/
+
+# Python page generator artefacts
+__pycache__/
+*.pyc
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Build output
+dist/
+build/
+*.zip
