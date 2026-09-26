@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedLink KE — Your medical school, all in one place</title>
+<meta name="description" content="Free study resources, exam preparation and student collaboration, built for medical students in Kenya.">
+<meta name="theme-color" content="#FFFFFF">
+<script src="theme.js"></script>
+<!-- Supabase: UMD build (no bundler in this project), then config, then the shared client. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+<script src="config.js" defer></script>
+<script src="supabase.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="landing.css">
+</head>
+<body class="lp-page">
+
+<div class="lp-shell">
+
+  <!-- ================= NAV ================= -->
+  <nav class="lp-nav">
+    <a href="index.html" class="lp-brand">
+      <span class="lp-brand-mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/>
+        </svg>
+      </span>
+      MedLink <em>KE</em>
+    </a>
+    <div class="lp-nav-actions">
+      <a href="study.html" class="lp-link">Library</a>
+      <a href="exams.html" class="lp-link">Exam Bank</a>
+      <a href="communities.html" class="lp-link">Communities</a>
+      <button class="icon-btn theme-toggle" data-theme-toggle aria-label="Switch theme">
+        <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>
+      </button>
+      <a href="onboarding.html" class="lp-btn lp-btn-solid" id="ctaNav">Get started</a>
+    </div>
+  </nav>
+
+  <!-- ================= HERO ================= -->
+  <header class="lp-hero">
+    <div class="lp-mono lp-eyebrow">Free for every medical student in Kenya</div>
+
+    <h1>
+      Your medical school,<br>
+      <span class="accent">all in one place.</span>
+    </h1>
+
+    <p class="lp-lede">
+      Free study resources, exam preparation, communities and student collaboration —
+      built for medical students.
+    </p>
+
+    <div class="lp-cta-row">
+      <a href="onboarding.html" class="lp-btn lp-btn-solid lp-btn-lg" id="ctaHero">
+        Get started — it's free
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+      <a href="study.html" class="lp-btn lp-btn-quiet lp-btn-lg">Explore resources</a>
+    </div>
+
+    <p class="lp-reassure">No paywall on study material. No card required.</p>
+
+    <!-- SIGNATURE: ECG trace -->
+    <div class="lp-ecg" aria-hidden="true">
+      <svg viewBox="0 0 1200 110" preserveAspectRatio="none" role="presentation">
+        <defs>
+          <linearGradient id="lpTrace" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stop-color="var(--lp-ecg-a)" stop-opacity="0"/>
+            <stop offset="16%"  stop-color="var(--lp-ecg-a)" stop-opacity=".85"/>
+            <stop offset="52%"  stop-color="var(--lp-ecg-a)"/>
+            <stop offset="84%"  stop-color="var(--lp-ecg-b)" stop-opacity=".85"/>
+            <stop offset="100%" stop-color="var(--lp-ecg-b)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path class="lp-ecg-line" d="
+          M0,62 L150,62
+          L176,62 L186,44 L196,86 L206,30 L216,62 L242,62
+          L360,62 L372,54 L384,62
+          L470,62 L496,62 L506,44 L516,86 L526,30 L536,62 L562,62
+          L680,62 L692,54 L704,62
+          L790,62 L816,62 L826,44 L836,86 L846,30 L856,62 L882,62
+          L1000,62 L1012,54 L1024,62
+          L1200,62"/>
+      </svg>
+    </div>
+
+    <!-- product preview: shows the real thing rather than describing it -->
+    <div class="lp-preview">
+      <div class="lp-window" role="img" aria-label="Preview of the MedLink KE study dashboard">
+        <div class="lp-window-bar">
+          <span class="lp-dot"></span><span class="lp-dot"></span><span class="lp-dot"></span>
+          <span class="lp-window-title">MedLink KE — Home</span>
+        </div>
+        <div class="lp-window-body">
+          <div class="lp-window-side">
+            <div class="lp-side-item on"><span class="lp-side-glyph"></span> Home</div>
+            <div class="lp-side-item"><span class="lp-side-glyph"></span> Study</div>
+            <div class="lp-side-item"><span class="lp-side-glyph"></span> Exam Bank</div>
+            <div class="lp-side-item"><span class="lp-side-glyph"></span> Current Units</div>
+            <div class="lp-side-item"><span class="lp-side-glyph"></span> Communities</div>
+            <div class="lp-side-item"><span class="lp-side-glyph"></span> Messages</div>
+          </div>
+          <div class="lp-window-main">
+            <div class="lp-greet">Good morning, Amina</div>
+            <div class="lp-greet-sub">MBChB · Year 1 · University of Nairobi</div>
+            <div class="lp-mini-chips">
+              <span class="lp-mini-chip">Anatomy</span>
+              <span class="lp-mini-chip">Physiology</span>
+              <span class="lp-mini-chip">Biochemistry</span>
+            </div>
+            <div class="lp-mini-grid">
+              <div class="lp-mini-card">
+                <div class="lp-mini-tag">Notes</div>
+                <div class="lp-mini-title">Brachial Plexus — High-Yield Summary</div>
+                <div class="lp-mini-meta">Wanjiru K. · 312 saves</div>
+              </div>
+              <div class="lp-mini-card">
+                <div class="lp-mini-tag">Summary</div>
+                <div class="lp-mini-title">Cardiac Cycle — Revision Notes</div>
+                <div class="lp-mini-meta">Brian O. · 265 saves</div>
+              </div>
+              <div class="lp-mini-card">
+                <div class="lp-mini-tag">MCQ</div>
+                <div class="lp-mini-title">Renal Physiology — MCQ Set</div>
+                <div class="lp-mini-meta">Alice N. · 190 saves</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= TRUST ================= -->
+  <section class="lp-trust">
+    <span class="lp-mono label">Built around Kenyan medical curricula</span>
+    <ul>
+      <li>University of Nairobi</li>
+      <li>Moi University</li>
+      <li>Kenyatta University</li>
+      <li>Aga Khan University</li>
+      <li>JKUAT</li>
+      <li>Egerton University</li>
+    </ul>
+  </section>
+
+  <!-- ================= PLATES ================= -->
+  <section class="lp-section">
+    <div class="lp-section-head">
+      <span class="lp-mono">What's inside</span>
+      <h2>Everything a med student actually opens on a study night.</h2>
+      <p>Six tools, one account, one place — organised the way your course is, by year, semester and unit.</p>
+    </div>
+
+    <div class="lp-plates">
+      <article class="lp-plate">
+        <div class="lp-plate-top">
+          <span class="lp-plate-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 6.5C10.6 5 8.7 4.3 5.5 4.3A1.5 1.5 0 0 0 4 5.8v11.6a1.5 1.5 0 0 0 1.5 1.5c3.2 0 5.1.7 6.5 2.2"/>
+              <path d="M12 6.5c1.4-1.5 3.3-2.2 6.5-2.2A1.5 1.5 0 0 1 20 5.8v11.6a1.5 1.5 0 0 1-1.5 1.5c-3.2 0-5.1.7-6.5 2.2"/>
+              <path d="M12 6.5v14.6"/>
+            </svg>
+          </span>
+          <span class="lp-plate-tag">Library</span>
+        </div>
+        <h3>Study Resources</h3>
+        <p>Notes, summaries and practical guides filed by unit — written by students who sat the same exam last year.</p>
+      </article>
+
+      <article class="lp-plate">
+        <div class="lp-plate-top">
+          <span class="lp-plate-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/>
+              <rect x="9" y="2.5" width="6" height="3.2" rx="1"/>
+              <path d="m8.6 11.6 1.4 1.4 2.6-2.6"/>
+              <path d="m8.6 16.4 1.4 1.4 2.6-2.6"/>
+              <path d="M15.4 11h1.2M15.4 16h1.2"/>
+            </svg>
+          </span>
+          <span class="lp-plate-tag">Assessment</span>
+        </div>
+        <h3>Exam Bank</h3>
+        <p>Past papers and question sets you can filter to a single topic, then practise one question at a time with explanations.</p>
+      </article>
+
+      <article class="lp-plate">
+        <div class="lp-plate-top">
+          <span class="lp-plate-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="5.4" r="2.4"/>
+              <circle cx="5.2" cy="17" r="2.4"/>
+              <circle cx="18.8" cy="17" r="2.4"/>
+              <path d="M10.4 7.3 6.8 14.9M13.6 7.3l3.6 7.6M7.6 17h8.8"/>
+            </svg>
+          </span>
+          <span class="lp-plate-tag">Cohort</span>
+        </div>
+        <h3>Unit Groups</h3>
+        <p>Every unit you're taking gets a study space. When the semester ends the group archives — the notes stay in the library.</p>
+      </article>
+
+      <article class="lp-plate">
+        <div class="lp-plate-top">
+          <span class="lp-plate-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 8.4A2.4 2.4 0 0 1 5.4 6h7.2A2.4 2.4 0 0 1 15 8.4v3.2a2.4 2.4 0 0 1-2.4 2.4H8l-5 3.4z"/>
+              <path d="M18 10.4h.6A2.4 2.4 0 0 1 21 12.8v3.4a2.4 2.4 0 0 1-2.4 2.4H17l-3 2.2v-2.2"/>
+            </svg>
+          </span>
+          <span class="lp-plate-tag">Contact</span>
+        </div>
+        <h3>Student Chat</h3>
+        <p>Search a username, open a profile, send a message. Coordinating a 9pm revision call takes about ten seconds.</p>
+      </article>
+
+      <article class="lp-plate">
+        <div class="lp-plate-top">
+          <span class="lp-plate-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="10.8" cy="10.8" r="6.6"/>
+              <path d="m20.4 20.4-4.6-4.6"/>
+              <path d="M7.2 10.8h1.6l1-2.2 1.6 4.4 1-2.2h1.8"/>
+            </svg>
+          </span>
+          <span class="lp-plate-tag">Retrieval</span>
+        </div>
+        <h3>Search &amp; Discover</h3>
+        <p>One search across resources, questions, people and communities. Type "brachial plexus" and get all four.</p>
+      </article>
+
+      <article class="lp-plate">
+        <div class="lp-plate-top">
+          <span class="lp-plate-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 5.6H4.6A1.6 1.6 0 0 0 3 7.2v10.2A1.6 1.6 0 0 0 4.6 19h12.8"/>
+              <path d="M17 8.8h2.4A1.6 1.6 0 0 1 21 10.4v6.2a2.4 2.4 0 0 1-4.8 0V5.6"/>
+              <path d="M6.4 9.6h6.8M6.4 12.6h6.8M6.4 15.6h4.4"/>
+            </svg>
+          </span>
+          <span class="lp-plate-tag">Briefing</span>
+        </div>
+        <h3>Medical News</h3>
+        <p>A short read on what changed in medicine and Kenyan healthcare today — internships, guidelines, research worth knowing.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= FIGURES ================= -->
+  <section class="lp-section">
+    <div class="lp-section-head">
+      <span class="lp-mono">The principle</span>
+      <h2>Groups are temporary. Knowledge is permanent.</h2>
+      <p>Medical students rotate through units constantly. MedLink is built around that rhythm rather than fighting it.</p>
+    </div>
+
+    <div class="lp-figures">
+      <div class="lp-figure">
+        <div class="num">01</div>
+        <div class="cap">You join the units you're taking this semester and share notes with the people sitting the same CAT.</div>
+      </div>
+      <div class="lp-figure">
+        <div class="num">02</div>
+        <div class="cap">The semester ends and the group archives. Nobody has to maintain a dead WhatsApp group forever.</div>
+      </div>
+      <div class="lp-figure">
+        <div class="num">03</div>
+        <div class="cap">Everything useful shared inside it moves into the permanent library, for the year below you.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= QUOTE ================= -->
+  <section class="lp-section">
+    <div class="lp-quote">
+      <blockquote>
+        “The notes that got me through first year were on someone's laptop, in a group chat that no longer exists.
+        That's the problem worth fixing.”
+      </blockquote>
+      <div class="lp-quote-by">
+        <div class="lp-quote-avatar">AR</div>
+        <div>
+          <div class="lp-quote-name">Amina Rashid</div>
+          <div class="lp-quote-meta">MBChB · Year 1 · University of Nairobi</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CLOSING CTA ================= -->
+  <section class="lp-close">
+    <span class="lp-mono">Built by students. For students.</span>
+    <h2>Study together,<br><em>not alone.</em></h2>
+    <p>Create your profile, pick this semester's units, and you'll land in a library that already
+       knows what you're studying.</p>
+    <a href="onboarding.html" class="lp-btn lp-btn-solid lp-btn-lg" id="ctaClose">
+      Create your profile — it's free
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="lp-footer">
+    <div class="lp-brand" style="font-size:15px;">
+      <span class="lp-brand-mark" style="width:28px;height:28px;border-radius:8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/>
+        </svg>
+      </span>
+      MedLink <em>KE</em>
+    </div>
+    <p class="note">Student-created and open-access material only. Report anything that shouldn't be here.</p>
+  </footer>
+
+</div>
+
+<script src="data.js"></script>
+<script>
+  // If a session already exists, send the CTAs to the dashboard instead of onboarding.
+  const me = getMe();
+  if (me) {
+    const label = "Go to your dashboard";
+    ["ctaNav", "ctaHero", "ctaClose"].forEach(id => {
+      const a = document.getElementById(id);
+      if (!a) return;
+      a.href = "dashboard.html";
+      const arrow = a.querySelector("svg");
+      a.textContent = label;
+      if (arrow) a.appendChild(arrow);
+    });
+  }
+</script>
+</body>
+</html>
