@@ -22,6 +22,14 @@ const UNIVERSITIES = [
   { id: "uzima",   name: "Uzima University",                                  abbreviation: "Uzima",   location: "Kisumu",   type: "Private" },
   { id: "aku",     name: "Aga Khan University (Nairobi)",                     abbreviation: "AKU",     location: "Nairobi",  type: "Private" },
   { id: "kmtc",    name: "Kenya Medical Training College",                    abbreviation: "KMTC",    location: "Nationwide", type: "Public" },
+  { id: "usiu",    name: "United States International University",            abbreviation: "USIU-A",  location: "Nairobi",  type: "Private" },
+  { id: "strathmore", name: "Strathmore University",                          abbreviation: "SU",      location: "Nairobi",  type: "Private" },
+  { id: "daystar", name: "Daystar University",                                abbreviation: "Daystar", location: "Nairobi",  type: "Private" },
+  { id: "baraton", name: "UEAB Baraton",                                      abbreviation: "Baraton", location: "Eldoret",  type: "Private" },
+  { id: "kabarak", name: "Kabarak University",                                abbreviation: "Kabarak", location: "Nakuru",   type: "Private" },
+  { id: "stpauls", name: "St. Paul's University",                             abbreviation: "SPU",     location: "Limuru",   type: "Private" },
+  { id: "zetech",  name: "Zetech University",                                 abbreviation: "Zetech",  location: "Ruiru",    type: "Private" },
+];
 ];
 
 // Not every institution offers every programme, so the university list is
@@ -34,25 +42,25 @@ const UNIVERSITIES = [
 //   KMTC       — diplomas in nursing, clinical medicine and pharmacy at campuses nationwide
 //   Clin. Med. — degree-level programmes; not offered at UoN or JKUAT
 const COURSE_UNIVERSITIES = {
-  mbchb:     ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "aku"],
-  nursing:   ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "aku", "kmtc"],
-  clinmed:   ["moi", "ku", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "kmtc"],
-  pharmacy:  ["uon", "ku", "jkuat", "maseno", "kisii", "mku", "kemu", "kmtc"],
-  dentistry: ["uon", "moi"],
-  medlab:    ["uon", "jkuat", "maseno", "mku", "kmtc"],
-  physiotherapy: ["uon", "jkuat", "kmTC", "mku"],
-  occupational: ["kmtc", "jkuat", "uon"],
+  mbchb:     ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "aku", "usiu", "kabarak", "baraton"],
+  nursing:   ["uon", "moi", "ku", "jkuat", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "aku", "kmtc", "usiu", "kabarak", "baraton", "daystar"],
+  clinmed:   ["moi", "ku", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "kmtc", "usiu", "kabarak"],
+  pharmacy:  ["uon", "ku", "jkuat", "maseno", "kisii", "mku", "kemu", "kmtc", "usiu", "kabarak", "baraton"],
+  dentistry: ["uon", "moi", "mku"],
+  medlab:    ["uon", "jkuat", "maseno", "mku", "kmtc", "usiu", "kabarak"],
+  physiotherapy: ["uon", "jkuat", "kmtc", "mku", "kabarak"],
+  occupational: ["kmtc", "jkuat", "uon", "mku"],
   radiography: ["uon", "jkuat", "kmtc", "mku"],
-  publichealth: ["uon", "ku", "jkuat", "maseno", "egerton", "mku", "kmtc"],
+  publichealth: ["uon", "ku", "jkuat", "maseno", "egerton", "mku", "kmtc", "usiu", "daystar", "strathmore"],
   communityhealth: ["ku", "maseno", "mmust", "kmtc"],
-  nutrition: ["uon", "ku", "jkuat", "egerton", "mku", "kmtc"],
-  biomedical: ["uon", "jkuat", "maseno", "kemu"],
-  healthinformatics: ["uon", "strathmore", "jkuat", "mku"],
-  healthsystems: ["uon", "moi", "aku"],
-  healtheconomics: ["uon", "strathmore"],
-  epidemiology: ["uon", "moi", "jkuat"],
-  environmentalhealth: ["ku", "jkuat", "egerton", "kmtc"],
-  occupationalhealth: ["jkuat", "kmtc"],
+  nutrition: ["uon", "ku", "jkuat", "egerton", "mku", "kmtc", "usiu", "kabarak"],
+  biomedical: ["uon", "jkuat", "maseno", "kemu", "usiu", "strathmore"],
+  healthinformatics: ["uon", "strathmore", "jkuat", "mku", "usiu"],
+  healthsystems: ["uon", "moi", "aku", "strathmore"],
+  healtheconomics: ["uon", "strathmore", "usiu"],
+  epidemiology: ["uon", "moi", "jkuat", "aku"],
+  environmentalhealth: ["ku", "jkuat", "egerton", "kmtc", "mku"],
+  occupationalhealth: ["jkuat", "kmtc", "mku"],
 };
 function universitiesForCourse(courseId) {
   const ids = COURSE_UNIVERSITIES[courseId] || COURSE_UNIVERSITIES.mbchb;
