@@ -30,7 +30,6 @@ const UNIVERSITIES = [
   { id: "stpauls", name: "St. Paul's University",                             abbreviation: "SPU",     location: "Limuru",   type: "Private" },
   { id: "zetech",  name: "Zetech University",                                 abbreviation: "Zetech",  location: "Ruiru",    type: "Private" },
 ];
-];
 
 // Not every institution offers every programme, so the university list is
 // derived from the course the student picks first.
