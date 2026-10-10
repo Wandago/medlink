@@ -39,6 +39,20 @@ const COURSE_UNIVERSITIES = {
   clinmed:   ["moi", "ku", "maseno", "egerton", "kisii", "mmust", "pwani", "tum", "mku", "kemu", "uzima", "kmtc"],
   pharmacy:  ["uon", "ku", "jkuat", "maseno", "kisii", "mku", "kemu", "kmtc"],
   dentistry: ["uon", "moi"],
+  medlab:    ["uon", "jkuat", "maseno", "mku", "kmtc"],
+  physiotherapy: ["uon", "jkuat", "kmTC", "mku"],
+  occupational: ["kmtc", "jkuat", "uon"],
+  radiography: ["uon", "jkuat", "kmtc", "mku"],
+  publichealth: ["uon", "ku", "jkuat", "maseno", "egerton", "mku", "kmtc"],
+  communityhealth: ["ku", "maseno", "mmust", "kmtc"],
+  nutrition: ["uon", "ku", "jkuat", "egerton", "mku", "kmtc"],
+  biomedical: ["uon", "jkuat", "maseno", "kemu"],
+  healthinformatics: ["uon", "strathmore", "jkuat", "mku"],
+  healthsystems: ["uon", "moi", "aku"],
+  healtheconomics: ["uon", "strathmore"],
+  epidemiology: ["uon", "moi", "jkuat"],
+  environmentalhealth: ["ku", "jkuat", "egerton", "kmtc"],
+  occupationalhealth: ["jkuat", "kmtc"],
 };
 function universitiesForCourse(courseId) {
   const ids = COURSE_UNIVERSITIES[courseId] || COURSE_UNIVERSITIES.mbchb;
@@ -49,11 +63,25 @@ function universityOffersCourse(universityId, courseId) {
 }
 // Programme length differs by course, so the year dropdown is derived from it.
 const COURSES = [
-  { id: "mbchb",     name: "MBChB",             years: 6 },
-  { id: "nursing",   name: "Nursing",           years: 4 },
-  { id: "clinmed",   name: "Clinical Medicine", years: 4 },
-  { id: "pharmacy",  name: "Pharmacy",          years: 5 },
-  { id: "dentistry", name: "Dentistry",         years: 5 },
+  { id: "mbchb",             name: "MBChB",                      years: 6 },
+  { id: "nursing",           name: "Nursing",                    years: 4 },
+  { id: "clinmed",           name: "Clinical Medicine",          years: 4 },
+  { id: "pharmacy",          name: "Pharmacy",                   years: 5 },
+  { id: "dentistry",         name: "Dentistry",                  years: 5 },
+  { id: "medlab",            name: "Medical Laboratory Science", years: 4 },
+  { id: "physiotherapy",     name: "Physiotherapy",              years: 4 },
+  { id: "occupational",      name: "Occupational Therapy",       years: 4 },
+  { id: "radiography",       name: "Radiography",                years: 4 },
+  { id: "publichealth",      name: "Public Health",              years: 4 },
+  { id: "communityhealth",   name: "Community Health",           years: 4 },
+  { id: "nutrition",         name: "Nutrition and Dietetics",    years: 4 },
+  { id: "biomedical",        name: "Biomedical Science",         years: 4 },
+  { id: "healthinformatics", name: "Health Informatics",         years: 4 },
+  { id: "healthsystems",     name: "Health Systems",             years: 4 },
+  { id: "healtheconomics",   name: "Health Economics",           years: 4 },
+  { id: "epidemiology",      name: "Epidemiology",               years: 4 },
+  { id: "environmentalhealth", name: "Environmental Health",     years: 4 },
+  { id: "occupationalhealth",  name: "Occupational Health",      years: 4 },
 ];
 const YEARS = ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 function yearsForCourse(courseId) {
@@ -170,6 +198,258 @@ const UNIT_CATALOG = {
     "Year 5": {
       "Semester 1": ["Clinical Clerkship", "Advanced Restorative Dentistry", "Research Project", "Practice Management"],
       "Semester 2": ["Comprehensive Patient Care", "Oral Surgery Rotation", "Dental Ethics & Jurisprudence", "Elective Rotation"],
+    },
+  },
+  medlab: {
+    "Year 1": {
+      "Semester 1": ["General Chemistry", "Human Anatomy", "Medical Physiology", "Basic Mathematics"],
+      "Semester 2": ["Medical Biochemistry", "Cell Biology", "General Microbiology", "Communication Skills"],
+    },
+    "Year 2": {
+      "Semester 1": ["Clinical Bacteriology", "Haematology I", "Blood Transfusion Science", "Parasitology I"],
+      "Semester 2": ["Clinical Chemistry I", "Histopathology I", "Virology", "Mycology"],
+    },
+    "Year 3": {
+      "Semester 1": ["Clinical Chemistry II", "Haematology II", "Histopathology & Cytology II", "Immunology"],
+      "Semester 2": ["Molecular Biology", "Laboratory Management & QA", "Research Methods", "Parasitology II"],
+    },
+    "Year 4": {
+      "Semester 1": ["Advanced Laboratory Diagnostics", "Instrumentation & Biosafety", "Clinical Attachment I"],
+      "Semester 2": ["Research Project", "Clinical Attachment II", "Professional Ethics"],
+    },
+  },
+  physiotherapy: {
+    "Year 1": {
+      "Semester 1": ["Human Anatomy I", "Human Physiology I", "Psychology", "Physics for Health Sciences"],
+      "Semester 2": ["Human Anatomy II", "Human Physiology II", "Biomechanics I", "Sociology in Health"],
+    },
+    "Year 2": {
+      "Semester 1": ["Kinesiology", "Pathology", "Pharmacology", "Electrotherapy I"],
+      "Semester 2": ["Physiotherapy Assessment", "Exercise Therapy", "Electrotherapy II", "Medical Conditions"],
+    },
+    "Year 3": {
+      "Semester 1": ["Musculoskeletal Physiotherapy", "Neurological Physiotherapy", "Cardiopulmonary Physiotherapy", "Research Methods"],
+      "Semester 2": ["Paediatric Physiotherapy", "Geriatric Physiotherapy", "Clinical Placement I", "Community Physiotherapy"],
+    },
+    "Year 4": {
+      "Semester 1": ["Advanced Clinical Practice", "Sports Physiotherapy", "Clinical Placement II"],
+      "Semester 2": ["Research Project", "Healthcare Management", "Professional Practice"],
+    },
+  },
+  occupational: {
+    "Year 1": {
+      "Semester 1": ["Human Anatomy", "Human Physiology", "Introduction to Occupational Therapy", "Psychology"],
+      "Semester 2": ["Developmental Psychology", "Occupational Science", "Activity Analysis", "Communication Skills"],
+    },
+    "Year 2": {
+      "Semester 1": ["Pathology", "Clinical Conditions in OT", "OT Assessment I", "Kinesiology"],
+      "Semester 2": ["Psychosocial Occupational Therapy", "Physical Dysfunction OT", "Ergonomics", "Splinting & Orthotics"],
+    },
+    "Year 3": {
+      "Semester 1": ["Paediatric Occupational Therapy", "Geriatric OT", "Community Based Rehabilitation", "Research Methods"],
+      "Semester 2": ["Advanced OT Practice", "Mental Health OT", "Clinical Placement I"],
+    },
+    "Year 4": {
+      "Semester 1": ["Clinical Placement II", "Rehabilitation Technology", "Departmental Management"],
+      "Semester 2": ["Research Project", "Clinical Placement III", "Professional Ethics"],
+    },
+  },
+  radiography: {
+    "Year 1": {
+      "Semester 1": ["Human Anatomy & Physiology I", "Radiation Physics", "General Chemistry", "Mathematics"],
+      "Semester 2": ["Human Anatomy & Physiology II", "Radiographic Imaging I", "Apparatus & Equipment", "Computer Science"],
+    },
+    "Year 2": {
+      "Semester 1": ["Radiographic Anatomy", "Radiographic Procedures I", "Radiation Protection & Safety", "Pathology"],
+      "Semester 2": ["Radiographic Procedures II", "Digital Imaging & PACS", "Pharmacology in Imaging", "Quality Assurance"],
+    },
+    "Year 3": {
+      "Semester 1": ["Computed Tomography (CT)", "Magnetic Resonance Imaging (MRI)", "Ultrasound Basics", "Research Methods"],
+      "Semester 2": ["Radiotherapy Principles", "Nuclear Medicine Basics", "Clinical Practice I"],
+    },
+    "Year 4": {
+      "Semester 1": ["Advanced Imaging Modalities", "Clinical Practice II", "Departmental Management"],
+      "Semester 2": ["Research Project", "Clinical Practice III", "Professional Ethics"],
+    },
+  },
+  publichealth: {
+    "Year 1": {
+      "Semester 1": ["Introduction to Public Health", "Human Anatomy & Physiology", "Biostatistics I", "Environmental Health I"],
+      "Semester 2": ["Epidemiology I", "Microbiology & Parasitology", "Sociology & Health", "Health Communication"],
+    },
+    "Year 2": {
+      "Semester 1": ["Biostatistics II", "Epidemiology II", "Environmental Health II", "Nutrition & Health"],
+      "Semester 2": ["Maternal & Child Health", "Occupational Health & Safety", "Health Education", "Demography"],
+    },
+    "Year 3": {
+      "Semester 1": ["Health Systems Management", "Health Policy & Economics", "Research Methods", "Vector Control"],
+      "Semester 2": ["Public Health Law & Ethics", "Infectious Disease Control", "Chronic Disease Epidemiology", "Field Attachment I"],
+    },
+    "Year 4": {
+      "Semester 1": ["Global Health", "Disaster Management", "Field Attachment II"],
+      "Semester 2": ["Research Project", "Project Monitoring & Evaluation", "Strategic Health Planning"],
+    },
+  },
+  communityhealth: {
+    "Year 1": {
+      "Semester 1": ["Principles of Community Health", "Human Biology", "Social Sciences in Health", "Communication Skills"],
+      "Semester 2": ["Primary Health Care", "Basic Epidemiology", "Nutrition in Community", "Environmental Sanitation"],
+    },
+    "Year 2": {
+      "Semester 1": ["Community Diagnosis", "Maternal and Child Health", "Health Education & Promotion", "Infectious Diseases"],
+      "Semester 2": ["Community Health Program Management", "Biostatistics Basics", "Field Practical I", "Mental Health in Community"],
+    },
+    "Year 3": {
+      "Semester 1": ["Research Methods", "Health Policy and Advocacy", "Chronic Illness Management", "Field Practical II"],
+      "Semester 2": ["Community Mobilization", "Monitoring and Evaluation", "Gerontology", "Reproductive Health"],
+    },
+    "Year 4": {
+      "Semester 1": ["Advanced Community Intervention", "Disaster Preparedness", "Field Attachment"],
+      "Semester 2": ["Research Project", "Health Economics for Communities", "Professional Practice"],
+    },
+  },
+  nutrition: {
+    "Year 1": {
+      "Semester 1": ["Human Anatomy & Physiology", "Basic Chemistry", "Introduction to Human Nutrition", "Food Science I"],
+      "Semester 2": ["Biochemistry", "Food Science II", "Microbiology", "Communication Skills"],
+    },
+    "Year 2": {
+      "Semester 1": ["Nutritional Biochemistry", "Meal Planning & Management", "Lifcycle Nutrition I", "Pathophysiology"],
+      "Semester 2": ["Lifecycle Nutrition II", "Community Nutrition I", "Nutritional Assessment", "Food Safety & Hygiene"],
+    },
+    "Year 3": {
+      "Semester 1": ["Clinical Nutrition & Dietotherapy I", "Community Nutrition II", "Research Methods", "Dietetic Counselling"],
+      "Semester 2": ["Clinical Nutrition & Dietotherapy II", "Institutional Food Service Management", "Public Health Nutrition", "Field Attachment I"],
+    },
+    "Year 4": {
+      "Semester 1": ["Advanced Clinical Dietetics", "Nutritional Epidemiology", "Field Attachment II"],
+      "Semester 2": ["Research Project", "Food Policy and Economics", "Professional Ethics in Dietetics"],
+    },
+  },
+  biomedical: {
+    "Year 1": {
+      "Semester 1": ["Cell Biology", "General Chemistry", "Human Anatomy", "Mathematics for Sciences"],
+      "Semester 2": ["Organic Chemistry", "Human Physiology", "Biochemistry I", "Genetics I"],
+    },
+    "Year 2": {
+      "Semester 1": ["Biochemistry II", "General Microbiology", "Genetics II", "Cellular Pathology"],
+      "Semester 2": ["Molecular Biology I", "Immunology", "Pharmacology Basics", "Biostatistics"],
+    },
+    "Year 3": {
+      "Semester 1": ["Molecular Biology II", "Recombinant DNA Technology", "Clinical Biochemistry", "Virology"],
+      "Semester 2": ["Bioinformatics", "Research Methods", "Toxicology", "Laboratory Techniques"],
+    },
+    "Year 4": {
+      "Semester 1": ["Advanced Biomedical Research", "Clinical Immunology", "Industrial Attachment"],
+      "Semester 2": ["Research Project", "Biomedical Ethics", "Emerging Infectious Diseases"],
+    },
+  },
+  healthinformatics: {
+    "Year 1": {
+      "Semester 1": ["Introduction to IT", "Human Anatomy & Physiology", "Mathematics & Statistics", "Communication Skills"],
+      "Semester 2": ["Database Systems", "Programming Basics", "Health Systems Overview", "Health Records Management"],
+    },
+    "Year 2": {
+      "Semester 1": ["Clinical Data Structures", "Healthcare Information Systems", "Object-Oriented Programming", "Networking Basics"],
+      "Semester 2": ["Electronic Medical Records (EMR)", "Health Data Standards & Interoperability", "Data Security & Privacy", "Web Technologies"],
+    },
+    "Year 3": {
+      "Semester 1": ["Health Data Analytics", "Decision Support Systems", "Research Methods", "Mobile Health (mHealth)"],
+      "Semester 2": ["Telemedicine", "IT Project Management", "Clinical Workflow Analysis", "Industrial Attachment I"],
+    },
+    "Year 4": {
+      "Semester 1": ["Advanced Health Informatics", "Cloud Computing in Healthcare", "Industrial Attachment II"],
+      "Semester 2": ["Research Project", "Health Informatics Policy", "Entrepreneurship"],
+    },
+  },
+  healthsystems: {
+    "Year 1": {
+      "Semester 1": ["Introduction to Health Systems", "Public Health Principles", "Sociology of Health", "Basic Statistics"],
+      "Semester 2": ["Health Policy Analysis", "Primary Health Care", "Epidemiology Basics", "Communication Skills"],
+    },
+    "Year 2": {
+      "Semester 1": ["Health Organization Management", "Human Resources for Health", "Health Financing", "Health Economics I"],
+      "Semester 2": ["Health Sector Reform", "Quality Improvement in Healthcare", "Supply Chain Management", "Research Methods"],
+    },
+    "Year 3": {
+      "Semester 1": ["Strategic Planning in Health", "Health Law and Governance", "Comparative Health Systems", "Monitoring & Evaluation"],
+      "Semester 2": ["Global Health Diplomacy", "Health Systems Research", "Field Attachment I"],
+    },
+    "Year 4": {
+      "Semester 1": ["Leadership in Health", "Field Attachment II", "Advanced Health Policy"],
+      "Semester 2": ["Research Project", "Health Systems Crisis Management", "Professional Practice"],
+    },
+  },
+  healtheconomics: {
+    "Year 1": {
+      "Semester 1": ["Microeconomics I", "Macroeconomics I", "Mathematics for Economists", "Introduction to Health Systems"],
+      "Semester 2": ["Microeconomics II", "Statistics for Economists", "Health Economics Foundations", "Public Sector Economics"],
+    },
+    "Year 2": {
+      "Semester 1": ["Econometrics I", "Healthcare Financing & Insurance", "Demand and Supply of Health", "Economic Evaluation I"],
+      "Semester 2": ["Econometrics II", "Economic Evaluation II (Cost-Effectiveness)", "Pharmaceutical Economics", "Research Methods"],
+    },
+    "Year 3": {
+      "Semester 1": ["Health Policy and Market Failure", "Applied Health Econometrics", "Hospital Economics", "Field Attachment I"],
+      "Semester 2": ["Global Health Economics", "Behavioral Health Economics", "Resource Allocation in Healthcare"],
+    },
+    "Year 4": {
+      "Semester 1": ["Advanced Health Economic Evaluation", "Field Attachment II"],
+      "Semester 2": ["Research Project", "Health Policy Workshop", "Professional Practice"],
+    },
+  },
+  epidemiology: {
+    "Year 1": {
+      "Semester 1": ["Introduction to Epidemiology", "Biostatistics I", "Human Biology", "Public Health Principles"],
+      "Semester 2": ["Epidemiological Methods", "Biostatistics II", "Infectious Disease Epidemiology", "Data Management"],
+    },
+    "Year 2": {
+      "Semester 1": ["Advanced Epidemiological Study Designs", "Chronic Disease Epidemiology", "Outbreak Investigation", "SAS/R for Epidemiology"],
+      "Semester 2": ["Environmental & Occupational Epidemiology", "Molecular Epidemiology", "Clinical Trials", "Research Methods"],
+    },
+    "Year 3": {
+      "Semester 1": ["Spatial Epidemiology", "Surveillance Systems", "Maternal & Child Epidemiology", "Field Attachment I"],
+      "Semester 2": ["Advanced Biostatistics", "Meta-Analysis", "Global Health Surveillance"],
+    },
+    "Year 4": {
+      "Semester 1": ["Epidemiological Modeling", "Field Attachment II"],
+      "Semester 2": ["Research Project", "Epidemiology Policy Translation", "Professional Practice"],
+    },
+  },
+  environmentalhealth: {
+    "Year 1": {
+      "Semester 1": ["Introduction to Environmental Health", "Human Anatomy & Physiology", "General Chemistry", "Mathematics"],
+      "Semester 2": ["Environmental Chemistry", "Microbiology & Parasitology", "Environmental Physics", "Communication Skills"],
+    },
+    "Year 2": {
+      "Semester 1": ["Water Supply & Treatment", "Liquid & Solid Waste Management", "Air Pollution & Control", "Epidemiology"],
+      "Semester 2": ["Food Hygiene & Safety", "Vector & Pest Control", "Occupational Health & Safety", "Biostatistics"],
+    },
+    "Year 3": {
+      "Semester 1": ["Environmental Impact Assessment (EIA)", "Toxicology", "Housing & Public Health", "Research Methods"],
+      "Semester 2": ["Occupational Hygiene", "Disaster Risk Management", "Field Attachment I"],
+    },
+    "Year 4": {
+      "Semester 1": ["Advanced Environmental Law & Ethics", "Field Attachment II", "Project Management"],
+      "Semester 2": ["Research Project", "Sustainable Development", "Professional Practice"],
+    },
+  },
+  occupationalhealth: {
+    "Year 1": {
+      "Semester 1": ["Introduction to Occupational Health & Safety", "Human Anatomy & Physiology", "Physics", "Chemistry"],
+      "Semester 2": ["Industrial Psychology", "Microbiology", "Basic Statistics", "Communication Skills"],
+    },
+    "Year 2": {
+      "Semester 1": ["Occupational Hygiene I (Physical Hazards)", "Ergonomics I", "Toxicology", "Pathology"],
+      "Semester 2": ["Occupational Hygiene II (Chemical & Biological Hazards)", "Ergonomics II", "Safety Engineering Principles", "Epidemiology"],
+    },
+    "Year 3": {
+      "Semester 1": ["Occupational Diseases & Medicine", "Safety Management Systems", "Research Methods", "Field Attachment I"],
+      "Semester 2": ["Environmental & Workplace Compliance", "Emergency Response Planning", "Risk Assessment"],
+    },
+    "Year 4": {
+      "Semester 1": ["Advanced OHS Management", "Field Attachment II", "Labour Laws & Ethics"],
+      "Semester 2": ["Research Project", "Auditing OHS Systems", "Professional Practice"],
     },
   },
 };

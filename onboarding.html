@@ -76,20 +76,16 @@
     <!-- Step 2 -->
     <div class="onboard-step" data-step="2">
       <div class="field">
-        <label for="in-country">Country <span class="req">*</span></label>
-        <select id="in-country"></select>
-      </div>
-      <div class="field">
         <label for="in-course">Course / Program <span class="req">*</span></label>
         <select id="in-course"></select>
       </div>
       <div class="field" id="f-university">
-        <label for="in-university">University / School <span class="req">*</span></label>
+        <label for="in-university">University / Institution <span class="req">*</span></label>
         <select id="in-university"></select>
-        <input type="text" id="in-university-search" list="uni-list" autocomplete="off" maxlength="160" placeholder="Start typing your university…" hidden>
+        <input type="text" id="in-university-search" list="uni-list" autocomplete="off" maxlength="160" placeholder="Start typing your institution…" hidden>
         <datalist id="uni-list"></datalist>
         <div class="field-hint" id="uni-context"></div>
-        <div class="field-error hidden" id="err-university">Choose your university, or type its full name.</div>
+        <div class="field-error hidden" id="err-university">Choose your institution, or type its full name.</div>
       </div>
       <div class="field" style="margin-bottom:0;">
         <label for="in-year">Year of Study <span class="req">*</span></label>
@@ -181,55 +177,35 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
   STEPS.forEach((_, i) => progressBar.appendChild(el("div", { class: "seg", "data-seg": i })));
 
   // ---- studies ----
-  const countrySelect = qs("#in-country");
+  data.country = "KE";
   const uniSelect = qs("#in-university");
   const uniSearch = qs("#in-university-search");
   const courseSelect = qs("#in-course");
   const yearSelect = qs("#in-year");
   const OTHER = "__other";
   const isCurated = id => UNIVERSITIES.some(u => u.id === id);
-  COUNTRY_CODES.map(c => [c, countryName(c)]).sort((a, b) => a[1].localeCompare(b[1]))
-    .forEach(([c, n]) => countrySelect.appendChild(el("option", { value: c }, [countryFlag(c) + "  " + n])));
-  countrySelect.value = data.country;
 
-  // Kenya: curated list filtered by programme (+ "not listed"). Elsewhere: search the worldwide list.
+  // Kenya: curated list filtered by programme (+ "not listed").
   async function renderUniversityOptions() {
-    const country = data.country, context = qs("#uni-context");
+    const context = qs("#uni-context");
     qs("#err-university").classList.add("hidden");
-    if (country === "KE") {
-      const list = universitiesForCourse(data.courseId);
-      uniSelect.hidden = false;
-      uniSelect.replaceChildren(...list.map(u => el("option", { value: u.id }, [`${u.name} (${u.abbreviation})`])),
-        el("option", { value: OTHER }, ["My school isn't listed…"]));
-      if (isCurated(data.universityId) && !list.some(u => u.id === data.universityId)) data.universityId = "";
-      if (!data.universityId && !data.universityName) data.universityId = list[0].id;
-      const other = !isCurated(data.universityId);
-      uniSelect.value = other ? OTHER : data.universityId;
-      uniSearch.hidden = !other;
-      uniSearch.value = other ? data.universityName : "";
-      context.textContent = other ? "Type the full name, e.g. Kenya Medical Training College." : `${list.length} Kenyan institutions offer ${courseName(data.courseId)}.`;
-    } else {
-      uniSelect.hidden = true;
-      uniSearch.hidden = false;
-      if (isCurated(data.universityId)) { data.universityId = ""; data.universityName = ""; }
-      uniSearch.value = data.universityName;
-      context.textContent = `Loading universities in ${countryName(country)}…`;
-    }
-    const names = await universitiesIn(country);
-    if (country !== data.country) return;   // the student picked another country meanwhile
-    qs("#uni-list").replaceChildren(...names.map(n => el("option", { value: n })));
-    if (country !== "KE") {
-      context.textContent = names.length
-        ? `${names.length.toLocaleString()} universities in ${countryName(country)} — start typing. Not listed? Type the full name.`
-        : `Type the full name of your university in ${countryName(country)}.`;
-    }
+    const list = universitiesForCourse(data.courseId);
+    uniSelect.hidden = false;
+    uniSelect.replaceChildren(...list.map(u => el("option", { value: u.id }, [`${u.name} (${u.abbreviation})`])),
+      el("option", { value: OTHER }, ["My institution isn't listed…"]));
+    if (isCurated(data.universityId) && !list.some(u => u.id === data.universityId)) data.universityId = "";
+    if (!data.universityId && !data.universityName) data.universityId = list[0].id;
+    const other = !isCurated(data.universityId);
+    uniSelect.value = other ? OTHER : data.universityId;
+    uniSearch.hidden = !other;
+    uniSearch.value = other ? data.universityName : "";
+    context.textContent = other ? "Type the full name, e.g. Kenya Medical Training College." : `${list.length} Kenyan institutions offer ${courseName(data.courseId)}.`;
   }
   function validateUniversity() {
     const ok = isCurated(data.universityId) || data.universityName.trim().length >= 3;
     qs("#err-university").classList.toggle("hidden", ok);
     return ok;
   }
-  countrySelect.addEventListener("change", () => { data.country = countrySelect.value; renderUniversityOptions(); });
   uniSelect.addEventListener("change", () => {
     if (uniSelect.value === OTHER) { data.universityId = ""; data.universityName = ""; }
     else { data.universityId = uniSelect.value; data.universityName = ""; }
@@ -248,6 +224,14 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
     yearSelect.value = data.year;
   }
   COURSES.forEach(c => courseSelect.appendChild(el("option", { value: c.id }, [c.name])));
+  courseSelect.value = data.courseId;
+  courseSelect.addEventListener("change", () => {
+    data.courseId = courseSelect.value;
+    renderYearOptions();
+    renderUniversityOptions();
+  });
+  renderYearOptions();
+  renderUniversityOptions();
   courseSelect.value = data.courseId;
   renderUniversityOptions();
   renderYearOptions();
@@ -289,10 +273,36 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
       container.appendChild(row);
     });
   }
+  function allUnitsAlphabetical() {
+    const set = new Set();
+    Object.values(UNIT_CATALOG).forEach(course => {
+      Object.values(course).forEach(yearObj => {
+        Object.values(yearObj).forEach(list => {
+          list.forEach(u => set.add(u));
+        });
+      });
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }
+
   function renderUnits() {
-    const total = unitsForYear(data.courseId, data.year).length;
-    qs("#units-context").textContent = `${courseName(data.courseId)} · ${data.year} — ${total} units in your curriculum. ${data.units.length} selected.`;
-    renderPicker("units-row", unitsBySemester(data.courseId, data.year), "units", false, renderUnits);
+    const all = allUnitsAlphabetical();
+    qs("#units-context").textContent = `Choose from all available medical and health sciences units — ${all.length} units total. Alphabetical order (A to Z). ${data.units.length} selected.`;
+    const container = qs("#units-row");
+    container.replaceChildren();
+    const row = el("div", { class: "wrap-gap" });
+    all.forEach(opt => {
+      const on = data.units.includes(opt);
+      row.appendChild(el("button", {
+        type: "button", class: "chip-toggle" + (on ? " on" : ""), "aria-pressed": String(on),
+        onclick: () => {
+          const i = data.units.indexOf(opt);
+          if (i === -1) data.units.push(opt); else data.units.splice(i, 1);
+          renderUnits();
+        },
+      }, [(on ? "✓ " : "") + opt]));
+    });
+    container.appendChild(row);
     if (data.units.length) qs("#err-units").classList.add("hidden");
   }
   function renderInterests() {
@@ -307,9 +317,9 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
 
   courseSelect.addEventListener("change", () => {
     data.courseId = courseSelect.value;
-    renderUniversityOptions(); renderYearOptions(); pruneUnits(); renderUnits();
+    renderUniversityOptions(); renderYearOptions(); renderUnits();
   });
-  yearSelect.addEventListener("change", () => { data.year = yearSelect.value; pruneUnits(); renderUnits(); });
+  yearSelect.addEventListener("change", () => { data.year = yearSelect.value; renderUnits(); });
 
   // ---- identity ----
   const nameInput = qs("#in-name");
