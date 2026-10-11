@@ -96,7 +96,10 @@
     <!-- Step 3 -->
     <div class="onboard-step" data-step="3">
       <p class="muted" style="margin:0 0 4px;font-size:13.5px;">Pick the units you're taking this semester — your library and notes will follow them.</p>
-      <p class="faint" style="margin:0 0 16px;font-size:12.5px;" id="units-context"></p>
+      <p class="faint" style="margin:0 0 12px;font-size:12.5px;" id="units-context"></p>
+      <div class="field" style="margin-bottom:14px;">
+        <input type="text" id="units-search" placeholder="🔍 Search units (e.g. anatomy, pathology, epidemiology)…" autocomplete="off" style="width:100%;">
+      </div>
       <div id="units-row"></div>
       <div class="field-error hidden" id="err-units">Please pick at least one unit.</div>
     </div>
@@ -285,24 +288,42 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }
 
+  const unitsSearch = qs("#units-search");
+  let unitFilterTerm = "";
+  if (unitsSearch) {
+    unitsSearch.addEventListener("input", () => {
+      unitFilterTerm = unitsSearch.value.trim().toLowerCase();
+      renderUnits();
+    });
+  }
+
   function renderUnits() {
     const all = allUnitsAlphabetical();
-    qs("#units-context").textContent = `Choose from all available medical and health sciences units — ${all.length} units total. Alphabetical order (A to Z). ${data.units.length} selected.`;
+    const filtered = unitFilterTerm
+      ? all.filter(u => u.toLowerCase().includes(unitFilterTerm))
+      : all;
+    qs("#units-context").textContent = unitFilterTerm
+      ? `Showing ${filtered.length} of ${all.length} units matching "${unitFilterTerm}". ${data.units.length} selected.`
+      : `Choose from all available medical and health sciences units — ${all.length} units total. Alphabetical order (A to Z). ${data.units.length} selected.`;
     const container = qs("#units-row");
     container.replaceChildren();
-    const row = el("div", { class: "wrap-gap" });
-    all.forEach(opt => {
-      const on = data.units.includes(opt);
-      row.appendChild(el("button", {
-        type: "button", class: "chip-toggle" + (on ? " on" : ""), "aria-pressed": String(on),
-        onclick: () => {
-          const i = data.units.indexOf(opt);
-          if (i === -1) data.units.push(opt); else data.units.splice(i, 1);
-          renderUnits();
-        },
-      }, [(on ? "✓ " : "") + opt]));
-    });
-    container.appendChild(row);
+    if (!filtered.length) {
+      container.appendChild(el("div", { class: "faint", style: "padding:12px 0;" }, ["No units match your search. Try another keyword."]));
+    } else {
+      const row = el("div", { class: "wrap-gap" });
+      filtered.forEach(opt => {
+        const on = data.units.includes(opt);
+        row.appendChild(el("button", {
+          type: "button", class: "chip-toggle" + (on ? " on" : ""), "aria-pressed": String(on),
+          onclick: () => {
+            const i = data.units.indexOf(opt);
+            if (i === -1) data.units.push(opt); else data.units.splice(i, 1);
+            renderUnits();
+          },
+        }, [(on ? "✓ " : "") + opt]));
+      });
+      container.appendChild(row);
+    }
     if (data.units.length) qs("#err-units").classList.add("hidden");
   }
   function renderInterests() {
