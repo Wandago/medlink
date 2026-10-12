@@ -1081,6 +1081,7 @@
     exams: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="m9 13 2 2 4-4"/>',
     units: '<path d="M3 12h4l2-5 4 10 2-5h6"/>',
     communities: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>',
+    groups: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     discover: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
     news: '<path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 17h3"/>',
     messages: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/>',
@@ -1109,6 +1110,7 @@
     var menu = el("div", { class: "me-menu", role: "menu", hidden: true }, [
       el("div", { class: "me-head" }, [el("b", {}, [me.full_name]), el("span", {}, ["@" + me.username])]),
       item(profileHref(me), "Your profile", "profile"),
+      item("groups.html", "Study groups", "groups"),
       item("settings.html", "Settings", "settings"),
       item("saved.html", "Saved", "saved"),
       ctx.role ? item("admin.html", "Admin dashboard", "admin") : null,
@@ -1136,6 +1138,7 @@
       ["study", "study.html", "Study library"],
       ["exams", "exams.html", "Exam bank"],
       ["communities", "communities.html", "Communities"],
+      ["groups", "groups.html", "Study groups"],
       ["messages", "messages.html", "Messages"],
     ];
     var general = [

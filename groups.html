@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#FFFFFF">
+<title>Study Groups — MedLink KE</title>
+<script src="theme.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<style>
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.group-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.group-tag-friends { background: rgba(26, 86, 240, 0.1); color: var(--primary, #1A56F0); }
+.group-tag-unit { background: rgba(16, 179, 158, 0.12); color: #0d8274; }
+.group-tag-university { background: rgba(255, 122, 26, 0.12); color: #d95d08; }
+.members-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+.member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-soft, #F5F7FA);
+  border: 1px solid var(--border, #E4E7EC);
+  border-radius: 999px;
+  padding: 4px 10px 4px 6px;
+  font-size: 12.5px;
+}
+.member-chip .remove-member {
+  cursor: pointer;
+  color: var(--muted, #667085);
+  font-size: 14px;
+  border: none;
+  background: none;
+  padding: 0 2px;
+}
+.group-chat-box {
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border, #E4E7EC);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 14px;
+}
+.group-chat-messages {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.chat-msg {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--bg-soft, #F5F7FA);
+  max-width: 80%;
+  font-size: 13.5px;
+}
+.chat-msg.mine {
+  align-self: flex-end;
+  background: var(--primary, #1A56F0);
+  color: #fff;
+}
+.chat-meta {
+  font-size: 11px;
+  color: var(--muted, #667085);
+  margin-bottom: 2px;
+}
+.chat-msg.mine .chat-meta {
+  color: rgba(255, 255, 255, 0.8);
+}
+</style>
+</head>
+<body>
+<main id="page" hidden>
+<div class="fade-in" id="groups-root"></div>
+</main>
+
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+MedLink.run({ page: "groups" }, async ({ api, me }) => {
+  const root = qs("#groups-root");
+  const STORAGE_KEY = "medlink_study_groups_" + (me ? me.id : "guest");
+
+  function loadGroups() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    // Starter templates tailored to the user's university & units
+    return [
+      {
+        id: "g_friends_" + Date.now(),
+        name: "Inner Circle Study Buddies",
+        type: "friends",
+        typeLabel: "Close Study Friends",
+        description: "Private study circle for revisions, daily targets, and discussing tricky concepts.",
+        creator: me.username,
+        members: [
+          { username: me.username, name: me.full_name, color: me.color }
+        ],
+        messages: [
+          { sender: me.username, text: "Hey! Added you to our study circle.", time: "Just now" }
+        ],
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: "g_uni_" + (Date.now() + 1),
+        name: (uniLabel(me) || "Campus") + " Class Peers",
+        type: "university",
+        typeLabel: "University",
+        description: "Connect and prepare exams with peers from " + (uniFull(me) || "our university") + ".",
+        creator: me.username,
+        members: [
+          { username: me.username, name: me.full_name, color: me.color }
+        ],
+        messages: [],
+        createdAt: new Date().toISOString()
+      }
+    ];
+  }
+
+  function saveGroups(groups) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+    } catch (e) {}
+  }
+
+  let groups = loadGroups();
+
+  function renderView() {
+    root.replaceChildren();
+
+    const topHeader = el("div", { class: "group-header" }, [
+      el("div", {}, [
+        el("h1", { class: "disp", style: "font-size:24px;margin:0 0 4px;" }, ["Study Groups"]),
+        el("p", { class: "muted", style: "margin:0;font-size:14px;" }, [
+          "Create and organize focused study groups for close friends, a specific unit, or your campus."
+        ]),
+      ]),
+      el("button", {
+        type: "button",
+        class: "btn btn-primary",
+        onclick: openCreateModal
+      }, ["+ New study group"])
+    ]);
+
+    const grid = el("div", { class: "grid grid-fill-260" });
+
+    if (!groups.length) {
+      grid.appendChild(MedLink.emptyState("No study groups yet. Create your first group and invite peers by username!",
+        el("button", { class: "btn btn-primary btn-sm", onclick: openCreateModal }, ["Create group"])
+      ));
+    } else {
+      groups.forEach(g => {
+        grid.appendChild(renderGroupCard(g));
+      });
+    }
+
+    root.append(topHeader, grid);
+  }
+
+  function renderGroupCard(g) {
+    const tagClass = g.type === "friends" ? "group-tag-friends" : g.type === "unit" ? "group-tag-unit" : "group-tag-university";
+
+    const membersWrap = el("div", { class: "members-list" });
+    g.members.forEach(m => {
+      const isMe = m.username === me.username;
+      const chip = el("div", { class: "member-chip" }, [
+        el("span", {
+          style: "display:inline-block;width:16px;height:16px;border-radius:50%;background:" + safeColor(m.color) + ";text-align:center;line-height:16px;color:#fff;font-size:9px;font-weight:700;"
+        }, [initials(m.name || m.username)]),
+        el("span", {}, ["@" + m.username]),
+        !isMe ? el("button", {
+          type: "button",
+          class: "remove-member",
+          title: "Remove from group",
+          onclick: (e) => {
+            e.stopPropagation();
+            if (confirm("Remove @" + m.username + " from this group?")) {
+              g.members = g.members.filter(x => x.username !== m.username);
+              saveGroups(groups);
+              renderView();
+            }
+          }
+        }, ["×"]) : null
+      ]);
+      membersWrap.appendChild(chip);
+    });
+
+    const addMemberBtn = el("button", {
+      type: "button",
+      class: "btn btn-ghost btn-sm",
+      style: "font-size:12px;padding:4px 10px;",
+      onclick: () => openAddMemberModal(g)
+    }, ["+ Add by username"]);
+
+    const chatMessages = el("div", { class: "group-chat-messages" });
+    (g.messages || []).forEach(msg => {
+      const isMine = msg.sender === me.username;
+      chatMessages.appendChild(el("div", { class: "chat-msg" + (isMine ? " mine" : "") }, [
+        el("div", { class: "chat-meta" }, ["@" + msg.sender + " · " + (msg.time || "")]),
+        el("div", {}, [msg.text])
+      ]));
+    });
+
+    const chatInput = el("input", {
+      type: "text",
+      placeholder: "Write a message or study target…",
+      style: "flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;"
+    });
+
+    const sendBtn = el("button", {
+      type: "button",
+      class: "btn btn-primary btn-sm",
+      style: "font-size:12.5px;"
+    }, ["Send"]);
+
+    const sendForm = el("form", {
+      style: "display:flex;gap:8px;",
+      onsubmit: (e) => {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text) return;
+        g.messages = g.messages || [];
+        g.messages.push({ sender: me.username, text, time: "Just now" });
+        saveGroups(groups);
+        chatInput.value = "";
+        renderView();
+      }
+    }, [chatInput, sendBtn]);
+
+    const chatSection = el("div", { class: "group-chat-box" }, [
+      el("div", { style: "display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;" }, [
+        el("b", { style: "font-size:13px;" }, ["Group Chat & Discussion"]),
+        el("span", { class: "faint", style: "font-size:11.5px;" }, [(g.messages || []).length + " messages"])
+      ]),
+      chatMessages,
+      sendForm
+    ]);
+
+    return el("div", { class: "card pad", style: "display:flex;flex-direction:column;justify-content:space-between;" }, [
+      el("div", {}, [
+        el("div", { style: "display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;" }, [
+          el("span", { class: "group-tag " + tagClass }, [g.typeLabel || g.type]),
+          el("button", {
+            type: "button",
+            class: "icon-btn",
+            style: "width:24px;height:24px;font-size:13px;",
+            title: "Delete group",
+            onclick: () => {
+              if (confirm("Delete the group '" + g.name + "'?")) {
+                groups = groups.filter(x => x.id !== g.id);
+                saveGroups(groups);
+                renderView();
+              }
+            }
+          }, ["🗑"])
+        ]),
+        el("h3", { style: "margin:0 0 6px;font-size:17px;font-weight:700;" }, [g.name]),
+        el("p", { class: "muted", style: "font-size:13px;line-height:1.5;margin:0 0 10px;" }, [g.description]),
+        el("div", { style: "font-size:12px;font-weight:600;margin-top:12px;color:var(--muted);" }, ["MEMBERS (" + g.members.length + ")"]),
+        membersWrap,
+        addMemberBtn
+      ]),
+      chatSection
+    ]);
+  }
+
+  function openCreateModal() {
+    const nameInput = el("input", { type: "text", placeholder: "e.g. 3rd Year Histology Crushes", required: true, maxlength: 60 });
+    const typeSelect = el("select", {}, [
+      el("option", { value: "friends" }, ["Close study friends"]),
+      el("option", { value: "unit" }, ["Common unit"]),
+      el("option", { value: "university" }, ["University / Campus peers"])
+    ]);
+    const descInput = el("textarea", { rows: 2, placeholder: "What will this group focus on?", maxlength: 180 });
+
+    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
+      el("div", { class: "field" }, [
+        el("label", {}, ["Group Name"]),
+        nameInput
+      ]),
+      el("div", { class: "field" }, [
+        el("label", {}, ["Group Focus / Category"]),
+        typeSelect
+      ]),
+      el("div", { class: "field" }, [
+        el("label", {}, ["Short Description"]),
+        descInput
+      ]),
+      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
+        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]),
+        el("button", { type: "submit", class: "btn btn-primary" }, ["Create group"])
+      ])
+    ]);
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      if (!name) return;
+      const type = typeSelect.value;
+      const typeLabels = {
+        friends: "Close Study Friends",
+        unit: "Common Unit",
+        university: "University"
+      };
+
+      const newGroup = {
+        id: "g_" + Date.now(),
+        name,
+        type,
+        typeLabel: typeLabels[type],
+        description: descInput.value.trim() || ("Group for " + typeLabels[type]),
+        creator: me.username,
+        members: [{ username: me.username, name: me.full_name, color: me.color }],
+        messages: [{ sender: me.username, text: "Group created! Add friends by username above.", time: "Just now" }],
+        createdAt: new Date().toISOString()
+      };
+
+      groups.unshift(newGroup);
+      saveGroups(groups);
+      close();
+      renderView();
+      MedLink.toast("Study group created!", "success");
+    });
+
+    const close = MedLink.modal("Create a Study Group", form);
+  }
+
+  function openAddMemberModal(group) {
+    const userInput = el("input", {
+      type: "text",
+      placeholder: "Enter student username without @",
+      required: true,
+      autocomplete: "off",
+      autocapitalize: "none"
+    });
+    const statusMsg = el("div", { class: "field-hint", style: "margin-top:6px;" }, ["Search any classmate on MedLink by their @username."]);
+
+    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
+      el("div", { class: "field" }, [
+        el("label", {}, ["Student's Username"]),
+        userInput,
+        statusMsg
+      ]),
+      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
+        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]),
+        el("button", { type: "submit", class: "btn btn-primary" }, ["Add student"])
+      ])
+    ]);
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const targetUser = userInput.value.trim().toLowerCase().replace(/^@/, "");
+      if (!targetUser) return;
+
+      if (group.members.some(m => m.username.toLowerCase() === targetUser)) {
+        MedLink.toast("@" + targetUser + " is already in this group.", "error");
+        return;
+      }
+
+      statusMsg.textContent = "Checking username @" + targetUser + "…";
+
+      try {
+        const found = await api.profileByUsername(targetUser);
+        if (!found) {
+          statusMsg.textContent = "Student @" + targetUser + " not found. Double check the spelling.";
+          MedLink.toast("Student @" + targetUser + " not found.", "error");
+          return;
+        }
+
+        group.members.push({
+          username: found.username,
+          name: found.full_name,
+          color: found.color
+        });
+        saveGroups(groups);
+        close();
+        renderView();
+        MedLink.toast("Added @" + found.username + " to the group!", "success");
+      } catch (err) {
+        statusMsg.textContent = "Could not check username. Please try again.";
+        MedLink.reportError(err);
+      }
+    });
+
+    const close = MedLink.modal("Add Student to " + group.name, form);
+  }
+
+  renderView();
+});
+</script>
+</body>
+</html>
