@@ -13,6 +13,150 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
+<style>
+.streak-banner-wrap {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin: -10px 0 18px 0;
+}
+.streak-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(255, 122, 26, 0.12) 0%, rgba(255, 79, 154, 0.12) 100%);
+  border: 1px solid rgba(255, 122, 26, 0.35);
+  border-radius: 999px;
+  padding: 6px 14px 6px 10px;
+  box-shadow: 0 2px 10px rgba(255, 122, 26, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.streak-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(255, 122, 26, 0.22);
+}
+.streak-flame {
+  font-size: 20px;
+  animation: pulseFlame 1.8s infinite ease-in-out;
+  display: inline-block;
+}
+@keyframes pulseFlame {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.18) rotate(4deg); }
+}
+.streak-info {
+  display: flex;
+  flex-direction: column;
+}
+.streak-count {
+  font-size: 15px;
+  font-weight: 800;
+  color: #D9480F;
+  line-height: 1.1;
+}
+.streak-sub {
+  font-size: 10.5px;
+  color: var(--muted, #667085);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.streak-cal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid rgba(255, 122, 26, 0.3);
+  color: #D9480F;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: background 0.15s, color 0.15s;
+}
+.streak-cal-btn:hover {
+  background: #D9480F;
+  color: #FFFFFF;
+}
+
+/* Modal Calendar Styles */
+.cal-modal-card {
+  padding: 8px 4px;
+}
+.cal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.cal-nav-btn {
+  background: var(--bg-soft, #F5F7FA);
+  border: 1px solid var(--border, #E4E7EC);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  text-align: center;
+}
+.cal-day-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted, #667085);
+  padding-bottom: 6px;
+}
+.cal-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  position: relative;
+  background: var(--bg-soft, #F9FAFB);
+  border: 1px solid transparent;
+}
+.cal-cell.empty {
+  background: transparent;
+  border-color: transparent;
+}
+.cal-cell.today {
+  border-color: #D9480F;
+  font-weight: 700;
+}
+.cal-cell.active-streak {
+  background: linear-gradient(135deg, #FF7A1A 0%, #FF4F9A 100%);
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(255, 122, 26, 0.35);
+}
+.cal-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border, #E4E7EC);
+  font-size: 12px;
+}
+.cal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cal-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+</style>
 </head>
 <body>
 <main id="page" hidden>
@@ -20,6 +164,8 @@
   <div>
     <div class="hero-carousel" id="hero"></div>
     <div class="hero-dots" id="heroDots"></div>
+
+    <div id="streakHost" class="streak-banner-wrap"></div>
 
     <div class="section-heading" style="flex-wrap:wrap">
       <h2>Continue studying</h2>
@@ -93,6 +239,91 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   hero.addEventListener("mouseenter", () => clearInterval(timer));
   hero.addEventListener("mouseleave", restart);
   restart();
+
+  // ---- streak logic ----
+  const STORAGE_STREAK = "medlink_streak_" + me.id;
+  function getStreak() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_STREAK) || '{"count":0,"history":[]}');
+      const today = new Date().toISOString().split("T")[0];
+      // Note today if not already noted
+      if (!data.history.includes(today)) {
+        data.history.push(today);
+        // Basic streak logic: if yesterday exists, increment. Otherwise reset to 1.
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+        if (data.history.includes(yesterday)) data.count += 1;
+        else data.count = 1;
+        localStorage.setItem(STORAGE_STREAK, JSON.stringify(data));
+      }
+      return data;
+    } catch (e) { return {count:1, history:[new Date().toISOString().split("T")[0]]}; }
+  }
+
+  const streakData = getStreak();
+  const streakHost = qs("#streakHost");
+  if (streakHost) {
+    const pill = el("div", { class: "streak-pill" }, [
+      el("span", { class: "streak-flame" }, ["🔥"]),
+      el("div", { class: "streak-info" }, [
+        el("span", { class: "streak-count" }, [streakData.count]),
+        el("span", { class: "streak-sub" }, ["Day Streak"])
+      ]),
+      el("button", { 
+        class: "streak-cal-btn", 
+        title: "View your study calendar",
+        onclick: openCalendarModal
+      }, [
+        el("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, [
+          el("rect", { x: "3", y: "4", width: "18", height: "18", rx: "2", ry: "2" }),
+          el("line", { x1: "16", y1: "2", x2: "16", y2: "6" }),
+          el("line", { x1: "8", y1: "2", x2: "8", y2: "6" }),
+          el("line", { x1: "3", y1: "10", x2: "21", y2: "10" })
+        ])
+      ])
+    ]);
+    streakHost.appendChild(pill);
+  }
+
+  function openCalendarModal() {
+    let viewDate = new Date();
+    const modalBody = el("div", { class: "cal-modal-card" });
+
+    function renderMonth(date) {
+      modalBody.replaceChildren();
+      const month = date.getMonth();
+      const year = date.getFullYear();
+      const monthName = date.toLocaleString(undefined, { month: "long", year: "numeric" });
+      
+      const header = el("div", { class: "cal-header-row" }, [
+        el("button", { class: "cal-nav-btn", onclick: () => { viewDate.setMonth(viewDate.getMonth()-1); renderMonth(viewDate); } }, ["‹"]),
+        el("h3", { style: "margin:0;font-size:16px;" }, [monthName]),
+        el("button", { class: "cal-nav-btn", onclick: () => { viewDate.setMonth(viewDate.getMonth()+1); renderMonth(viewDate); } }, ["›"])
+      ]);
+
+      const grid = el("div", { class: "cal-grid" });
+      ["S","M","T","W","T","F","S"].forEach(d => grid.appendChild(el("div", { class: "cal-day-label" }, [d])));
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const todayStr = new Date().toISOString().split("T")[0];
+
+      for(let i=0; i<firstDay; i++) grid.appendChild(el("div", { class: "cal-cell empty" }));
+      for(let d=1; d<=daysInMonth; d++) {
+        const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isToday = dStr === todayStr;
+        const active = streakData.history.includes(dStr);
+        grid.appendChild(el("div", { class: "cal-cell" + (isToday ? " today" : "") + (active ? " active-streak" : "") }, [d]));
+      }
+
+      modalBody.append(header, grid, el("div", { class: "cal-legend" }, [
+        el("div", { class: "cal-legend-item" }, [el("div", { class: "cal-legend-dot", style: "background:linear-gradient(135deg, #FF7A1A, #FF4F9A)" }), "Study Day"]),
+        el("div", { class: "cal-legend-item" }, [el("div", { class: "cal-legend-dot", style: "background:var(--bg-soft, #F9FAFB);border:1px solid var(--border)" }), "Rest Day"])
+      ]));
+    }
+
+    renderMonth(viewDate);
+    MedLink.modal("Study Calendar", modalBody);
+  }
 
   const grid = qs("#resGrid"), feed = qs("#feedList"), mini = qs("#communitiesMini"), activity = qs("#activity");
   [grid, feed, mini, activity].forEach(n => n.appendChild(MedLink.loadingState()));
