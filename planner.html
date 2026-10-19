@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#FFFFFF">
+<title>Study Planner & Calendar — MedLink KE</title>
+<script src="theme.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<style>
+.planner-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+}
+@media(max-width: 900px) {
+  .planner-layout { grid-template-columns: 1fr; }
+}
+.cal-grid-full {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  text-align: center;
+}
+.cal-day-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  padding: 8px 0;
+}
+.cal-box {
+  min-height: 90px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.cal-box:hover { border-color: var(--accent); }
+.cal-box.other-month { opacity: 0.4; }
+.cal-box.today { border-color: var(--accent); background: var(--accent-soft); }
+.cal-date-num {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.event-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  cursor: pointer;
+}
+.event-badge.exam { background: rgba(229, 72, 77, 0.15); color: var(--error); border: 1px solid rgba(229, 72, 77, 0.3); }
+.event-badge.cat { background: rgba(255, 122, 26, 0.15); color: var(--orange-text); border: 1px solid rgba(255, 122, 26, 0.3); }
+.event-badge.revision { background: rgba(26, 86, 240, 0.12); color: var(--accent); border: 1px solid rgba(26, 86, 240, 0.3); }
+.event-badge.deadline { background: rgba(123, 97, 255, 0.15); color: var(--purple); border: 1px solid rgba(123, 97, 255, 0.3); }
+
+.event-row-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+</style>
+</head>
+<body>
+<main id="page" hidden>
+<div class="fade-in" id="planner-root"></div>
+</main>
+
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+MedLink.run({ page: "planner" }, async ({ api, me }) => {
+  const root = qs("#planner-root");
+  const STORAGE_KEY = "medlink_planner_events_" + me.id;
+
+  function loadEvents() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    // Default starter events
+    const today = new Date();
+    const d1 = new Date(today.getTime() + 86400000 * 3).toISOString().split("T")[0];
+    const d2 = new Date(today.getTime() + 86400000 * 7).toISOString().split("T")[0];
+    return [
+      { id: "e1", title: "Biochemistry CAT 1", type: "cat", date: d1, note: "Chapters 1 to 4 metabolism" },
+      { id: "e2", title: "Human Anatomy Practical Exam", type: "exam", date: d2, note: "Upper limb & thorax dissection spots" }
+    ];
+  }
+
+  function saveEvents(evs) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(evs)); } catch (e) {}
+  }
+
+  let events = loadEvents();
+  let currentMonth = new Date();
+
+  function renderView() {
+    root.replaceChildren();
+
+    const topHeader = el("div", { class: "group-header", style: "margin-bottom:20px;" }, [
+      el("div", {}, [
+        el("h1", { class: "disp", style: "font-size:22px;margin:0 0 2px;" }, ["Study Planner & Calendar"]),
+        el("p", { class: "muted", style: "margin:0;font-size:13.5px;" }, [
+          "Organize upcoming exams, CATs, assignments, and study sessions."
+        ]),
+      ]),
+      el("button", {
+        type: "button",
+        class: "btn btn-primary",
+        onclick: () => openAddEventModal()
+      }, ["+ Add upcoming event"])
+    ]);
+
+    const monthName = currentMonth.toLocaleString(undefined, { month: "long", year: "numeric" });
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+
+    const calHeader = el("div", { class: "cal-header-row", style: "margin-bottom:12px;" }, [
+      el("button", { class: "cal-nav-btn", onclick: () => { currentMonth.setMonth(currentMonth.getMonth() - 1); renderView(); } }, ["‹ Prev month"]),
+      el("h2", { style: "font-size:17px;font-weight:700;" }, [monthName]),
+      el("button", { class: "cal-nav-btn", onclick: () => { currentMonth.setMonth(currentMonth.getMonth() + 1); renderView(); } }, ["Next month ›"])
+    ]);
+
+    const calContainer = el("div", { class: "card pad", style: "margin-bottom:20px;" }, [
+      calHeader,
+      el("div", { class: "cal-grid-full" }, [
+        ...["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => el("div", { class: "cal-day-header" }, [d])),
+        ...buildCalendarCells(year, month)
+      ])
+    ]);
+
+    // Upcoming events sidebar / list
+    const upcomingList = el("div", { class: "card pad" }, [
+      el("div", { class: "rail-head", style: "margin-bottom:12px;" }, [
+        el("h3", { style: "font-size:16px;" }, ["Upcoming Exams & CATs"]),
+        el("span", { class: "faint", style: "font-size:12px;" }, [events.length + " scheduled"])
+      ])
+    ]);
+
+    const upcomingContainer = el("div", {});
+    const sortedEvents = events.slice().sort((a,b) => new Date(a.date) - new Date(b.date));
+    const todayStr = new Date().toISOString().split("T")[0];
+    const futureEvents = sortedEvents.filter(e => e.date >= todayStr);
+
+    if (!futureEvents.length) {
+      upcomingContainer.appendChild(el("div", { class: "faint", style: "font-size:13px;padding:12px 0;" }, ["No upcoming exams or CATs scheduled. Click '+ Add upcoming event' above."]));
+    } else {
+      futureEvents.forEach(ev => {
+        const typeLabels = { exam: "Exam", cat: "CAT", revision: "Revision", deadline: "Deadline" };
+        upcomingContainer.appendChild(el("div", { class: "event-row-item" }, [
+          el("div", {}, [
+            el("div", { style: "display:flex;align-items:center;gap:8px;margin-bottom:2px;" }, [
+              el("span", { class: "event-badge " + ev.type }, [typeLabels[ev.type] || ev.type]),
+              el("b", { style: "font-size:13.5px;" }, [ev.title])
+            ]),
+            el("div", { class: "muted", style: "font-size:12px;" }, ["📅 " + ev.date + (ev.note ? " · " + ev.note : "")])
+          ]),
+          el("button", {
+            type: "button",
+            class: "icon-btn",
+            style: "width:24px;height:24px;font-size:12px;",
+            title: "Delete event",
+            onclick: () => {
+              if (confirm("Delete '" + ev.title + "'?")) {
+                events = events.filter(x => x.id !== ev.id);
+                saveEvents(events);
+                renderView();
+              }
+            }
+          }, ["🗑"])
+        ]));
+      });
+    }
+    upcomingList.appendChild(upcomingContainer);
+
+    const layout = el("div", { class: "planner-layout" }, [
+      calContainer,
+      upcomingList
+    ]);
+
+    root.append(topHeader, layout);
+  }
+
+  function buildCalendarCells(year, month) {
+    const cells = [];
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    for (let i = 0; i < firstDay; i++) {
+      cells.push(el("div", { class: "cal-box other-month" }));
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const isToday = dStr === todayStr;
+      const dayEvents = events.filter(e => e.date === dStr);
+
+      const box = el("div", { class: "cal-box" + (isToday ? " today" : "") }, [
+        el("div", { class: "cal-date-num" }, [String(d)])
+      ]);
+
+      dayEvents.forEach(ev => {
+        const badge = el("span", { class: "event-badge " + ev.type, title: ev.title + (ev.note ? ": " + ev.note : "") }, [ev.title]);
+        badge.addEventListener("click", () => {
+          if (confirm("Delete event: " + ev.title + "?")) {
+            events = events.filter(x => x.id !== ev.id);
+            saveEvents(events);
+            renderView();
+          }
+        });
+        box.appendChild(badge);
+      });
+
+      cells.push(box);
+    }
+    return cells;
+  }
+
+  function openAddEventModal() {
+    const titleInput = el("input", { type: "text", placeholder: "e.g. Biochemistry CAT 2", required: true, maxlength: 80 });
+    const typeSelect = el("select", {}, [
+      el("option", { value: "exam" }, ["Exam"]),
+      el("option", { value: "cat" }, ["CAT / Test"]),
+      el("option", { value: "revision" }, ["Group Revision"]),
+      el("option", { value: "deadline" }, ["Assignment Deadline"])
+    ]);
+    const dateInput = el("input", { type: "date", required: true, value: new Date().toISOString().split("T")[0] });
+    const noteInput = el("textarea", { rows: 2, placeholder: "Add notes, chapters or venue (optional)", maxlength: 160 });
+
+    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
+      el("div", { class: "field" }, [
+        el("label", {}, ["Event / Exam Title"]),
+        titleInput
+      ]),
+      el("div", { class: "field" }, [
+        el("label", {}, ["Category"]),
+        typeSelect
+      ]),
+      el("div", { class: "field" }, [
+        el("label", {}, ["Date"]),
+        dateInput
+      ]),
+      el("div", { class: "field" }, [
+        el("label", {}, ["Notes / Details"]),
+        noteInput
+      ]),
+      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
+        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]),
+        el("button", { type: "submit", class: "btn btn-primary" }, ["Save event"])
+      ])
+    ]);
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const title = titleInput.value.trim();
+      const date = dateInput.value;
+      if (!title || !date) return;
+
+      const newEv = {
+        id: "ev_" + Date.now(),
+        title,
+        type: typeSelect.value,
+        date,
+        note: noteInput.value.trim()
+      };
+
+      events.push(newEv);
+      saveEvents(events);
+      close();
+      renderView();
+      MedLink.toast("Upcoming event added!", "success");
+    });
+
+    const close = MedLink.modal("Add Exam or Study Event", form);
+  }
+
+  renderView();
+});
+</script>
+</body>
+</html>

@@ -1091,6 +1091,7 @@
     admin: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
     share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
     logout: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/>',
+    planner: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/>',
   };
   var ROLE_LABELS = { super_admin: "Super admin", admin: "Admin", moderator: "Moderator" };
 
@@ -1110,6 +1111,7 @@
     var menu = el("div", { class: "me-menu", role: "menu", hidden: true }, [
       el("div", { class: "me-head" }, [el("b", {}, [me.full_name]), el("span", {}, ["@" + me.username])]),
       item(profileHref(me), "Your profile", "profile"),
+      item("planner.html", "Study planner & calendar", "planner"),
       item("groups.html", "Study groups", "groups"),
       item("settings.html", "Settings", "settings"),
       item("saved.html", "Saved", "saved"),
@@ -1137,6 +1139,7 @@
       ["dashboard", "dashboard.html", "Home"],
       ["study", "study.html", "Study library"],
       ["exams", "exams.html", "Exam bank"],
+      ["planner", "planner.html", "Study planner"],
       ["communities", "communities.html", "Communities"],
       ["groups", "groups.html", "Study groups"],
       ["messages", "messages.html", "Messages"],

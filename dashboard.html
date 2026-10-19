@@ -182,6 +182,7 @@
   </div>
 
   <aside class="rail">
+    <div id="upcomingSection"></div>
     <div class="rail-card" id="meCard"></div>
     <div class="rail-card">
       <div class="rail-head"><h3>Your communities</h3><a href="communities.html">See all</a></div>
@@ -358,6 +359,46 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   paint(mine.length ? "units" : "popular");
 
   await MedLink.renderPosts(feed, posts, "No discussions yet — start one above.");
+
+  // ---- rail: upcoming events ----
+  const STORAGE_PLANNER = "medlink_planner_events_" + me.id;
+  function loadPlanner() {
+    try { const saved = localStorage.getItem(STORAGE_PLANNER); return saved ? JSON.parse(saved) : []; } catch(e) { return []; }
+  }
+  const plannerEvents = loadPlanner();
+  const todayStr = new Date().toISOString().split("T")[0];
+  const upcomingEvents = plannerEvents.filter(e => e.date >= todayStr).sort((a,b) => new Date(a.date) - new Date(b.date)).slice(0, 3);
+
+  const upcomingSection = qs("#upcomingSection");
+  if (upcomingSection) {
+    const card = el("div", { class: "rail-card" }, [
+      el("div", { class: "rail-head" }, [
+        el("h3", { style: "display:flex;align-items:center;gap:6px;" }, [
+          el("span", { style: "font-size:16px;" }, ["🗓"]), "Upcoming exams"
+        ]),
+        el("a", { href: "planner.html", style: "font-size:12px;" }, ["View planner"])
+      ])
+    ]);
+    const list = el("div", { class: "rail-list" });
+    if (!upcomingEvents.length) {
+      list.appendChild(el("div", { class: "faint", style: "font-size:13px;padding:8px 4px;" }, ["No upcoming exams set. Organize your CATs and papers in the Study Planner."]));
+    } else {
+      upcomingEvents.forEach(ev => {
+        const typeLabels = { exam: "Exam", cat: "CAT", revision: "Revision", deadline: "Deadline" };
+        list.appendChild(el("a", { class: "rail-item", href: "planner.html" }, [
+          el("div", { class: "who", style: "gap:2px;" }, [
+            el("div", { style: "display:flex;align-items:center;gap:6px;" }, [
+              el("span", { class: "event-badge " + ev.type, style: "font-size:9px;padding:1px 4px;" }, [typeLabels[ev.type] || ev.type]),
+              el("b", { style: "font-size:13px;" }, [ev.title])
+            ]),
+            el("span", { class: "faint", style: "font-size:11px;" }, [ev.date])
+          ])
+        ]));
+      }
+    }
+    card.appendChild(list);
+    upcomingSection.appendChild(card);
+  }
 
   // ---- rail: me ----
   const stat = (n, label, href) => el("a", { href, style: "text-align:center;flex:1" }, [
