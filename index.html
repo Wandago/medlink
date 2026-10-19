@@ -1,165 +1,439 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="favicon.ico" sizes="any">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="manifest" href="site.webmanifest">
-<title>MedLink KE — Your medical school, all in one place</title>
-<meta name="description" content="Free study notes, past-paper practice and communities for medical students — built in Kenya, open everywhere.">
-<meta name="theme-color" content="#FFFFFF">
-<meta property="og:title" content="MedLink KE — Your medical school, all in one place">
-<meta property="og:description" content="Free notes, past-paper practice and study communities for medical students — built in Kenya, open everywhere.">
-<meta property="og:image" content="img/hero-main.jpg">
-<script src="theme.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="landing.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedLink - Accessible Healthcare & Telemedicine</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body class="lp-page">
-<div class="lp-wrap">
-
-  <!-- ================= HERO ================= -->
-  <header class="lp-hero" data-slot="hero-sky">
-    <nav class="lp-nav">
-      <a href="index.html" class="lp-brand">
-        <span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.2l1.6-4.2 2.6 8.4 2-5.2 1.4 3H21"/></svg></span>
-        MedLink KE
+<body>
+  <!-- Header / Navigation -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#home" class="logo">
+        <span class="logo-icon">🩺</span>
+        <span class="logo-text">Med<span class="accent">Link</span></span>
       </a>
-      <div class="lp-links">
-        <a href="#about">About</a>
-        <a href="#features">Features</a>
-        <a href="#communities">Communities</a>
-      </div>
-      <div class="lp-nav-actions">
-        <a href="sign-in.html" class="lp-signin" id="signInLink" data-track="cta_nav_sign_in">Sign in</a>
-        <a href="sign-up.html" class="btn btn-lime" id="ctaNav" data-track="cta_nav_get_started">Get started</a>
-      </div>
-    </nav>
 
-    <div class="lp-hero-center">
-      <span class="lp-glass-pill"><i></i> Free for medical students — built in Kenya, open everywhere</span>
-      <h1>Your medical school,<br>all in one place.</h1>
-      <p>Notes filed by unit, exam-style practice questions, past papers and a community of medical students — from Nairobi to wherever you study.</p>
-      <div class="lp-cta-row">
-        <a href="#features" class="btn lp-btn-glass" data-track="cta_hero_explore">See what's inside</a>
-        <a href="sign-up.html" class="btn btn-lime" id="ctaHero" data-track="cta_hero_get_started">Get started free <span class="lp-arrow">↗</span></a>
+      <nav class="nav-links" id="navLinks">
+        <a href="#doctors" class="nav-item">Find Doctors</a>
+        <a href="#telehealth" class="nav-item">Virtual Consult</a>
+        <a href="#prescriptions" class="nav-item">Prescriptions</a>
+        <a href="#emergency" class="nav-item emergency-nav">🚨 Emergency</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="btn btn-outline" id="myAppointmentsBtn">
+          📅 <span class="hide-mobile">My Care</span> (<span id="apptCountBadge">0</span>)
+        </button>
+        <button class="mobile-menu-toggle" id="menuToggle" aria-label="Toggle menu">
+          ☰
+        </button>
       </div>
     </div>
-
-    <div class="lp-cards" aria-hidden="true">
-      <div class="lp-card"><div class="cover"><b>Notes</b></div><div class="t">Brachial plexus summary</div><div class="s">Human Anatomy I</div></div>
-      <div class="lp-card"><div class="s">Practice score</div><div class="big">80%</div><div class="s">Physiology · 10 questions</div><div class="bar"><i></i></div></div>
-      <div class="lp-card glass"><div class="plus">+</div><div class="t">Share your notes</div><div class="s" style="opacity:.85">Earn MedPoints</div></div>
-      <div class="lp-card dark"><div class="t">A community for every course</div><div class="s">MBChB · Nursing · Pharmacy</div><div class="dots"><span style="background:#1A56F0"></span><span style="background:#FF7A1A"></span><span style="background:#FF4F9A"></span><span style="background:#C9F26B"></span></div></div>
-      <div class="lp-card"><div class="s">Units organised</div><div class="big" id="cardUnits">170+</div><div class="bars"><i style="height:40%"></i><i style="height:60%"></i><i style="height:48%"></i><i style="height:90%"></i><i style="height:70%"></i></div></div>
-    </div>
-    <div class="lp-under-cards" id="uniCount">Built for Kenyan universities and colleges</div>
   </header>
 
-  <!-- ================= UNIVERSITIES ================= -->
-  <div class="lp-logos" aria-label="Universities on MedLink"><div class="lp-logos-track" id="logos"></div></div>
+  <!-- Emergency Banner Quick Strip -->
+  <aside class="quick-alert-strip">
+    <div class="alert-content">
+      <span class="pulse-indicator"></span>
+      <span>Need urgent help? Call 24/7 MedLink Dispatch at <strong>+254 700 000 999</strong> or tap Emergency.</span>
+      <a href="#emergency" class="strip-link">Fast Triage &rarr;</a>
+    </div>
+  </aside>
 
-  <!-- ================= ABOUT ================= -->
-  <section class="lp-section" id="about">
-    <div class="lp-label">About</div>
-    <h2 class="lp-h2">One place for your notes, <span class="lp-bubble">✚</span> your exams<br><span class="soft">and your classmates <span class="lp-bubble lime">✓</span></span></h2>
-    <div class="lp-bento">
-      <div class="lp-tile photo" data-slot="hero-main" role="img" aria-label="Medical students reviewing a scan together">
-        <div class="overlay"><div class="num" id="statUnis">10,000+</div><div class="cap" id="statUnisCap">Universities in 200 countries — plus every Kenyan medical school.</div></div>
+  <main>
+    <!-- Hero Section -->
+    <section class="hero-section" id="home">
+      <div class="container hero-grid">
+        <div class="hero-text">
+          <div class="badge-pill">⚡ Fast, Lightweight & Mobile-Optimized</div>
+          <h1 class="hero-title">Quality Healthcare in Your Pocket.</h1>
+          <p class="hero-subtext">
+            Consult verified specialists, schedule in-clinic visits, get instant prescriptions, and track daily medications. Built to work smoothly even on low-bandwidth networks.
+          </p>
+
+          <div class="hero-cta-group">
+            <a href="#doctors" class="btn btn-primary">Book Consultation</a>
+            <a href="#telehealth" class="btn btn-secondary">Start Instant Chat</a>
+          </div>
+
+          <div class="hero-stats">
+            <div class="stat-item">
+              <strong>150+</strong>
+              <span>Verified Doctors</span>
+            </div>
+            <div class="stat-item">
+              <strong>15 min</strong>
+              <span>Avg. Response Time</span>
+            </div>
+            <div class="stat-item">
+              <strong>98.4%</strong>
+              <span>Patient Satisfaction</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-card-preview">
+          <div class="doctor-badge-float">
+            <span class="live-dot"></span> 24 Doctors Online Now
+          </div>
+          <div class="feature-card hero-glass-card">
+            <div class="preview-doc-header">
+              <div class="doc-avatar-large">👩🏾‍⚕️</div>
+              <div>
+                <h3>Dr. Amina Ochieng</h3>
+                <p class="doc-spec">Consultant Paediatrician & GP</p>
+                <div class="rating-stars">★★★★★ <span>(4.9 • 320 reviews)</span></div>
+              </div>
+            </div>
+            <div class="preview-tags">
+              <span class="tag">Chat Available</span>
+              <span class="tag">Video Call</span>
+              <span class="tag fee-tag">$8 / 1,000 KES</span>
+            </div>
+            <button class="btn btn-primary btn-block quick-book-sample" onclick="openBookingModal('Dr. Amina Ochieng', 'Paediatrician & GP', '$8')">Book Instant Session</button>
+          </div>
+        </div>
       </div>
-      <div class="lp-tile grey">
-        <div><div class="small" style="color:var(--text-3)">Free study material</div><div class="num" style="margin-top:6px">100%</div></div>
-        <div class="faces"><span style="background:#1A56F0">UoN</span><span style="background:#FF7A1A">Moi</span><span style="background:#FF4F9A">KU</span><span style="background:#10B39E">+10</span></div>
-        <div class="quote">“The notes that get you through first year shouldn't live on one laptop, in a group chat that disappears after exams.”</div>
+    </section>
+
+    <!-- Doctor Directory Filter & Grid -->
+    <section class="doctors-section" id="doctors">
+      <div class="container">
+        <div class="section-head">
+          <h2>Find Verified Medical Specialists</h2>
+          <p>Filter by speciality, consultation fee, or consultation method</p>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="doctorSearchInput" placeholder="Search doctor name, hospital, symptom or specialty...">
+          </div>
+
+          <div class="filter-controls">
+            <select id="specialtyFilter" class="filter-select">
+              <option value="all">All Specialties</option>
+              <option value="General Practitioner">General Practitioner</option>
+              <option value="Pediatrics">Pediatrics</option>
+              <option value="Cardiology">Cardiology</option>
+              <option value="Dermatology">Dermatology</option>
+              <option value="Mental Health">Mental Health</option>
+              <option value="Obstetrics & Gynae">Obstetrics & Gynae</option>
+            </select>
+
+            <select id="availabilityFilter" class="filter-select">
+              <option value="all">All Availability</option>
+              <option value="online">Available Right Now</option>
+              <option value="today">Available Today</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Doctor Cards Container -->
+        <div class="doctors-grid" id="doctorsGrid">
+          <!-- Populated by JavaScript -->
+        </div>
       </div>
-      <div class="lp-stack">
-        <div class="lp-tile lime"><div class="small">Units organised by year &amp; semester</div><div class="num" style="margin-top:10px" id="statUnits">170+</div><div class="cap">Find notes for exactly what you're studying.</div></div>
-        <div class="lp-tile dark"><div class="small">Programmes</div><div class="num" id="statCourses">5</div></div>
+    </section>
+
+    <!-- Telehealth / Live Chat Consultation Simulator -->
+    <section class="telehealth-section" id="telehealth">
+      <div class="container">
+        <div class="telehealth-layout">
+          <div class="telehealth-info">
+            <span class="pill-green">Direct Patient-Doctor Room</span>
+            <h2>Virtual Clinic & Triage Desk</h2>
+            <p>Describe your symptoms securely to our on-call medical officer or AI clinical assistant for preliminary assessment before medical referral.</p>
+            
+            <ul class="telehealth-perks">
+              <li>🔒 End-to-end encrypted private session</li>
+              <li>⚡ Ultra-low data bandwidth mode</li>
+              <li>💊 Instant electronic prescription generation</li>
+            </ul>
+
+            <div class="triage-quick-chips">
+              <span class="chip" onclick="sendQuickPrompt('I have a high fever and headache since yesterday')">🌡️ Fever & Headache</span>
+              <span class="chip" onclick="sendQuickPrompt('Persistent dry cough and fatigue for 3 days')">😷 Dry Cough</span>
+              <span class="chip" onclick="sendQuickPrompt('Severe stomach cramps and nausea')">🤢 Stomach Ache</span>
+              <span class="chip" onclick="sendQuickPrompt('Skin rash on my arms with itching')">🩹 Skin Rash</span>
+            </div>
+          </div>
+
+          <!-- Chat Console -->
+          <div class="chat-console">
+            <div class="chat-header">
+              <div class="chat-avatar">👨🏾‍⚕️</div>
+              <div class="chat-title">
+                <h4>Dr. Kwesi Mensah</h4>
+                <p class="status-online"><span class="dot"></span> Medical Officer On-Call</p>
+              </div>
+              <button class="call-btn" id="startVoiceCallBtn" title="Simulate low-data voice call">📞 Audio Call</button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+              <div class="message incoming">
+                <p>Hello! I am Dr. Kwesi on duty at MedLink. How can I help you today? Please tell me your symptoms or select a prompt above.</p>
+                <span class="msg-time">Just now</span>
+              </div>
+            </div>
+
+            <form class="chat-input-area" id="chatForm">
+              <input type="text" id="chatInput" placeholder="Describe symptoms or ask a medical question..." autocomplete="off" required>
+              <button type="submit" class="btn btn-send">Send</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Medication Reminder & Prescription Tracker -->
+    <section class="prescriptions-section" id="prescriptions">
+      <div class="container">
+        <div class="section-head">
+          <h2>Prescription & Dose Reminder</h2>
+          <p>Keep track of your active medications and never miss a scheduled dose</p>
+        </div>
+
+        <div class="rx-layout">
+          <!-- Add Medication Form -->
+          <div class="rx-card-form">
+            <h3>Add New Medication</h3>
+            <form id="addRxForm">
+              <div class="form-group">
+                <label for="rxMedicineName">Medicine Name</label>
+                <input type="text" id="rxMedicineName" placeholder="e.g. Amoxicillin 500mg" required>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="rxDosage">Dosage</label>
+                  <input type="text" id="rxDosage" placeholder="e.g. 1 tablet" required>
+                </div>
+                <div class="form-group">
+                  <label for="rxFrequency">Frequency</label>
+                  <select id="rxFrequency" required>
+                    <option value="Once Daily (Morning)">Once Daily (Morning)</option>
+                    <option value="Twice Daily (Morning, Evening)">Twice Daily (Morning, Night)</option>
+                    <option value="Three Times Daily (8-hour interval)">Three Times Daily</option>
+                    <option value="As Needed (SOS)">As Needed</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="rxInstructions">Instructions / Notes</label>
+                <input type="text" id="rxInstructions" placeholder="e.g. Take after meals with plenty of water">
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">+ Save Medication</button>
+            </form>
+          </div>
+
+          <!-- Medication List -->
+          <div class="rx-list-container">
+            <div class="rx-list-header">
+              <h3>Active Medications (<span id="rxCount">0</span>)</h3>
+              <button class="btn-text-sm" id="seedDemoRxBtn">Load Sample Prescriptions</button>
+            </div>
+            <div class="rx-items-grid" id="rxItemsList">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Emergency Services Section -->
+    <section class="emergency-section" id="emergency">
+      <div class="container">
+        <div class="emergency-banner">
+          <div class="emergency-badge">URGENT CARE & DISPATCH</div>
+          <h2>Emergency Response & Triage Hotlines</h2>
+          <p>If you or someone nearby is experiencing a life-threatening crisis, call emergency services immediately or request rapid dispatch.</p>
+          
+          <div class="emergency-cards">
+            <div class="em-card">
+              <div class="em-icon">🚑</div>
+              <h3>National Ambulance</h3>
+              <p>Direct priority line for vehicle dispatch</p>
+              <a href="tel:999" class="btn btn-danger btn-block">Dial 999 / 911</a>
+            </div>
+
+            <div class="em-card">
+              <div class="em-icon">🏥</div>
+              <h3>MedLink 24/7 Triage Desk</h3>
+              <p>On-call paramedic guidance and nearest clinic locator</p>
+              <a href="tel:+254700000999" class="btn btn-outline-white btn-block">+254 700 000 999</a>
+            </div>
+
+            <div class="em-card">
+              <div class="em-icon">🧠</div>
+              <h3>Mental Health Hotline</h3>
+              <p>Free, anonymous counselling & crisis support</p>
+              <a href="tel:1199" class="btn btn-outline-white btn-block">Dial 1199 Helpline</a>
+            </div>
+          </div>
+
+          <div class="first-aid-accordion">
+            <h3 class="first-aid-title">Quick First Aid Protocols</h3>
+            <div class="accordion-item">
+              <button class="accordion-trigger">1. Severe Bleeding Control <span>+</span></button>
+              <div class="accordion-body">Apply direct, firm pressure with a clean cloth or gauze. Elevate the wounded limb if possible. Keep constant pressure until medical help arrives. Do not remove soaked cloths—layer new ones on top.</div>
+            </div>
+            <div class="accordion-item">
+              <button class="accordion-trigger">2. Adult Choking (Heimlich Maneuver) <span>+</span></button>
+              <div class="accordion-body">Stand behind the person, wrap arms around waist, make a fist above the navel, grasp fist with other hand and give quick upward thrusts until airway clears.</div>
+            </div>
+            <div class="accordion-item">
+              <button class="accordion-trigger">3. Burns & Scalds Immediate Care <span>+</span></button>
+              <div class="accordion-body">Cool the burn with gentle, cool running water for at least 15-20 minutes. Do NOT apply ice, butter, or toothpaste. Cover loosely with sterile film or clean plastic wrap.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="footer-col">
+        <a href="#home" class="logo">
+          <span class="logo-icon">🩺</span>
+          <span class="logo-text">Med<span class="accent">Link</span></span>
+        </a>
+        <p>Reliable, affordable and accessible digital healthcare solutions bridging doctors and patients everywhere.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Navigation</h4>
+        <ul>
+          <li><a href="#doctors">Find Specialists</a></li>
+          <li><a href="#telehealth">Virtual Consultation</a></li>
+          <li><a href="#prescriptions">Medication Reminder</a></li>
+          <li><a href="#emergency">Emergency Care</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Healthcare Specialties</h4>
+        <ul>
+          <li>General Practice & Family Medicine</li>
+          <li>Paediatrics & Child Health</li>
+          <li>Women's Health & Gynaecology</li>
+          <li>Mental Health & Psychiatry</li>
+        </ul>
       </div>
     </div>
-  </section>
-
-  <!-- ================= FEATURES ================= -->
-  <section class="lp-section" id="features">
-    <div class="lp-head-row">
-      <div class="lp-label">Features</div>
-      <h2 class="lp-h2">Everything you need on a study night</h2>
-      <p class="lp-lede" style="max-width:520px">Simple tools, one account — organised the way your course is.</p>
-      <a href="sign-up.html" class="btn btn-dark" data-track="cta_features">Get started <span class="lp-arrow" style="background:var(--lime);color:#0B1533">↗</span></a>
+    <div class="footer-bottom">
+      <div class="container">
+        <p>© <span id="currentYear"></span> MedLink Telehealth Platform. All medical data stored locally in your browser.</p>
+      </div>
     </div>
-    <div class="lp-features">
-      <div class="lp-feature"><span class="ic">📘</span><h3>Study library</h3><p>Notes, summaries, slides and past papers filed by unit — shared by students who sat the same exams.</p></div>
-      <div class="lp-feature"><span class="ic">✅</span><h3>Exam bank</h3><p>Exam-style MCQs by subject with explanations, plus links to past papers from Kenyan universities.</p></div>
-      <div class="lp-feature"><span class="ic">👥</span><h3>Communities</h3><p>One for your course and one for everyone. Share an invite link and your class joins in a tap.</p></div>
-      <div class="lp-feature photo" data-slot="feature-communities" role="img" aria-label="Students laughing around a table"></div>
-      <div class="lp-feature photo" data-slot="feature-exams" role="img" aria-label="Doctor reading an X-ray"></div>
-      <div class="lp-feature"><span class="ic">💬</span><h3>Messages</h3><p>Find a classmate by @username and message them. Organising a revision call takes seconds.</p></div>
-      <div class="lp-feature"><span class="ic">🔎</span><h3>Search</h3><p>One search across notes, students, communities and discussions.</p></div>
-      <div class="lp-feature"><span class="ic">🏅</span><h3>MedPoints</h3><p>Earn points for sharing notes and helping others — your profile shows what you've given back.</p></div>
+  </footer>
+
+  <!-- Appointment Booking Modal -->
+  <div class="modal-overlay" id="bookingModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalDoctorTitle">Book Appointment</h3>
+        <button class="close-modal" id="closeBookingModal" aria-label="Close modal">&times;</button>
+      </div>
+      <form id="bookingForm" class="modal-body">
+        <input type="hidden" id="bookDoctorName">
+        <input type="hidden" id="bookDoctorFee">
+        
+        <div class="doctor-summary-box" id="doctorSummaryBox">
+          <!-- Filled by JS -->
+        </div>
+
+        <div class="form-group">
+          <label for="patientName">Patient Full Name</label>
+          <input type="text" id="patientName" placeholder="e.g. John Wandago" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="patientPhone">Phone / WhatsApp Number</label>
+            <input type="tel" id="patientPhone" placeholder="e.g. +254 712 345678" required>
+          </div>
+          <div class="form-group">
+            <label for="consultationMode">Consultation Type</label>
+            <select id="consultationMode" required>
+              <option value="Video Call">Virtual Video Call</option>
+              <option value="Audio Call">Voice Call (Low Bandwidth)</option>
+              <option value="Text Chat">Instant Chat & Triage</option>
+              <option value="Physical Visit">Clinic In-Person Visit</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="bookingDate">Preferred Date</label>
+            <input type="date" id="bookingDate" required>
+          </div>
+          <div class="form-group">
+            <label for="bookingTime">Preferred Time Slot</label>
+            <select id="bookingTime" required>
+              <option value="09:00 AM">09:00 AM</option>
+              <option value="10:30 AM">10:30 AM</option>
+              <option value="01:00 PM">01:00 PM</option>
+              <option value="03:30 PM">03:30 PM</option>
+              <option value="05:00 PM">05:00 PM</option>
+              <option value="07:00 PM">07:00 PM (Evening)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="bookingNotes">Brief Health Concern / Reason</label>
+          <textarea id="bookingNotes" rows="2" placeholder="Describe symptoms or reasons for visit..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="cancelBookingBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm & Book Appointment</button>
+        </div>
+      </form>
     </div>
-  </section>
+  </div>
 
-  <!-- ================= COMMUNITIES ================= -->
-  <section class="lp-section" id="communities">
-    <div class="lp-label">Communities</div>
-    <h2 class="lp-h2">Find your people</h2>
-    <p class="lp-lede">Broad on purpose — your year and course show on every post.</p>
-    <div class="lp-comms">
-      <a class="lp-comm" href="join.html?c=course-mbchb" data-community="course-mbchb" data-track="lp_community"><div class="img"><b>Course</b></div><h3>MBChB</h3><p>Everyone studying medicine — every year, every university.</p><span class="go">Take a look →</span></a>
-      <a class="lp-comm" href="join.html?c=course-nursing" data-community="course-nursing" data-track="lp_community"><div class="img"><b>Course</b></div><h3>Nursing</h3><p>Placements, notes and support from nursing students across Kenya.</p><span class="go">Take a look →</span></a>
-      <a class="lp-comm" href="join.html?c=surgery" data-community="surgery" data-track="lp_community"><div class="img"><b>Topic</b></div><h3>Surgery</h3><p>For students on surgical rotations and future surgeons.</p><span class="go">Take a look →</span></a>
-      <a class="lp-comm" href="join.html?c=med-students-ke" data-community="med-students-ke" data-track="lp_community"><div class="img"><b>Country</b></div><h3>Medical Students in Kenya</h3><p>Announcements, opportunities and banter — every country gets its own.</p><span class="go">Take a look →</span></a>
+  <!-- Appointments Drawer / Modal -->
+  <div class="modal-overlay" id="appointmentsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>My Booked Appointments</h3>
+        <button class="close-modal" id="closeApptsModal">&times;</button>
+      </div>
+      <div class="modal-body" id="appointmentsListContent">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-block" id="closeApptsBtn">Close</button>
+      </div>
     </div>
-  </section>
+  </div>
 
-  <!-- ================= CTA ================= -->
-  <section class="lp-cta" data-slot="cta-banner">
-    <div class="lp-cta-inner">
-      <h2>Study together, not alone.</h2>
-      <p>Create your profile, pick this semester's units and start with a library that already knows what you're studying.</p>
-      <a href="sign-up.html" class="btn btn-lime" id="ctaClose" data-track="cta_close_get_started">Create your free account <span class="lp-arrow">↗</span></a>
+  <!-- Audio Call Simulation Modal -->
+  <div class="modal-overlay" id="callModal">
+    <div class="modal-card call-modal-card">
+      <div class="call-avatar-pulse">
+        👨🏾‍⚕️
+      </div>
+      <h3 id="callDoctorName">Dr. Kwesi Mensah</h3>
+      <p class="call-status" id="callTimer">Calling... Connecting encrypted audio</p>
+      <div class="call-actions">
+        <button class="call-control-btn mute-btn" id="muteCallBtn" title="Mute Mic">🎤</button>
+        <button class="call-control-btn hangup-btn" id="endCallBtn" title="End Call">📞 Hang Up</button>
+      </div>
     </div>
-  </section>
+  </div>
 
+  <!-- Notification Toast -->
+  <div class="toast" id="toastNotification"></div>
 
-</div>
-
-<script src="config.js"></script>
-<script src="data.js"></script>
-<script src="app.js"></script>
-<script>
-  // Real numbers from the catalogue in data.js.
-  const unitCount = new Set(Object.values(UNIT_CATALOG).flatMap(y => Object.values(y).flatMap(s => Object.values(s).flat()))).size;
-  qs("#statUnis").textContent = (Math.floor(UNIVERSITY_COUNT / 1000) * 1000).toLocaleString() + "+";
-  qs("#statUnisCap").textContent = `Universities in ${COUNTRIES_WITH_UNIVERSITIES} countries — plus every Kenyan medical school.`;
-  qs("#statCourses").textContent = COURSES.length;
-  qs("#statUnits").textContent = qs("#cardUnits").textContent = unitCount + "+";
-  qs("#uniCount").textContent = `Built in Kenya · students from ${COUNTRIES_WITH_UNIVERSITIES} countries can join`;
-  const names = UNIVERSITIES.map(u => u.name);
-  qs("#logos").replaceChildren(...names.concat(names).map(n => el("span", {}, [n])));
-  qsa("[data-community]").forEach(n => {
-    const img = MedLink.communityImage({ id: n.dataset.community });
-    if (img) qs(".img", n).style.backgroundImage = MedLink.cssUrl(img);
-  });
-
-  MedLink.run({ auth: "optional", profile: "optional", shell: false, allowUnconfigured: true }, async ({ clerk, me }) => {
-    if (!clerk || !clerk.user) return;
-    qs("#signInLink")?.remove();
-    const target = me ? "dashboard.html" : "onboarding.html";
-    [["ctaNav", me ? "Dashboard" : "Finish sign-up"], ["ctaHero", me ? "Go to your dashboard" : "Finish setting up your profile"], ["ctaClose", me ? "Go to your dashboard" : "Finish setting up your profile"]]
-      .forEach(([id, label]) => {
-        const a = document.getElementById(id);
-        if (!a) return;
-        const arrow = a.querySelector(".lp-arrow");
-        a.href = target;
-        a.textContent = label + " ";
-        if (arrow) a.appendChild(arrow);
-      });
-  });
-</script>
+  <script src="app.js"></script>
 </body>
 </html>
