@@ -679,6 +679,8 @@ const EXAM_SUBJECTS = [
 const SUBJECT_COLORS = ["#1A56F0", "#FF7A1A", "#FF4F9A", "#10B39E", "#7B61FF", "#F5A300", "#0EA5E9"];
 function subjectColor(name) {
   let h = 0;
-  for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  for (let i = 0; i < String(name || "").length; i++) {
+    h = (h * 31 + String(name).charCodeAt(i)) >>> 0;
+  }
   return SUBJECT_COLORS[h % SUBJECT_COLORS.length];
 }

@@ -457,12 +457,15 @@
           );
         })(),
       ]);
-      await window.Clerk.load({
-        signInUrl: new URL("sign-in.html", location.href).href,
-        signUpUrl: new URL("sign-up.html", location.href).href,
-        afterSignOutUrl: new URL("index.html", location.href).href,
-        appearance: clerkAppearance(),
-      });
+      if (window.Clerk && window.Clerk.load) {
+        await window.Clerk.load({
+          appearance: clerkAppearance(),
+        }).catch(function (err) {
+          console.warn("[MedLink] Clerk session init failed (continuing as guest):", err);
+        });
+      } else if (!window.Clerk) {
+        console.warn("[MedLink] Clerk not loaded — continuing without auth.");
+      }
     } catch (err) {
       console.error(err);
       if (opts.allowUnconfigured) { ready(); return ctx; }
@@ -470,12 +473,12 @@
       return halt();
     }
 
-    var clerk = window.Clerk;
+    var clerk = window.Clerk || {};
     ctx.clerk = clerk;
     ctx.configured = true;
-    var signedIn = !!clerk.user;
+    var signedIn = !!(clerk && clerk.user);
     var getToken = async function () {
-      return clerk.session ? (await clerk.session.getToken()) : null;
+      return (clerk && clerk.session) ? (await clerk.session.getToken()) : null;
     };
     tracker.start(cfg.sbUrl, cfg.sbKey, getToken);
 
