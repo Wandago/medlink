@@ -7,6 +7,7 @@ MedLink KE is an all-in-one platform for medical students in Kenya and worldwide
 - [x] Add Groups section in sidebar and topbar menu for students to create study groups and add peers by username
 - [x] Add lively streak counter on the dashboard with animated fire emoji
 - [x] Add aesthetic interactive study calendar accessible via calendar icon on the streak counter
+- [x] Fix syntax errors and Clerk boot failures that blocked the dashboard from loading
 
 ## What you need to do
 1. Connect your Supabase and Clerk keys in `config.js` if you are using real authentication.
