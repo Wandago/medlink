@@ -376,7 +376,17 @@
   }
   // Clerk publishable keys encode their Frontend API host: pk_test_<base64(host + "$")>
   function clerkFrontendApi(pk) {
-    return atob(pk.split("_")[2]).replace(/\$$/, "");
+    try {
+      var parts = pk.split("_");
+      if (parts.length >= 3) {
+        var decoded = atob(parts[2]).replace(/\$$/, "");
+        // Check if decoded string looks like a valid hostname
+        if (/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(decoded)) {
+          return decoded;
+        }
+      }
+    } catch (e) {}
+    return null;
   }
 
   function loadScript(src, attrs) {
@@ -438,10 +448,14 @@
     try {
       await Promise.all([
         window.supabase ? Promise.resolve() : loadScript(SUPABASE_JS),
-        window.Clerk ? Promise.resolve() : loadScript(
-          "https://" + clerkFrontendApi(cfg.clerkKey) + "/npm/@clerk/clerk-js@" + CLERK_JS_VERSION + "/dist/clerk.browser.js",
-          { "data-clerk-publishable-key": cfg.clerkKey }
-        ),
+        window.Clerk ? Promise.resolve() : (function() {
+          var host = clerkFrontendApi(cfg.clerkKey);
+          if (!host) throw new Error("Clerk key is invalid or placeholder.");
+          return loadScript(
+            "https://" + host + "/npm/@clerk/clerk-js@" + CLERK_JS_VERSION + "/dist/clerk.browser.js",
+            { "data-clerk-publishable-key": cfg.clerkKey }
+          );
+        })(),
       ]);
       await window.Clerk.load({
         signInUrl: new URL("sign-in.html", location.href).href,
