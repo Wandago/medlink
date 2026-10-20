@@ -3,6 +3,7 @@ MedLink KE is an all-in-one platform for medical students in Kenya and worldwide
 
 ## Steps
 - [x] Fix syntax errors and catalogue definition in data.js
+- [x] Fix Clerk initialization to gracefully handle missing/placeholder keys in preview mode
 - [x] Add Groups section in sidebar and topbar menu for students to create study groups and add peers by username
 - [x] Add lively streak counter on the dashboard with animated fire emoji
 - [x] Add aesthetic interactive study calendar accessible via calendar icon on the streak counter
