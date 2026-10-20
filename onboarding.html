@@ -75,10 +75,6 @@
 
     <!-- Step 2 -->
     <div class="onboard-step" data-step="2">
-      <div class="field">
-        <label for="in-course">Course / Program <span class="req">*</span></label>
-        <select id="in-course"></select>
-      </div>
       <div class="field" id="f-university">
         <label for="in-university">University / Institution <span class="req">*</span></label>
         <select id="in-university"></select>
@@ -86,6 +82,10 @@
         <datalist id="uni-list"></datalist>
         <div class="field-hint" id="uni-context"></div>
         <div class="field-error hidden" id="err-university">Choose your institution, or type its full name.</div>
+      </div>
+      <div class="field">
+        <label for="in-course">Course / Program <span class="req">*</span></label>
+        <select id="in-course"></select>
       </div>
       <div class="field" style="margin-bottom:0;">
         <label for="in-year">Year of Study <span class="req">*</span></label>
@@ -188,21 +188,34 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
   const OTHER = "__other";
   const isCurated = id => UNIVERSITIES.some(u => u.id === id);
 
-  // Kenya: curated list filtered by programme (+ "not listed").
-  async function renderUniversityOptions() {
+  // Institution first, then the courses that institution offers.
+  function renderUniversityOptions() {
     const context = qs("#uni-context");
     qs("#err-university").classList.add("hidden");
-    const list = universitiesForCourse(data.courseId);
+    const list = UNIVERSITIES;
     uniSelect.hidden = false;
     uniSelect.replaceChildren(...list.map(u => el("option", { value: u.id }, [`${u.name} (${u.abbreviation})`])),
       el("option", { value: OTHER }, ["My institution isn't listed…"]));
-    if (isCurated(data.universityId) && !list.some(u => u.id === data.universityId)) data.universityId = "";
     if (!data.universityId && !data.universityName) data.universityId = list[0].id;
     const other = !isCurated(data.universityId);
     uniSelect.value = other ? OTHER : data.universityId;
     uniSearch.hidden = !other;
     uniSearch.value = other ? data.universityName : "";
-    context.textContent = other ? "Type the full name, e.g. Kenya Medical Training College." : `${list.length} Kenyan institutions offer ${courseName(data.courseId)}.`;
+    context.textContent = other
+      ? "Type the full name, e.g. Kenya Medical Training College."
+      : `${list.length} Kenyan institutions on MedLink — pick yours to see its courses.`;
+  }
+  function coursesForUniversity(universityId) {
+    if (!universityId) return COURSES;
+    return COURSES.filter(c => universityOffersCourse(universityId, c.id));
+  }
+  function renderCourseOptions() {
+    const uni = isCurated(data.universityId) ? data.universityId : "";
+    const list = coursesForUniversity(uni);
+    const valid = list.some(c => c.id === data.courseId);
+    if (!valid && list.length) data.courseId = list[0].id;
+    courseSelect.replaceChildren(...list.map(c => el("option", { value: c.id }, [c.name])));
+    courseSelect.value = data.courseId;
   }
   function validateUniversity() {
     const ok = isCurated(data.universityId) || data.universityName.trim().length >= 3;
@@ -213,6 +226,8 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
     if (uniSelect.value === OTHER) { data.universityId = ""; data.universityName = ""; }
     else { data.universityId = uniSelect.value; data.universityName = ""; }
     renderUniversityOptions();
+    renderCourseOptions();
+    renderYearOptions();
     if (uniSelect.value === OTHER) uniSearch.focus();
   });
   uniSearch.addEventListener("input", () => {
@@ -226,17 +241,12 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
     if (!valid.includes(data.year)) data.year = valid[0];
     yearSelect.value = data.year;
   }
-  COURSES.forEach(c => courseSelect.appendChild(el("option", { value: c.id }, [c.name])));
-  courseSelect.value = data.courseId;
   courseSelect.addEventListener("change", () => {
     data.courseId = courseSelect.value;
     renderYearOptions();
-    renderUniversityOptions();
   });
-  renderYearOptions();
   renderUniversityOptions();
-  courseSelect.value = data.courseId;
-  renderUniversityOptions();
+  renderCourseOptions();
   renderYearOptions();
 
   // ---- colour ----
