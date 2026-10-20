@@ -107,8 +107,15 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
     const d1 = new Date(today.getTime() + 86400000 * 3).toISOString().split("T")[0];
     const d2 = new Date(today.getTime() + 86400000 * 7).toISOString().split("T")[0];
     return [
-      { id: "e1", title: "Biochemistry CAT 1", type: "cat", date: d1, note: "Chapters 1 to 4 metabolism" },
-      { id: "e2", title: "Human Anatomy Practical Exam", type: "exam", date: d2, note: "Upper limb & thorax dissection spots" }
+      { id: "e1", title: "Biochemistry CAT 1", unit: "Biochemistry", type: "cat", date: d1, note: "Chapters 1 to 4 metabolism", topics: [
+        { label: "Glycolysis & TCA cycle", done: true },
+        { label: "Lipid metabolism", done: false },
+        { label: "Amino acid metabolism", done: false },
+      ] },
+      { id: "e2", title: "Human Anatomy Practical Exam", unit: "Human Anatomy", type: "exam", date: d2, note: "Upper limb & thorax dissection spots", topics: [
+        { label: "Upper limb osteology", done: true },
+        { label: "Thoracic wall muscles", done: false },
+      ] },
     ];
   }
 
@@ -118,6 +125,100 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
 
   let events = loadEvents();
   let currentMonth = new Date();
+
+  // ---- progress helpers ----
+  function evProgressPct(ev) {
+    const t = ev.topics || [];
+    if (!t.length) return 0;
+    return Math.round(t.filter(x => x.done).length / t.length * 100);
+  }
+  function evStatus(ev) {
+    const pct = evProgressPct(ev);
+    if (!ev.topics || !ev.topics.length) return { label: "No plan yet", color: "var(--text-3)" };
+    if (pct >= 100) return { label: "Ready 🎉", color: "var(--success)" };
+    if (pct >= 60) return { label: "On track", color: "var(--accent)" };
+    if (pct >= 25) return { label: "Getting there", color: "var(--orange-text)" };
+    return { label: "Needs work", color: "var(--error)" };
+  }
+  // Unit suggestions come from the student's own units, then the full catalogue.
+  function unitOptions() {
+    const set = new Set(me.current_units || []);
+    try {
+      Object.values(UNIT_CATALOG).forEach(course => Object.values(course).forEach(y => Object.values(y).forEach(list => list.forEach(u => set.add(u)))));
+    } catch (e) {}
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }
+  function persist() { saveEvents(events); renderView(); }
+
+  // ---- checklist modal: tick topics off to track % progress ----
+  function openTopicChecklist(ev) {
+    if (!ev.topics) ev.topics = [];
+    const listBox = el("div", { class: "wrap-gap", style: "flex-direction:column;gap:8px;margin:10px 0;" });
+    const pctBar = el("div", {});
+    const newTopic = el("input", { type: "text", placeholder: "e.g. Cranial nerves I–XII", maxlength: 120 });
+
+    function paintProgress() {
+      const pct = evProgressPct(ev);
+      pctBar.replaceChildren(
+        el("div", { style: "display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px;" }, [
+          el("span", { class: "faint" }, [ev.title + " · " + (ev.unit || "General")]),
+          el("b", { style: "color:" + (pct >= 100 ? "var(--success)" : "var(--accent)") }, [pct + "%"])
+        ]),
+        el("div", { style: "background:var(--border);border-radius:99px;height:9px;overflow:hidden;" }, [
+          el("div", { style: "width:" + pct + "%;height:100%;background:" + (pct >= 100 ? "var(--success)" : "linear-gradient(90deg, #1A56F0, #0EA5E9)") + ";transition:width .35s ease;" })
+        ])
+      );
+    }
+    function paintList() {
+      listBox.replaceChildren();
+      if (!ev.topics.length) {
+        listBox.appendChild(el("div", { class: "faint", style: "font-size:13px;" }, ["No topics yet — add the topics or subtopics you must cover before this " + (ev.type === "exam" ? "exam" : "date") + "."]));
+      }
+      ev.topics.forEach((t, i) => {
+        const cb = el("input", { type: "checkbox", checked: t.done });
+        cb.addEventListener("change", () => {
+          t.done = cb.checked;
+          saveEvents(events);
+          paintProgress(); paintList(); MedLink.ptsFlash?.(cb);
+        });
+        listBox.appendChild(el("div", { class: "row-gap", style: "align-items:flex-start;justify-content:space-between;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;" }, [
+          el("label", { class: "row-gap", style: "align-items:flex-start;gap:9px;cursor:pointer;flex:1;" }, [
+            cb, el("span", { style: "font-size:13.5px;" + (t.done ? "text-decoration:line-through;opacity:.6;" : "") }, [t.label])
+          ]),
+          el("button", { type: "button", class: "icon-btn", style: "width:22px;height:22px;font-size:11px;", title: "Remove topic", onclick: () => {
+            ev.topics.splice(i, 1); saveEvents(events); paintProgress(); paintList();
+          } }, ["✕"])
+        ]));
+      });
+    }
+    function addTopic() {
+      const label = newTopic.value.trim();
+      if (!label) return;
+      ev.topics.push({ label, done: false });
+      newTopic.value = "";
+      saveEvents(events); paintProgress(); paintList();
+    }
+    newTopic.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addTopic(); } });
+
+    const form = el("div", { class: "form-stack", style: "margin-top:12px;" }, [
+      pctBar,
+      el("div", { class: "field" }, [
+        el("label", {}, ["Topics / subtopics to complete"]),
+        listBox
+      ]),
+      el("div", { class: "row-gap", style: "align-items:stretch;" }, [
+        el("div", { style: "flex:1;" }, [newTopic]),
+        el("button", { type: "button", class: "btn btn-soft", onclick: addTopic }, ["+ Add topic"])
+      ]),
+      el("div", { class: "row-gap", style: "justify-content:space-between;align-items:center;margin-top:14px;" }, [
+        el("span", { class: "faint", style: "font-size:12px;" }, ["Due " + ev.date]),
+        el("button", { type: "button", class: "btn btn-primary", onclick: () => { close(); renderView(); MedLink.toast("Progress saved — " + evProgressPct(ev) + "% complete", "success"); } }, ["Done"])
+      ])
+    ]);
+
+    paintProgress(); paintList();
+    const close = MedLink.modal("Study progress · " + (ev.unit || ev.title), form);
+  }
 
   function renderView() {
     root.replaceChildren();
@@ -172,13 +273,25 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
     } else {
       futureEvents.forEach(ev => {
         const typeLabels = { exam: "Exam", cat: "CAT", revision: "Revision", deadline: "Deadline" };
+        const pct = evProgressPct(ev);
         upcomingContainer.appendChild(el("div", { class: "event-row-item" }, [
-          el("div", {}, [
-            el("div", { style: "display:flex;align-items:center;gap:8px;margin-bottom:2px;" }, [
+          el("div", { style: "flex:1;" }, [
+            el("div", { style: "display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap;" }, [
               el("span", { class: "event-badge " + ev.type }, [typeLabels[ev.type] || ev.type]),
-              el("b", { style: "font-size:13.5px;" }, [ev.title])
+              el("b", { style: "font-size:13.5px;" }, [ev.title]),
+              ev.unit ? el("span", { class: "chip", style: "font-size:11px;" }, [ev.unit]) : null
             ]),
-            el("div", { class: "muted", style: "font-size:12px;" }, ["📅 " + ev.date + (ev.note ? " · " + ev.note : "")])
+            el("div", { class: "muted", style: "font-size:12px;" }, ["📅 " + ev.date + (ev.note ? " · " + ev.note : "")]),
+            ev.topics && ev.topics.length ? el("div", { style: "margin-top:8px;" }, [
+              el("div", { style: "display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px;" }, [
+                el("span", { class: "faint" }, ["Study progress"]),
+                el("b", { style: "color:" + (pct >= 100 ? "var(--success)" : "var(--accent)") }, [pct + "% complete"])
+              ]),
+              el("div", { style: "background:var(--border);border-radius:99px;height:7px;overflow:hidden;" }, [
+                el("div", { style: "width:" + pct + "%;height:100%;background:" + (pct >= 100 ? "var(--success)" : "linear-gradient(90deg, #1A56F0, #0EA5E9)") + ";transition:width .4s ease;" })
+              ]),
+              el("button", { type: "button", class: "btn btn-ghost btn-sm", style: "margin-top:8px;font-size:12px;padding:4px 10px;", onclick: () => openTopicChecklist(ev) }, ["✓ Update topics (" + (ev.topics.filter(t => t.done).length) + "/" + ev.topics.length + ")"])
+            ]) : el("button", { type: "button", class: "btn btn-ghost btn-sm", style: "margin-top:8px;font-size:12px;padding:4px 10px;", onclick: () => openTopicChecklist(ev) }, ["+ Add study topics checklist"])
           ]),
           el("button", {
             type: "button",
@@ -226,15 +339,19 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
       ]);
 
       dayEvents.forEach(ev => {
-        const badge = el("span", { class: "event-badge " + ev.type, title: ev.title + (ev.note ? ": " + ev.note : "") }, [ev.title]);
-        badge.addEventListener("click", () => {
-          if (confirm("Delete event: " + ev.title + "?")) {
-            events = events.filter(x => x.id !== ev.id);
-            saveEvents(events);
-            renderView();
-          }
-        });
+        const pct = evProgressPct(ev);
+        const hasPlan = ev.topics && ev.topics.length;
+        const badge = el("span", {
+          class: "event-badge " + ev.type,
+          title: ev.title + (ev.unit ? " (" + ev.unit + ")" : "") + " — " + (ev.note || "tap to update progress"),
+          onclick: () => openTopicChecklist(ev),
+        }, [ev.title + (hasPlan ? " · " + pct + "%" : "")]);
         box.appendChild(badge);
+        if (hasPlan) {
+          box.appendChild(el("div", { style: "height:4px;border-radius:99px;background:var(--border);overflow:hidden;margin-bottom:3px;" }, [
+            el("div", { style: "width:" + pct + "%;height:100%;background:" + (pct >= 100 ? "var(--success)" : "var(--accent)") + ";" })
+          ]));
+        }
       });
 
       cells.push(box);
