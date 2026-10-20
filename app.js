@@ -449,7 +449,8 @@
       await Promise.all([
         window.supabase ? Promise.resolve() : loadScript(SUPABASE_JS),
         window.Clerk ? Promise.resolve() : (function() {
-          var host = clerkFrontendApi(cfg.clerkKey) || "clerk.medlink.ke"; // Fallback to avoid error in preview
+          var host = clerkFrontendApi(cfg.clerkKey);
+          if (!host || host.includes("placeholder")) return Promise.resolve(); // Don't try to load if it's a placeholder
           return loadScript(
             "https://" + host + "/npm/@clerk/clerk-js@" + CLERK_JS_VERSION + "/dist/clerk.browser.js",
             { "data-clerk-publishable-key": cfg.clerkKey }
