@@ -72,15 +72,32 @@
 .event-badge.revision { background: rgba(26, 86, 240, 0.12); color: var(--accent); border: 1px solid rgba(26, 86, 240, 0.3); }
 .event-badge.deadline { background: rgba(123, 97, 255, 0.15); color: var(--purple); border: 1px solid rgba(123, 97, 255, 0.3); }
 
-.event-row-item {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 10px;
+.timetable-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
   background: var(--surface-2);
-  border: 1px solid var(--border);
-  margin-bottom: 8px;
+  border: 1px dashed var(--border-strong);
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.timetable-wrap:hover {
+  border-color: var(--accent);
+}
+.timetable-placeholder {
+  padding: 30px;
+}
+.timetable-img {
+  width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  display: block;
+  background: #000;
 }
 </style>
 </head>
@@ -96,6 +113,7 @@
 MedLink.run({ page: "planner" }, async ({ api, me }) => {
   const root = qs("#planner-root");
   const STORAGE_KEY = "medlink_planner_events_" + me.id;
+  const STORAGE_TT = "medlink_timetable_" + me.id;
 
   function loadEvents() {
     try {
@@ -121,6 +139,12 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
 
   function saveEvents(evs) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(evs)); } catch (e) {}
+  }
+  function saveTimetable(url) {
+    try { localStorage.setItem(STORAGE_TT, url); } catch (e) {}
+  }
+  function loadTimetable() {
+    try { return localStorage.getItem(STORAGE_TT); } catch(e) { return null; }
   }
 
   let events = loadEvents();
@@ -230,16 +254,46 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
           "Organize upcoming exams, CATs, assignments, and study sessions."
         ]),
       ]),
-      el("button", {
-        type: "button",
-        class: "btn btn-primary",
-        onclick: () => openAddEventModal()
-      }, ["+ Add upcoming event"])
+      el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;" }, [
+        el("button", {
+          type: "button",
+          class: "btn btn-primary",
+          onclick: () => openAddEventModal()
+        }, ["+ Add upcoming event"]),
+        el("button", {
+          type: "button",
+          class: "btn btn-soft",
+          onclick: () => openTimetableModal()
+        }, ["📷 School timetable"])
+      ])
     ]);
 
+    // ---- Timetable photo card ----
+    const ttCard = el("div", { class: "card pad", style: "margin-bottom:20px;" }, [
+      el("div", { class: "rail-head", style: "margin-bottom:12px;" }, [
+        el("h3", { style: "font-size:16px;" }, ["School Timetable"]),
+        el("span", { class: "faint", style: "font-size:12px;" }, ["Your weekly class schedule"])
+      ])
+    ]);
+    const ttWrap = el("div", { class: "timetable-wrap" });
+    const savedTT = loadTimetable();
+    if (savedTT) {
+      const img = el("img", { class: "timetable-img", src: savedTT, alt: "School timetable" });
+      img.addEventListener("click", () => MedLink.modal("School Timetable", el("img", { class: "timetable-img", src: savedTT, alt: "School timetable enlarged" })));
+      ttWrap.replaceChildren(img, el("div", { style: "position:absolute;top:8px;right:8px;display:flex;gap:6px;" }, [
+        el("button", { type: "button", class: "btn btn-soft btn-sm", onclick: (e) => { e.stopPropagation(); openTimetableModal(); } }, ["Replace"]),
+        el("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: (e) => { e.stopPropagation(); if (confirm("Remove your timetable photo?")) { saveTimetable(null); renderView(); } } }, ["Remove"])
+      ]));
+    } else {
+      ttWrap.appendChild(el("div", { class: "timetable-placeholder", onclick: () => openTimetableModal() }, [
+        el("div", { style: "font-size:24px;margin-bottom:8px;" }, ["📋"]),
+        el("div", { style: "font-size:13px;font-weight:600;" }, ["Upload Timetable"]),
+        el("div", { style: "font-size:11px;color:var(--text-3);margin-top:4px;" }, ["Tap to upload your weekly schedule photo"])
+      ]));
+    }
+    ttCard.appendChild(ttWrap);
+
     const monthName = currentMonth.toLocaleString(undefined, { month: "long", year: "numeric" });
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
 
     const calHeader = el("div", { class: "cal-header-row", style: "margin-bottom:12px;" }, [
       el("button", { class: "cal-nav-btn", onclick: () => { currentMonth.setMonth(currentMonth.getMonth() - 1); renderView(); } }, ["‹ Prev month"]),
@@ -316,7 +370,32 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
       upcomingList
     ]);
 
-    root.append(topHeader, layout);
+    root.append(topHeader, ttCard, layout);
+  }
+
+  // ---- timetable upload modal (photo stored locally, instant to re-open) ----
+  function openTimetableModal() {
+    const input = el("input", { type: "file", accept: "image/*", style: "display:none;" });
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      if (file.size > 4 * 1024 * 1024) {
+        MedLink.toast("Image is too large — please pick one under 4MB.", "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          saveTimetable(String(reader.result));
+          MedLink.toast("Timetable saved! You'll see it here every time.", "success");
+          renderView();
+        } catch (e) {
+          MedLink.toast("Couldn't save the timetable — storage is full. Try a smaller image.", "error");
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    input.click();
   }
 
   function buildCalendarCells(year, month) {
