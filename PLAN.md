@@ -7,6 +7,8 @@ MedLink KE is an all-in-one platform for medical students in Kenya and worldwide
 - [x] Add Groups section in sidebar and topbar menu for students to create study groups and add peers by username
 - [x] Add lively streak counter on the dashboard with animated fire emoji
 - [x] Add aesthetic interactive study calendar accessible via calendar icon on the streak counter
+- [x] Add glassmorphism (glassy-transparent) styling to topbar icons and dashboard elements
+- [x] Integrate streak counter and study planner into a unified interactive dashboard header with overall study readiness percentage
 - [x] Add complete KMTC catalog: 25 diploma courses and 39 higher diploma courses from kmtc.ac.ke
 - [x] Group KMTC course dropdown into "Diploma" and "Higher Diploma" sections in onboarding
 
