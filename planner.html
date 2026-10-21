@@ -179,7 +179,7 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
         cb.addEventListener("change", () => {
           t.done = cb.checked;
           saveEvents(events);
-          paintProgress(); paintList(); MedLink.ptsFlash?.(cb);
+          paintProgress(); paintList();
         });
         listBox.appendChild(el("div", { class: "row-gap", style: "align-items:flex-start;justify-content:space-between;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;" }, [
           el("label", { class: "row-gap", style: "align-items:flex-start;gap:9px;cursor:pointer;flex:1;" }, [
@@ -361,6 +361,11 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
 
   function openAddEventModal() {
     const titleInput = el("input", { type: "text", placeholder: "e.g. Biochemistry CAT 2", required: true, maxlength: 80 });
+    const unitList = unitOptions();
+    const unitSelect = el("select", {}, [
+      el("option", { value: "" }, ["— Choose the unit you're planning —"]),
+      ...unitList.map(u => el("option", { value: u }, [u]))
+    ]);
     const typeSelect = el("select", {}, [
       el("option", { value: "exam" }, ["Exam"]),
       el("option", { value: "cat" }, ["CAT / Test"]),
@@ -369,10 +374,25 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
     ]);
     const dateInput = el("input", { type: "date", required: true, value: new Date().toISOString().split("T")[0] });
     const noteInput = el("textarea", { rows: 2, placeholder: "Add notes, chapters or venue (optional)", maxlength: 160 });
+    const topicsInput = el("textarea", { rows: 4, placeholder: "One topic or subtopic per line, e.g.\nGlycolysis & TCA cycle\nLipid metabolism", maxlength: 2000 });
+    const countOut = el("span", { class: "faint", style: "font-size:11.5px;" }, ["Counts as you type"]);
+
+    function pctPreview() {
+      const n = topicsInput.value.split("\n").map(s => s.trim()).filter(Boolean).length;
+      countOut.textContent = n ? n + " topic" + (n === 1 ? "" : "s") + " will start at 0%" : "Add topics to track progress (%)";
+    }
+    topicsInput.addEventListener("input", pctPreview);
+    pctPreview();
 
     const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
       el("div", { class: "field" }, [
-        el("label", {}, ["Event / Exam Title"]),
+        el("label", {}, ["Unit being planned ", el("span", { class: "req" }, ["*"])]),
+        unitSelect,
+        el("div", { class: "field-hint" }, ["Used to group your revision and match notes for this event."]),
+        el("div", { class: "field-error hidden" }, ["Pick the unit this event belongs to."])
+      ]),
+      el("div", { class: "field" }, [
+        el("label", {}, ["Event / Exam Title ", el("span", { class: "req" }, ["*"])]),
         titleInput
       ]),
       el("div", { class: "field" }, [
@@ -380,8 +400,13 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
         typeSelect
       ]),
       el("div", { class: "field" }, [
-        el("label", {}, ["Date"]),
+        el("label", {}, ["Date of the exam / CAT / deadline ", el("span", { class: "req" }, ["*"])]),
         dateInput
+      ]),
+      el("div", { class: "field" }, [
+        el("label", {}, ["Study checklist — topics to finish before that date"]),
+        topicsInput,
+        countOut
       ]),
       el("div", { class: "field" }, [
         el("label", {}, ["Notes / Details"]),
@@ -389,7 +414,7 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
       ]),
       el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
         el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]),
-        el("button", { type: "submit", class: "btn btn-primary" }, ["Save event"])
+        el("button", { type: "submit", class: "btn btn-primary" }, ["Save study plan"])
       ])
     ]);
 
@@ -397,24 +422,28 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
       e.preventDefault();
       const title = titleInput.value.trim();
       const date = dateInput.value;
+      const unit = unitSelect.value;
+      if (!unit) { unitSelect.parentElement.querySelector(".field-error").classList.remove("hidden"); unitSelect.focus(); return; }
       if (!title || !date) return;
 
-      const newEv = {
+      const topics = topicsInput.value.split("\n").map(s => s.trim()).filter(Boolean).map(label => ({ label, done: false }));
+
+      events.push({
         id: "ev_" + Date.now(),
         title,
+        unit,
         type: typeSelect.value,
         date,
-        note: noteInput.value.trim()
-      };
+        note: noteInput.value.trim(),
+        topics
+      });
 
-      events.push(newEv);
-      saveEvents(events);
+      persist();
       close();
-      renderView();
-      MedLink.toast("Upcoming event added!", "success");
+      MedLink.toast(topics.length ? "Study plan saved with " + topics.length + " topics to track." : "Event added — add topics any time.", "success");
     });
 
-    const close = MedLink.modal("Add Exam or Study Event", form);
+    const close = MedLink.modal("Plan a unit · exam, CAT or assignment", form);
   }
 
   renderView();

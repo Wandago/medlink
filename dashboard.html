@@ -385,13 +385,23 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
     } else {
       upcomingEvents.forEach(ev => {
         const typeLabels = { exam: "Exam", cat: "CAT", revision: "Revision", deadline: "Deadline" };
-        list.appendChild(el("a", { class: "rail-item", href: "planner.html" }, [
+        const topics = ev.topics || [];
+        const pct = topics.length ? Math.round(topics.filter(t => t.done).length / topics.length * 100) : 0;
+        list.appendChild(el("a", { class: "rail-item", href: "planner.html", style: "display:block;" }, [
           el("div", { class: "who", style: "gap:2px;" }, [
-            el("div", { style: "display:flex;align-items:center;gap:6px;" }, [
-              el("span", { class: "event-badge " + ev.type, style: "font-size:9px;padding:1px 4px;" }, [typeLabels[ev.type] || ev.type]),
-              el("b", { style: "font-size:13px;" }, [ev.title])
+            el("div", { style: "display:flex;align-items:center;gap:6px;justify-content:space-between;" }, [
+              el("div", { style: "display:flex;align-items:center;gap:6px;" }, [
+                el("span", { class: "event-badge " + ev.type, style: "font-size:9px;padding:1px 4px;" }, [typeLabels[ev.type] || ev.type]),
+                el("b", { style: "font-size:13px;" }, [ev.title])
+              ]),
+              topics.length ? el("span", { style: "font-size:11px;font-weight:700;color:" + (pct >= 100 ? "var(--success)" : "var(--accent)") }, [pct + "%"]) : null
             ]),
-            el("span", { class: "faint", style: "font-size:11px;" }, [ev.date])
+            el("div", { style: "display:flex;justify-content:space-between;align-items:center;margin-top:2px;" }, [
+              el("span", { class: "faint", style: "font-size:11px;" }, [ev.date]),
+              topics.length ? el("div", { style: "width:40px;height:4px;background:var(--border);border-radius:99px;overflow:hidden;" }, [
+                el("div", { style: "width:" + pct + "%;height:100%;background:" + (pct >= 100 ? "var(--success)" : "var(--accent)") })
+              ]) : null
+            ])
           ])
         ]));
       });
