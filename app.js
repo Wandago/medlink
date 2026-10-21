@@ -778,6 +778,32 @@
       return new Set(rows.map(function (r) { return r.community_id; }));
     },
     setMember: async function (communityId, on) {
+
+    // ---- medpoints & missions ----
+    medPointsSummary: async function (userId) {
+      var res = await sb().from("medpoint_totals").select("total_points").eq("user_id", userId || myId()).maybeSingle();
+      var pts = (res.data && res.data.total_points) || 0;
+      var prof = await sb().from("profiles").select("medpoint_level").eq("id", userId || myId()).maybeSingle();
+      var lvl = (prof.data && prof.data.medpoint_level) || "New Student";
+      var txs = await sb().from("medpoint_transactions").select("*").eq("user_id", userId || myId()).order("created_at", { ascending: false }).limit(20);
+      var ach = await sb().from("user_achievements").select("achievement_id, earned_at, medpoint_achievements(*)").eq("user_id", userId || myId());
+      return {
+        points: pts,
+        level: lvl,
+        transactions: txs.data || [],
+        achievements: ach.data || []
+      };
+    },
+    missionsList: async function () {
+      var today = new Date().toISOString().split("T")[0];
+      var res = await sb().from("daily_missions").select("*").eq("mission_date", today);
+      return res.data || [];
+    },
+    claimMission: async function (missionId) {
+      var res = await sb().rpc("claim_daily_mission", { p_mission_id: missionId });
+      return must(res);
+    },
+
       if (on) must(await sb().from("community_members").insert({ community_id: communityId, user_id: myId() }));
       else must(await sb().from("community_members").delete().eq("community_id", communityId).eq("user_id", myId()));
       track(on ? "community_join" : "community_leave", { id: communityId });

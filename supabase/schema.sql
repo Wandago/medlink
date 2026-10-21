@@ -738,6 +738,94 @@ revoke insert, update, delete on public.medpoint_transactions from authenticated
 
 -- RLS for user_achievements (readable by owner or staff)
 alter table public.user_achievements enable row level security;
+
+-- =========================================================
+-- DAILY & WEEKLY MISSIONS SYSTEM
+-- =========================================================
+create table if not exists public.daily_missions_def (
+  id serial primary key,
+  title text not null,
+  description text not null,
+  reward_points integer not null default 5,
+  criteria_type text not null, -- 'answer_question', 'upload_resource', 'practice_challenge', 'study_session'
+  link_url text not null
+);
+
+insert into public.daily_missions_def (title, description, reward_points, criteria_type, link_url) values
+  ('Help a Classmate', 'Provide an eligible answer or help in community questions.', 5, 'answer_question', 'communities.html'),
+  ('Share Knowledge', 'Submit a resource for review.', 5, 'upload_resource', 'dashboard.html'),
+  ('Test Your Knowledge', 'Complete a practice challenge session.', 5, 'practice_challenge', 'exams.html'),
+  ('Study Consistently', 'Complete a qualifying planned study session.', 10, 'study_session', 'dashboard.html')
+  on conflict do nothing;
+
+create table if not exists public.daily_missions (
+  id bigserial primary key,
+  user_id text not null references public.profiles(id) on delete cascade,
+  mission_def_id integer not null references public.daily_missions_def(id),
+  mission_date date not null default (now() at time zone 'Africa/Nairobi')::date,
+  completed boolean not null default false,
+  claimed boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (user_id, mission_def_id, mission_date)
+);
+
+create or replace function public.get_or_create_daily_missions(p_user_id text)
+returns setof public.daily_missions language plpgsql security definer as $$
+declare
+  d date := (now() at time zone 'Africa/Nairobi')::date;
+  def record;
+begin
+  for def in select * from public.daily_missions_def loop
+    insert into public.daily_missions (user_id, mission_def_id, mission_date)
+      values (p_user_id, def.id, d)
+      on conflict (user_id, mission_def_id, mission_date) do nothing;
+  end loop;
+  return query select * from public.daily_missions where user_id = p_user_id and mission_date = d;
+end $$;
+
+create or replace function public.claim_daily_mission(p_mission_id bigint)
+returns jsonb language plpgsql security definer as $$
+declare
+  m record;
+  def record;
+  me_id text := public.requesting_user_id();
+  eligible boolean := false;
+  today date := (now() at time zone 'Africa/Nairobi')::date;
+begin
+  select * into m from public.daily_missions where id = p_mission_id and user_id = me_id;
+  if m is null then raise exception 'Mission not found'; end if;
+  if m.claimed then raise exception 'Mission already claimed'; end if;
+  if m.mission_date <> today then raise exception 'Mission expired'; end if;
+
+  select * into def from public.daily_missions_def where id = m.mission_def_id;
+
+  -- Validate criteria on backend
+  if def.criteria_type = 'answer_question' then
+    select exists (select 1 from public.post_comments where author_id = me_id and created_at::date = today) into eligible;
+  elsif def.criteria_type = 'upload_resource' then
+    select exists (select 1 from public.resources where author_id = me_id and created_at::date = today) into eligible;
+  elsif def.criteria_type = 'practice_challenge' then
+    select exists (select 1 from public.exam_attempts where user_id = me_id and created_at::date = today) into eligible;
+  elsif def.criteria_type = 'study_session' then
+    select exists (select 1 from public.study_sessions where host_id = me_id and qualified = true and created_at::date = today) into eligible;
+  else
+    eligible := true; -- default safe fallback for verified actions
+  end if;
+
+  if not eligible then
+    raise exception 'Mission criteria not yet completed today';
+  end if;
+
+  -- Mark claimed and award points
+  update public.daily_missions set completed = true, claimed = true where id = p_mission_id;
+  perform public.award_medpoints(me_id, def.reward_points, 'Daily Mission: ' || def.title, 'mission_' || p_mission_id || '_' || today);
+
+  return jsonb_build_object('success', true, 'reward', def.reward_points);
+end $$;
+
+grant execute on function public.get_or_create_daily_missions(text) to authenticated;
+grant execute on function public.claim_daily_mission(bigint) to authenticated;
+
 create policy "achievements: owner read" on public.user_achievements for select using (auth.uid() = user_id or public.is_staff());
 create policy "achievements: staff read" on public.user_achievements for select using (public.is_staff());
 
