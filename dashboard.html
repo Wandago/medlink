@@ -231,7 +231,7 @@
     <div class="hero-carousel" id="hero"></div>
     <div class="hero-dots" id="heroDots"></div>
 
-    <div id="streakHost" class="streak-banner-wrap"></div>
+
 
     <div class="section-heading" style="flex-wrap:wrap">
       <h2>Continue studying</h2>
@@ -248,6 +248,7 @@
   </div>
 
   <aside class="rail">
+    <div id="streakHost" class="streak-banner-wrap" style="margin: 0 0 20px 0;"></div>
     <div id="upcomingSection"></div>
     <div class="rail-card" id="meCard"></div>
     <div class="rail-card">
@@ -307,64 +308,72 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   hero.addEventListener("mouseleave", restart);
   restart();
 
-  // ---- streak logic ----
+  // ---- streak and time spent tracking logic ----
   const STORAGE_STREAK = "medlink_streak_" + me.id;
+  const STORAGE_TIME = "medlink_time_" + me.id;
+
+  // Track time spent on app (increment every 10 seconds while active)
+  let todayKey = new Date().toISOString().split("T")[0];
+  let timeData = {};
+  try { timeData = JSON.parse(localStorage.getItem(STORAGE_TIME) || "{}"); } catch(e){}
+  if (!timeData[todayKey]) timeData[todayKey] = 0;
+
+  // Save time every 10s
+  setInterval(() => {
+    timeData[todayKey] = (timeData[todayKey] || 0) + 10;
+    localStorage.setItem(STORAGE_TIME, JSON.stringify(timeData));
+    updateStreakDisplay();
+  }, 10000);
+
+  function formatTimeSpent(secs) {
+    const hrs = Math.floor(secs / 3600);
+    const mins = Math.floor((secs % 3600) / 60);
+    if (hrs > 0) return `${hrs}hr ${mins}min`;
+    if (mins > 0) return `${mins}min`;
+    return `${secs}s`;
+  }
+
   function getStreak() {
     try {
       const data = JSON.parse(localStorage.getItem(STORAGE_STREAK) || '{"count":0,"history":[]}');
-      const today = new Date().toISOString().split("T")[0];
-      // Note today if not already noted
+      const today = todayKey;
       if (!data.history.includes(today)) {
         data.history.push(today);
-        // Basic streak logic: if yesterday exists, increment. Otherwise reset to 1.
         const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
         if (data.history.includes(yesterday)) data.count += 1;
         else data.count = 1;
         localStorage.setItem(STORAGE_STREAK, JSON.stringify(data));
       }
       return data;
-    } catch (e) { return {count:1, history:[new Date().toISOString().split("T")[0]]}; }
+    } catch (e) { return {count:1, history:[todayKey]}; }
   }
 
   const streakData = getStreak();
   const streakHost = qs("#streakHost");
-  if (streakHost) {
-    // ---- overall planner progress calc ----
-    const plannerData = (function() {
-      try {
-        const saved = localStorage.getItem("medlink_planner_events_" + me.id);
-        const evs = saved ? JSON.parse(saved) : [];
-        const total = evs.reduce((sum, e) => sum + (e.topics ? e.topics.length : 0), 0);
-        const done = evs.reduce((sum, e) => sum + (e.topics ? e.topics.filter(t => t.done).length : 0), 0);
-        return { pct: total ? Math.round(done / total * 100) : 0, count: evs.length };
-      } catch(e) { return { pct: 0, count: 0 }; }
-    })();
 
-    streakHost.appendChild(el("div", { class: "streak-header-row" }, [
-      el("div", { class: "overall-progress-card" }, [
-        el("div", { class: "progress-meta" }, [
-          el("span", { class: "label" }, ["Study Readiness"]),
-          el("span", { class: "value" }, [plannerData.pct + "%"]),
-        ]),
-        el("div", { class: "progress-track" }, [
-          el("div", { class: "progress-fill", style: "width:" + plannerData.pct + "%" })
-        ]),
-        el("div", { class: "faint", style: "font-size:11px;font-weight:600;" }, [
-          plannerData.count ? `Tracking ${plannerData.count} upcoming exam${plannerData.count > 1 ? 's' : ''}` : "Add exams in Study Planner"
-        ])
-      ]),
-      el("div", { class: "streak-pill" }, [
-        el("span", { class: "streak-flame" }, ["🔥"]),
-        el("div", { class: "streak-info" }, [
-          el("span", { class: "streak-count" }, [streakData.count]),
-          el("span", { class: "streak-sub" }, ["Day Streak"])
+  function updateStreakDisplay() {
+    if (!streakHost) return;
+    const currentSecs = timeData[todayKey] || 0;
+    const timeStr = formatTimeSpent(currentSecs);
+
+    streakHost.replaceChildren(
+      el("div", { class: "streak-pill", style: "display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(255,122,26,0.12), rgba(255,79,154,0.12)); border: 1.5px solid rgba(255, 122, 26, 0.35); border-radius: 16px; padding: 14px 18px; box-shadow: 0 8px 24px rgba(255,122,26,0.12); width: 100%; box-sizing: border-box;" }, [
+        el("div", { style: "display: flex; align-items: center; gap: 12px;" }, [
+          el("span", { class: "streak-flame", style: "font-size: 28px;" }, ["🔥"]),
+          el("div", { class: "streak-info", style: "display: flex; flex-direction: column;" }, [
+            el("div", { style: "display: flex; align-items: baseline; gap: 6px;" }, [
+              el("span", { class: "streak-count", style: "font-size: 20px; font-weight: 900; color: #D9480F;" }, [streakData.count]),
+              el("span", { class: "streak-sub", style: "font-size: 11px; font-weight: 800; text-transform: uppercase; color: #D9480F;" }, ["Day Streak"])
+            ]),
+            el("span", { style: "font-size: 12px; font-weight: 700; color: var(--text-2); margin-top: 2px;" }, [`⏱️ ${timeStr} on MedLink today`])
+          ])
         ]),
         el("button", { 
           class: "streak-cal-btn", 
-          title: "View your study calendar",
+          title: "View your study calendar & history",
           onclick: openCalendarModal
         }, [
-          el("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, [
+          el("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, [
             el("rect", { x: "3", y: "4", width: "18", height: "18", rx: "2", ry: "2" }),
             el("line", { x1: "16", y1: "2", x2: "16", y2: "6" }),
             el("line", { x1: "8", y1: "2", x2: "8", y2: "6" }),
@@ -372,8 +381,10 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
           ])
         ])
       ])
-    ]));
+    );
   }
+
+  updateStreakDisplay();
 
   function openCalendarModal() {
     let viewDate = new Date();
