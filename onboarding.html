@@ -207,7 +207,12 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
   }
   function coursesForUniversity(universityId) {
     if (!universityId) return COURSES;
-    return COURSES.filter(c => universityOffersCourse(universityId, c.id));
+    const isKMTC = universityId === "kmtc";
+    return COURSES.filter(c => {
+      const belongs = universityOffersCourse(universityId, c.id);
+      if (isKMTC) return belongs || COURSE_CATEGORIES.KMTC.includes(c.id);
+      return belongs;
+    });
   }
   function renderCourseOptions() {
     const uni = isCurated(data.universityId) ? data.universityId : "";

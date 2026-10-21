@@ -60,7 +60,32 @@ const COURSE_UNIVERSITIES = {
   epidemiology: ["uon", "moi", "jkuat", "aku"],
   environmentalhealth: ["ku", "jkuat", "egerton", "kmtc", "mku"],
   occupationalhealth: ["jkuat", "kmtc", "mku"],
+  kmtc_clinmed: ["kmtc"],
+  kmtc_nursing: ["kmtc"],
+  kmtc_pharmacy: ["kmtc"],
+  kmtc_medlab: ["kmtc"],
+  kmtc_nutrition: ["kmtc"],
+  kmtc_publichealth: ["kmtc"],
+  kmtc_physio: ["kmtc"],
+  kmtc_radiography: ["kmtc"],
+  kmtc_orthopaedic: ["kmtc"],
+  kmtc_dental_tech: ["kmtc"],
+  kmtc_occupational: ["kmtc"],
+  kmtc_optometry: ["kmtc"],
+  kmtc_medical_eng: ["kmtc"],
+  kmtc_health_records: ["kmtc"],
+  kmtc_mortuary: ["kmtc"],
+  kmtc_hd_clinmed: ["kmtc"],
+  kmtc_hd_nursing: ["kmtc"],
+  kmtc_hd_publichealth: ["kmtc"],
 };
+
+// Course Categories to help filtering
+const COURSE_CATEGORIES = {
+  UNIVERSITY: ["mbchb", "nursing", "clinmed", "pharmacy", "dentistry", "medlab", "physiotherapy", "occupational", "radiography", "publichealth", "communityhealth", "nutrition", "biomedical", "healthinformatics", "healthsystems", "healtheconomics", "epidemiology", "environmentalhealth", "occupationalhealth"],
+  KMTC: ["kmtc_clinmed", "kmtc_nursing", "kmtc_pharmacy", "kmtc_medlab", "kmtc_nutrition", "kmtc_publichealth", "kmtc_physio", "kmtc_radiography", "kmtc_orthopaedic", "kmtc_dental_tech", "kmtc_occupational", "kmtc_optometry", "kmtc_medical_eng", "kmtc_health_records", "kmtc_mortuary", "kmtc_hd_clinmed", "kmtc_hd_nursing", "kmtc_hd_publichealth"]
+};
+
 function universitiesForCourse(courseId) {
   const ids = COURSE_UNIVERSITIES[courseId] || COURSE_UNIVERSITIES.mbchb;
   return UNIVERSITIES.filter(u => ids.includes(u.id));
@@ -89,6 +114,28 @@ const COURSES = [
   { id: "epidemiology",      name: "Epidemiology",               years: 4 },
   { id: "environmentalhealth", name: "Environmental Health",     years: 4 },
   { id: "occupationalhealth",  name: "Occupational Health",      years: 4 },
+  
+  // KMTC Specific (Diploma & Higher Diploma)
+  { id: "kmtc_clinmed", name: "Clinical Medicine (KMTC)", years: 3 },
+  { id: "kmtc_nursing", name: "Nursing (KMTC)", years: 3 },
+  { id: "kmtc_pharmacy", name: "Pharmacy (KMTC)", years: 3 },
+  { id: "kmtc_medlab", name: "Medical Laboratory (KMTC)", years: 3 },
+  { id: "kmtc_nutrition", name: "Nutrition & Dietetics (KMTC)", years: 3 },
+  { id: "kmtc_publichealth", name: "Public Health (KMTC)", years: 3 },
+  { id: "kmtc_physio", name: "Physiotherapy (KMTC)", years: 3 },
+  { id: "kmtc_radiography", name: "Radiography (KMTC)", years: 3 },
+  { id: "kmtc_orthopaedic", name: "Orthopaedic Technology (KMTC)", years: 3 },
+  { id: "kmtc_dental_tech", name: "Dental Technology (KMTC)", years: 3 },
+  { id: "kmtc_occupational", name: "Occupational Therapy (KMTC)", years: 3 },
+  { id: "kmtc_optometry", name: "Optometry (KMTC)", years: 3 },
+  { id: "kmtc_medical_eng", name: "Medical Engineering (KMTC)", years: 3 },
+  { id: "kmtc_health_records", name: "Health Records & Information (KMTC)", years: 3 },
+  { id: "kmtc_mortuary", name: "Mortuary Science (KMTC)", years: 2 },
+  
+  // Higher Diplomas
+  { id: "kmtc_hd_clinmed", name: "Higher Diploma in Clinical Medicine (KMTC)", years: 1 },
+  { id: "kmtc_hd_nursing", name: "Higher Diploma in Nursing (KMTC)", years: 1 },
+  { id: "kmtc_hd_publichealth", name: "Higher Diploma in Public Health (KMTC)", years: 1 },
 ];
 const YEARS = ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 function yearsForCourse(courseId) {
@@ -185,27 +232,88 @@ const UNIT_CATALOG = {
       "Semester 2": ["Industrial Pharmacy Attachment", "Pharmacovigilance", "Health Economics", "Professional Ethics"],
     },
   },
-  dentistry: {
-    "Year 1": {
-      "Semester 1": ["Human Anatomy", "Human Physiology", "Dental Anatomy", "Biochemistry"],
-      "Semester 2": ["Head & Neck Anatomy", "Oral Biology", "Dental Materials I", "Behavioural Sciences"],
-    },
-    "Year 2": {
-      "Semester 1": ["Oral Histology", "General Pathology", "Microbiology", "Dental Materials II"],
-      "Semester 2": ["Oral Pathology I", "Pharmacology", "Preventive Dentistry", "Dental Radiology"],
-    },
-    "Year 3": {
-      "Semester 1": ["Oral Pathology II", "Periodontology", "Conservative Dentistry", "Prosthodontics I"],
-      "Semester 2": ["Oral Medicine", "Endodontics", "Prosthodontics II", "Community Dentistry"],
-    },
-    "Year 4": {
-      "Semester 1": ["Oral & Maxillofacial Surgery I", "Orthodontics", "Paedodontics", "Oral Implantology"],
-      "Semester 2": ["Oral & Maxillofacial Surgery II", "Advanced Periodontology", "Research Methods", "Dental Public Health"],
-    },
-    "Year 5": {
-      "Semester 1": ["Clinical Clerkship", "Advanced Restorative Dentistry", "Research Project", "Practice Management"],
-      "Semester 2": ["Comprehensive Patient Care", "Oral Surgery Rotation", "Dental Ethics & Jurisprudence", "Elective Rotation"],
-    },
+  kmtc_clinmed: {
+    "Year 1": { "Semester 1": ["Anatomy & Physiology I", "Medical Microbiology", "Health Education"], "Semester 2": ["Pathology", "Pharmacology I", "Clinical Skills I"] },
+    "Year 2": { "Semester 1": ["Internal Medicine I", "Paediatrics I", "Surgery I"], "Semester 2": ["Obstetrics & Gynaecology I", "Community Health", "Pharmacology II"] },
+    "Year 3": { "Semester 1": ["Clinical Rotations (Medicine & Surgery)", "Emergency Care"], "Semester 2": ["Paediatric & Obstetric Clerkship", "Health Management"] }
+  },
+  kmtc_nursing: {
+    "Year 1": { "Semester 1": ["Anatomy & Physiology", "Fundamentals of Nursing", "Microbiology"], "Semester 2": ["Medical Surgical Nursing I", "Pharmacology", "Nutrition"] },
+    "Year 2": { "Semester 1": ["Medical Surgical Nursing II", "Community Health Nursing", "Mental Health"], "Semester 2": ["Obstetric Nursing", "Paediatric Nursing", "Research Methods"] },
+    "Year 3": { "Semester 1": ["Midwifery Practice", "Nursing Leadership", "Critical Care"], "Semester 2": ["Comprehensive Clinical Practicum", "Professional Ethics"] }
+  },
+  kmtc_pharmacy: {
+    "Year 1": { "Semester 1": ["Pharmaceutical Chemistry I", "Human Anatomy", "Pharmaceutics I"], "Semester 2": ["Physiology", "Microbiology", "Dispensing Practice"] },
+    "Year 2": { "Semester 1": ["Pharmacology I", "Pharmacognosy", "Pharmaceutical Analysis"], "Semester 2": ["Pharmacology II", "Hospital Pharmacy", "Forensic Pharmacy"] },
+    "Year 3": { "Semester 1": ["Clinical Pharmacy", "Pharmaceutical Management"], "Semester 2": ["Industrial Pharmacy Attachment", "Pharmacy Practice"] }
+  },
+  kmtc_medlab: {
+    "Year 1": { "Semester 1": ["General Laboratory Techniques", "Anatomy & Physiology", "Basic Chemistry"], "Semester 2": ["Medical Microbiology I", "Parasitology", "Haematology I"] },
+    "Year 2": { "Semester 1": ["Clinical Chemistry I", "Blood Transfusion Science", "Histopathology I"], "Semester 2": ["Microbiology II", "Parasitology II", "Immunology"] },
+    "Year 3": { "Semester 1": ["Advanced Laboratory Diagnostics", "Quality Assurance"], "Semester 2": ["Hospital Attachment", "Laboratory Management"] }
+  },
+  kmtc_nutrition: {
+    "Year 1": { "Semester 1": ["Human Nutrition", "Biochemistry", "Food Science"], "Semester 2": ["Dietotherapy I", "Community Nutrition", "Microbiology"] },
+    "Year 2": { "Semester 1": ["Dietotherapy II", "Institutional Food Management", "Epidemiology"], "Semester 2": ["Public Health Nutrition", "Nutrition Assessment"] },
+    "Year 3": { "Semester 1": ["Clinical Nutrition Practicum", "Research Project"], "Semester 2": ["Community Attachment", "Professional Practice"] }
+  },
+  kmtc_publichealth: {
+    "Year 1": { "Semester 1": ["Environmental Health", "Anatomy & Physiology", "Microbiology"], "Semester 2": ["Epidemiology", "Vector Control", "Biostatistics"] },
+    "Year 2": { "Semester 1": ["Occupational Health & Safety", "Water Quality Management", "Food Hygiene"], "Semester 2": ["Health Education", "Waste Management", "Public Health Law"] },
+    "Year 3": { "Semester 1": ["Field Attachment", "Project Management"], "Semester 2": ["Disaster Management", "Professional Ethics"] }
+  },
+  kmtc_physio: {
+    "Year 1": { "Semester 1": ["Anatomy & Physiology", "Physics for Physiotherapy", "Kinesiology I"], "Semester 2": ["Electrotherapy I", "Exercise Therapy I", "Pathology"] },
+    "Year 2": { "Semester 1": ["Orthopaedic Physiotherapy", "Neurological Physiotherapy", "Cardiorespiratory"], "Semester 2": ["Paediatric Physiotherapy", "Clinical Practice I"] },
+    "Year 3": { "Semester 1": ["Advanced Clinical Practice", "Rehabilitation"], "Semester 2": ["Research Project", "Professional Practice"] }
+  },
+  kmtc_radiography: {
+    "Year 1": { "Semester 1": ["Radiation Physics", "Anatomy & Physiology", "Radiographic Imaging I"], "Semester 2": ["Radiographic Positioning I", "Apparatus & Equipment", "Darkroom Chemistry"] },
+    "Year 2": { "Semester 1": ["Radiographic Positioning II", "Radiation Protection", "Pathology"], "Semester 2": ["Advanced Imaging (CT/MRI)", "Clinical Practice I"] },
+    "Year 3": { "Semester 1": ["Clinical Radiography", "Quality Assurance"], "Semester 2": ["Research Project", "Professional Practice"] }
+  },
+  kmtc_orthopaedic: {
+    "Year 1": { "Semester 1": ["General Anatomy & Physiology", "Orthopaedic Mechanics", "Materials Science"], "Semester 2": ["Fracture Management", "Orthotics I", "Prosthetics I"] },
+    "Year 2": { "Semester 1": ["Advanced Orthotics", "Advanced Prosthetics", "Clinical Biomechanics"], "Semester 2": ["Rehabilitation", "Clinical Attachment I"] },
+    "Year 3": { "Semester 1": ["Workshop Management", "Clinical Practice"], "Semester 2": ["Project", "Professional Ethics"] }
+  },
+  kmtc_dental_tech: {
+    "Year 1": { "Semester 1": ["Dental Anatomy", "Dental Materials Science", "Basic Metallurgy"], "Semester 2": ["Removable Prosthodontics I", "Orthodontic Appliances"] },
+    "Year 2": { "Semester 1": ["Fixed Prosthodontics", "Maxillofacial Technology", "Removable Prosthodontics II"], "Semester 2": ["Advanced Technology", "Clinical Practice I"] },
+    "Year 3": { "Semester 1": ["Laboratory Management", "Clinical Practice II"], "Semester 2": ["Research Project", "Licensing Preparation"] }
+  },
+  kmtc_occupational: {
+    "Year 1": { "Semester 1": ["Anatomy & Physiology", "Psychology", "Occupational Therapy Theory I"], "Semester 2": ["Activity Analysis", "Therapeutic Crafts", "Kinesiology"] },
+    "Year 2": { "Semester 1": ["Physical Disabilities OT", "Psychiatric OT", "Paediatric OT"], "Semester 2": ["Clinical Placement I", "Community Based Rehabilitation"] },
+    "Year 3": { "Semester 1": ["Advanced Clinical Placement", "Rehabilitation Management"], "Semester 2": ["Research Project", "Professional Ethics"] }
+  },
+  kmtc_optometry: {
+    "Year 1": { "Semester 1": ["Ocular Anatomy & Physiology", "Geometric Optics", "Visual Optics"], "Semester 2": ["Clinical Optometry I", "Ophthalmic Dispensing I", "General Pathology"] },
+    "Year 3": { "Semester 1": ["Binocular Vision", "Contact Lens Practice", "Low Vision"], "Semester 2": ["Ocular Disease", "Clinical Practice II"] },
+    "Year 3": { "Semester 1": ["Advanced Clinical Practice", "Practice Management"], "Semester 2": ["Research Project", "Professional Ethics"] }
+  },
+  kmtc_medical_eng: {
+    "Year 1": { "Semester 1": ["Engineering Mathematics", "Electrical Principles", "Mechanical Engineering"], "Semester 2": ["Electronics", "Anatomy & Physiology for Engineers", "Workshop Technology"] },
+    "Year 2": { "Semester 1": ["Medical Equipment Maintenance I", "Digital Electronics", "Biomedical Transducers"], "Semester 2": ["Medical Imaging Equipment", "Clinical Engineering I"] },
+    "Year 3": { "Semester 1": ["Advanced Medical Equipment", "Hospital Infrastructure"], "Semester 2": ["Attachment", "Project"] }
+  },
+  kmtc_health_records: {
+    "Year 1": { "Semester 1": ["Introduction to Health Records", "Medical Terminology", "ICT Fundamentals"], "Semester 2": ["Health Statistics", "Coding of Diseases (ICD)", "Database Management"] },
+    "Year 2": { "Semester 1": ["Health Management Information Systems", "Epidemiology", "Legal Aspects of Health Records"], "Semester 2": ["Clinical Coding II", "Health Economics"] },
+    "Year 3": { "Semester 1": ["Attachment", "Research Methods"], "Semester 2": ["Health Information Management", "Project"] }
+  },
+  kmtc_mortuary: {
+    "Year 1": { "Semester 1": ["Anatomy & Pathology", "Mortuary Practice & Safety", "Embalming Techniques"], "Semester 2": ["Forensic Science Basics", "Microbiology & Infection Control", "Ethics & Law"] },
+    "Year 2": { "Semester 1": ["Advanced Embalming & Reconstruction", "Disaster Victim Identification", "Clinical Attachment"], "Semester 2": ["Mortuary Management", "Research Project"] }
+  },
+  kmtc_hd_clinmed: {
+    "Year 1": { "Semester 1": ["Advanced Clinical Practice", "Specialised Diagnostics", "Emergency & Critical Care"], "Semester 2": ["Research Methodology", "Subspecialty Rotation", "Dissertation"] }
+  },
+  kmtc_hd_nursing: {
+    "Year 1": { "Semester 1": ["Advanced Nursing Theory", "Specialised Nursing Care (ICU/Perioperative/Neonatal)", "Leadership & Education"], "Semester 2": ["Clinical Residency", "Research Project & Dissertation"] }
+  },
+  kmtc_hd_publichealth: {
+    "Year 1": { "Semester 1": ["Advanced Epidemiology", "Environmental Health Management", "Health Policy & Systems"], "Semester 2": ["Biostatistics", "Field Research & Dissertation"] }
   },
   medlab: {
     "Year 1": {
