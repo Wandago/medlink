@@ -266,6 +266,49 @@
 <script src="config.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
+
+    // Render MedPoints widget into dashboard rail
+    try {
+      var mpData = await api.medPointsSummary(me.id);
+      var missions = await api.missionsList();
+      var lb = await api.getLeaderboard("contributors");
+      var mpCard = el("div", { class: "rail-card medpoints-card" }, [
+        el("div", { class: "rail-head" }, [
+          el("h3", {}, ["⭐ MedPoints & Reputation"]),
+          el("span", { class: "badge badge-lime" }, [mpData.level])
+        ]),
+        el("div", { class: "medpoints-summary-body", style: "padding: 12px 16px;" }, [
+          el("div", { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;" }, [
+            el("div", {}, [
+              el("div", { style: "font-size: 24px; font-weight: 800; color: var(--text-color);" }, [mpData.points + " pts"]),
+              el("div", { style: "font-size: 12px; color: var(--muted-color);" }, ["Lifetime Contribution Reputation"])
+            ]),
+            el("a", { class: "btn btn-sm btn-primary", href: "profile.html" }, ["View badges ›"])
+          ]),
+          el("div", { style: "margin-top: 12px; border-top: 1px solid var(--border-color); pt: 10px;" }, [
+            el("div", { style: "font-weight: 600; font-size: 13px; margin-bottom: 6px;" }, ["🎯 Today's Missions"]),
+            el("div", { class: "missions-mini-list" }, missions.map(m => el("div", { style: "display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 6px;" }, [
+              el("span", {}, [m.completed ? "✅ " : "⬜ ", m.title]),
+              m.claimed ? el("span", { style: "color: green;" }, ["Claimed"]) : el("button", {
+                class: "btn btn-xs btn-outline",
+                onclick: async () => {
+                  try {
+                    await api.claimMission(m.id);
+                    MedLink.toast("Mission claimed successfully!");
+                    location.reload();
+                  } catch (err) { MedLink.toast(err.message, "error"); }
+                }
+              }, ["Claim +" + m.reward_points])
+            ])))
+          ])
+        ])
+      ]);
+      var upcoming = qs("#upcomingSection");
+      if (upcoming && upcoming.parentNode) {
+        upcoming.parentNode.insertBefore(mpCard, upcoming);
+      }
+    } catch(e) { console.error("MedPoints widget error:", e); }
+
 <script>
 MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   const hour = new Date().getHours();
