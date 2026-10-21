@@ -9,8 +9,8 @@ MedLink KE is an all-in-one platform for medical students in Kenya and worldwide
 - [x] Add aesthetic interactive study calendar accessible via calendar icon on the streak counter
 - [x] Add glassmorphism (glassy-transparent) styling to topbar icons and dashboard elements
 - [x] Integrate streak counter and study planner into a unified interactive dashboard header with overall study readiness percentage
-- [x] Add complete KMTC catalog: 25 diploma courses and 39 higher diploma courses from kmtc.ac.ke
-- [x] Group KMTC course dropdown into "Diploma" and "Higher Diploma" sections in onboarding
+- [x] Add school timetable photo upload and instant viewer card to the Study Planner
+- [x] Support image zoom/enlargement and easy replacement or removal of timetable photos
 
 ## What you need to do
 1. Connect your Supabase and Clerk keys in `config.js` if you are using real authentication.
