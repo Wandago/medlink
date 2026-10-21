@@ -7,235 +7,40 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-<meta name="theme-color" content="#FFFFFF">
-<title>Home — MedLink KE</title>
-<script src="theme.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="styles.css">
-<style>
-.streak-banner-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  margin: -10px 0 24px 0;
-  gap: 12px;
-}
-.streak-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 12px;
-}
-.overall-progress-card {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 20px;
-  padding: 12px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-}
-[data-theme="dark"] .overall-progress-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.progress-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-.progress-meta .label {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-2);
-}
-.progress-meta .value {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--accent);
-}
-.progress-track {
-  height: 8px;
-  background: var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: var(--grad-blue);
-  border-radius: 10px;
-  transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.streak-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255, 122, 26, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 122, 26, 0.25);
-  border-radius: 20px;
-  padding: 10px 16px 10px 12px;
-  box-shadow: 0 4px 12px rgba(255, 122, 26, 0.08);
-  transition: all 0.2s ease;
-  height: fit-content;
-}
-.streak-pill:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 18px rgba(255, 122, 26, 0.15);
-  background: rgba(255, 122, 26, 0.15);
-}
-.streak-flame {
-  font-size: 24px;
-  animation: pulseFlame 1.8s infinite ease-in-out;
-  display: inline-block;
-  filter: drop-shadow(0 2px 4px rgba(255, 122, 26, 0.4));
-}
-@keyframes pulseFlame {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.22) rotate(6deg); }
-}
-.streak-info {
-  display: flex;
-  flex-direction: column;
-}
-.streak-count {
-  font-size: 18px;
-  font-weight: 800;
-  color: #D9480F;
-  line-height: 1.1;
-}
-.streak-sub {
-  font-size: 10px;
-  color: var(--text-3);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
-.streak-cal-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 122, 26, 0.2);
-  color: #D9480F;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-  transition: all 0.2s ease;
-}
-.streak-cal-btn:hover {
-  background: #D9480F;
-  color: #FFFFFF;
-  transform: rotate(8deg);
-}
-  transition: background 0.15s, color 0.15s;
-}
-.streak-cal-btn:hover {
-  background: #D9480F;
-  color: #FFFFFF;
-}
-
-/* Modal Calendar Styles */
-.cal-modal-card {
-  padding: 8px 4px;
-}
-.cal-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.cal-nav-btn {
-  background: var(--bg-soft, #F5F7FA);
-  border: 1px solid var(--border, #E4E7EC);
-  border-radius: 8px;
-  padding: 4px 10px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-}
-.cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  text-align: center;
-}
-.cal-day-label {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--muted, #667085);
-  padding-bottom: 6px;
-}
-.cal-cell {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  position: relative;
-  background: var(--bg-soft, #F9FAFB);
-  border: 1px solid transparent;
-}
-.cal-cell.empty {
-  background: transparent;
-  border-color: transparent;
-}
-.cal-cell.today {
-  border-color: #D9480F;
-  font-weight: 700;
-}
-.cal-cell.active-streak {
-  background: linear-gradient(135deg, #FF7A1A 0%, #FF4F9A 100%);
-  color: #FFFFFF;
-  font-weight: 700;
-  box-shadow: 0 2px 6px rgba(255, 122, 26, 0.35);
-}
-.cal-legend {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 20px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border, #E4E7EC);
-  font-size: 12px;
-}
-.cal-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.cal-legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-}
-</style>
+<title>Dashboard — MedLink KE</title>
+<link rel="stylesheet" href="admin.css">
 </head>
 <body>
-<main id="page" hidden>
-<div class="fade-in with-rail">
-  <div>
-    <div class="hero-carousel" id="hero"></div>
-    <div class="hero-dots" id="heroDots"></div>
 
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-left">
+      <a href="dashboard.html" class="brand" aria-label="MedLink KE home">
+        <span class="brand-badge">⚡</span>
+        <span class="brand-name">MedLink KE</span>
+      </a>
+      <span class="topbar-divider"></span>
+      <nav class="topbar-nav" aria-label="Quick links">
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="study.html">Study Library</a>
+        <a href="exams.html">Exam Bank</a>
+        <a href="communities.html">Communities</a>
+      </nav>
+    </div>
+    <div class="topbar-right" id="topbarRight"></div>
+  </div>
+</header>
 
+<main class="page-container">
+<div class="dashboard-grid">
+  <div class="main-column">
+    <div class="hero-carousel" id="hero">
+      <div class="hero-dots" id="heroDots"></div>
+    </div>
 
-    <div class="section-heading" style="flex-wrap:wrap">
-      <h2>Continue studying</h2>
-      <div class="pill-tabs" id="resTabs"></div>
+    <div class="section-heading" style="margin-top:28px;">
+      <h2>Your study units</h2>
+      <a href="study.html" class="btn btn-ghost btn-sm">Library ›</a>
     </div>
     <div class="grid grid-fill-230" style="margin-bottom:32px;" id="resGrid"></div>
 
@@ -266,49 +71,6 @@
 <script src="config.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
-
-    // Render MedPoints widget into dashboard rail
-    try {
-      var mpData = await api.medPointsSummary(me.id);
-      var missions = await api.missionsList();
-      var lb = await api.getLeaderboard("contributors");
-      var mpCard = el("div", { class: "rail-card medpoints-card" }, [
-        el("div", { class: "rail-head" }, [
-          el("h3", {}, ["⭐ MedPoints & Reputation"]),
-          el("span", { class: "badge badge-lime" }, [mpData.level])
-        ]),
-        el("div", { class: "medpoints-summary-body", style: "padding: 12px 16px;" }, [
-          el("div", { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;" }, [
-            el("div", {}, [
-              el("div", { style: "font-size: 24px; font-weight: 800; color: var(--text-color);" }, [mpData.points + " pts"]),
-              el("div", { style: "font-size: 12px; color: var(--muted-color);" }, ["Lifetime Contribution Reputation"])
-            ]),
-            el("a", { class: "btn btn-sm btn-primary", href: "profile.html" }, ["View badges ›"])
-          ]),
-          el("div", { style: "margin-top: 12px; border-top: 1px solid var(--border-color); pt: 10px;" }, [
-            el("div", { style: "font-weight: 600; font-size: 13px; margin-bottom: 6px;" }, ["🎯 Today's Missions"]),
-            el("div", { class: "missions-mini-list" }, missions.map(m => el("div", { style: "display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 6px;" }, [
-              el("span", {}, [m.completed ? "✅ " : "⬜ ", m.title]),
-              m.claimed ? el("span", { style: "color: green;" }, ["Claimed"]) : el("button", {
-                class: "btn btn-xs btn-outline",
-                onclick: async () => {
-                  try {
-                    await api.claimMission(m.id);
-                    MedLink.toast("Mission claimed successfully!");
-                    location.reload();
-                  } catch (err) { MedLink.toast(err.message, "error"); }
-                }
-              }, ["Claim +" + m.reward_points])
-            ])))
-          ])
-        ])
-      ]);
-      var upcoming = qs("#upcomingSection");
-      if (upcoming && upcoming.parentNode) {
-        upcoming.parentNode.insertBefore(mpCard, upcoming);
-      }
-    } catch(e) { console.error("MedPoints widget error:", e); }
-
 <script>
 MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   const hour = new Date().getHours();
@@ -343,8 +105,8 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   });
   function show(i) {
     current = (i + slides.length) % slides.length;
-    qsa(".hero-slide", hero).forEach((n, j) => n.classList.toggle("on", j === current));
-    qsa("button", dots).forEach((n, j) => n.classList.toggle("on", j === current));
+    hero.querySelectorAll(".hero-slide").forEach((el, idx) => el.classList.toggle("on", idx === current));
+    dots.querySelectorAll("button").forEach((el, idx) => el.classList.toggle("on", idx === current));
   }
   function restart() { clearInterval(timer); timer = setInterval(() => show(current + 1), 7000); }
   hero.addEventListener("mouseenter", () => clearInterval(timer));
@@ -355,238 +117,150 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   const STORAGE_STREAK = "medlink_streak_" + me.id;
   const STORAGE_TIME = "medlink_time_" + me.id;
 
-  // Track time spent on app (increment every 10 seconds while active)
   let todayKey = new Date().toISOString().split("T")[0];
   let timeData = {};
   try { timeData = JSON.parse(localStorage.getItem(STORAGE_TIME) || "{}"); } catch(e){}
   if (!timeData[todayKey]) timeData[todayKey] = 0;
 
-  // Save time every 10s
+  // Increment active time every 10 seconds
   setInterval(() => {
     timeData[todayKey] = (timeData[todayKey] || 0) + 10;
-    localStorage.setItem(STORAGE_TIME, JSON.stringify(timeData));
-    updateStreakDisplay();
+    try { localStorage.setItem(STORAGE_TIME, JSON.stringify(timeData)); } catch(e){}
+    updateStreakBanner();
   }, 10000);
-
-  function formatTimeSpent(secs) {
-    const hrs = Math.floor(secs / 3600);
-    const mins = Math.floor((secs % 3600) / 60);
-    if (hrs > 0) return `${hrs}hr ${mins}min`;
-    if (mins > 0) return `${mins}min`;
-    return `${secs}s`;
-  }
 
   function getStreak() {
     try {
-      const data = JSON.parse(localStorage.getItem(STORAGE_STREAK) || '{"count":0,"history":[]}');
-      const today = todayKey;
+      const data = JSON.parse(localStorage.getItem(STORAGE_STREAK) || '{"count":1,"history":[]}');
+      const today = new Date().toISOString().split("T")[0];
       if (!data.history.includes(today)) {
         data.history.push(today);
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-        if (data.history.includes(yesterday)) data.count += 1;
-        else data.count = 1;
+        data.count = data.history.length;
         localStorage.setItem(STORAGE_STREAK, JSON.stringify(data));
       }
       return data;
-    } catch (e) { return {count:1, history:[todayKey]}; }
+    } catch(e) {
+      return { count: 1, history: [todayKey] };
+    }
   }
 
-  const streakData = getStreak();
-  const streakHost = qs("#streakHost");
+  function formatDuration(sec) {
+    const hrs = Math.floor(sec / 3600);
+    const mins = Math.floor((sec % 3600) / 60);
+    if (hrs > 0) return `${hrs}hr ${mins}min`;
+    if (mins > 0) return `${mins} min`;
+    return `${sec} sec`;
+  }
 
-  function updateStreakDisplay() {
-    if (!streakHost) return;
-    const currentSecs = timeData[todayKey] || 0;
-    const timeStr = formatTimeSpent(currentSecs);
-
-    streakHost.replaceChildren(
-      el("div", { class: "streak-pill", style: "display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(255,122,26,0.12), rgba(255,79,154,0.12)); border: 1.5px solid rgba(255, 122, 26, 0.35); border-radius: 16px; padding: 14px 18px; box-shadow: 0 8px 24px rgba(255,122,26,0.12); width: 100%; box-sizing: border-box;" }, [
-        el("div", { style: "display: flex; align-items: center; gap: 12px;" }, [
-          el("span", { class: "streak-flame", style: "font-size: 28px;" }, ["🔥"]),
-          el("div", { class: "streak-info", style: "display: flex; flex-direction: column;" }, [
-            el("div", { style: "display: flex; align-items: baseline; gap: 6px;" }, [
-              el("span", { class: "streak-count", style: "font-size: 20px; font-weight: 900; color: #D9480F;" }, [streakData.count]),
-              el("span", { class: "streak-sub", style: "font-size: 11px; font-weight: 800; text-transform: uppercase; color: #D9480F;" }, ["Day Streak"])
-            ]),
-            el("span", { style: "font-size: 12px; font-weight: 700; color: var(--text-2); margin-top: 2px;" }, [`⏱️ ${timeStr} on MedLink today`])
+  function updateStreakBanner() {
+    const streak = getStreak();
+    const activeSec = timeData[todayKey] || 0;
+    const host = qs("#streakHost");
+    if (!host) return;
+    host.innerHTML = "";
+    host.appendChild(el("div", { class: "rail-card streak-prominent-card", style: "background: linear-gradient(135deg, rgba(255,122,26,0.12) 0%, rgba(255,79,154,0.12) 100%); border: 1px solid rgba(255,122,26,0.3); padding: 16px; border-radius: 12px; position: relative;" }, [
+      el("div", { style: "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;" }, [
+        el("div", { style: "display: flex; align-items: center; gap: 8px;" }, [
+          el("span", { style: "font-size: 24px; animation: pulse 2s infinite;" }, ["🔥"]),
+          el("div", {}, [
+            el("div", { style: "font-weight: 800; font-size: 16px; color: var(--text-color);" }, [streak.count + " Day Streak"]),
+            el("div", { style: "font-size: 11px; color: var(--muted-color);" }, ["Active study consistency"])
           ])
         ]),
-        el("button", { 
-          class: "streak-cal-btn", 
-          title: "View your study calendar & history",
-          onclick: openCalendarModal
-        }, [
-          el("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, [
-            el("rect", { x: "3", y: "4", width: "18", height: "18", rx: "2", ry: "2" }),
-            el("line", { x1: "16", y1: "2", x2: "16", y2: "6" }),
-            el("line", { x1: "8", y1: "2", x2: "8", y2: "6" }),
-            el("line", { x1: "3", y1: "10", x2: "21", y2: "10" })
-          ])
-        ])
+        el("button", {
+          class: "btn btn-icon btn-sm",
+          title: "Study Calendar",
+          onclick: () => openCalendarModal()
+        }, [el("span", {}, ["📅"])])
+      ]),
+      el("div", { style: "background: var(--card-bg, #fff); padding: 8px 12px; border-radius: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color);" }, [
+        el("span", { style: "color: var(--muted-color);" }, ["Time on MedLink today:"]),
+        el("span", { style: "font-weight: 700; color: var(--primary, #FF7A1A);" }, [formatDuration(activeSec)])
       ])
-    );
+    ]));
   }
-
-  updateStreakDisplay();
+  updateStreakBanner();
 
   function openCalendarModal() {
-    let viewDate = new Date();
-    const modalBody = el("div", { class: "cal-modal-card" });
-
-    function renderMonth(date) {
-      modalBody.replaceChildren();
-      const month = date.getMonth();
-      const year = date.getFullYear();
-      const monthName = date.toLocaleString(undefined, { month: "long", year: "numeric" });
-      
-      const header = el("div", { class: "cal-header-row" }, [
-        el("button", { class: "cal-nav-btn", onclick: () => { viewDate.setMonth(viewDate.getMonth()-1); renderMonth(viewDate); } }, ["‹"]),
-        el("h3", { style: "margin:0;font-size:16px;" }, [monthName]),
-        el("button", { class: "cal-nav-btn", onclick: () => { viewDate.setMonth(viewDate.getMonth()+1); renderMonth(viewDate); } }, ["›"])
-      ]);
-
-      const grid = el("div", { class: "cal-grid" });
-      ["S","M","T","W","T","F","S"].forEach(d => grid.appendChild(el("div", { class: "cal-day-label" }, [d])));
-
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const todayStr = new Date().toISOString().split("T")[0];
-
-      for(let i=0; i<firstDay; i++) grid.appendChild(el("div", { class: "cal-cell empty" }));
-      for(let d=1; d<=daysInMonth; d++) {
-        const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const isToday = dStr === todayStr;
-        const active = streakData.history.includes(dStr);
-        grid.appendChild(el("div", { class: "cal-cell" + (isToday ? " today" : "") + (active ? " active-streak" : "") }, [d]));
-      }
-
-      modalBody.append(header, grid, el("div", { class: "cal-legend" }, [
-        el("div", { class: "cal-legend-item" }, [el("div", { class: "cal-legend-dot", style: "background:linear-gradient(135deg, #FF7A1A, #FF4F9A)" }), "Study Day"]),
-        el("div", { class: "cal-legend-item" }, [el("div", { class: "cal-legend-dot", style: "background:var(--bg-soft, #F9FAFB);border:1px solid var(--border)" }), "Rest Day"])
-      ]));
-    }
-
-    renderMonth(viewDate);
-    MedLink.modal("Study Calendar", modalBody);
-  }
-
-  const grid = qs("#resGrid"), feed = qs("#feedList"), mini = qs("#communitiesMini"), activity = qs("#activity");
-  [grid, feed, mini, activity].forEach(n => n.appendChild(MedLink.loadingState()));
-  qs("#composer").appendChild(MedLink.composerNode({
-    placeholder: "Ask a question or share something with MedLink…",
-    onPosted: post => { qs(".empty-state", feed)?.remove(); feed.prepend(MedLink.feedPostNode(post, { liked: new Set() })); },
-  }));
-
-  const [mine, popular, recent, posts, communities, joined, uploads, saved, points] = await Promise.all([
-    me.current_units.length ? api.resources({ units: me.current_units, limit: 6 }) : Promise.resolve([]),
-    api.resources({ order: "views", limit: 6 }),
-    api.resources({ limit: 6 }),
-    api.posts({ limit: 15 }),
-    api.communities(),
-    api.myCommunityIds(),
-    api.resources({ authorId: me.id, limit: 500 }),
-    api.savedIds(),
-    api.medPoints(me.id),
-  ]);
-
-  // ---- tabbed resources ----
-  const TABS = [["units", "Your units", mine], ["popular", "Popular", popular], ["new", "New", recent]];
-  const tabs = qs("#resTabs");
-  function paint(key) {
-    const [, , rows] = TABS.find(t => t[0] === key);
-    qsa("button", tabs).forEach(b => b.classList.toggle("on", b.dataset.key === key));
-    grid.replaceChildren(...(rows.length ? rows.map(MedLink.resourceCardNode) : [MedLink.emptyState(
-      key === "units" ? "No notes for your units yet — be the first to share." : "Nothing uploaded yet.",
-      el("a", { href: "study.html?upload=1", class: "btn btn-primary btn-sm" }, ["↑ Upload notes"]))]));
-  }
-  TABS.forEach(([key, label]) => tabs.appendChild(el("button", { type: "button", "data-key": key, onclick: () => paint(key) }, [label])));
-  paint(mine.length ? "units" : "popular");
-
-  await MedLink.renderPosts(feed, posts, "No discussions yet — start one above.");
-
-  // ---- rail: upcoming events ----
-  const STORAGE_PLANNER = "medlink_planner_events_" + me.id;
-  function loadPlanner() {
-    try { const saved = localStorage.getItem(STORAGE_PLANNER); return saved ? JSON.parse(saved) : []; } catch(e) { return []; }
-  }
-  const plannerEvents = loadPlanner();
-  const todayStr = new Date().toISOString().split("T")[0];
-  const upcomingEvents = plannerEvents.filter(e => e.date >= todayStr).sort((a,b) => new Date(a.date) - new Date(b.date)).slice(0, 3);
-
-  const upcomingSection = qs("#upcomingSection");
-  if (upcomingSection) {
-    const card = el("div", { class: "rail-card" }, [
-      el("div", { class: "rail-head" }, [
-        el("h3", { style: "display:flex;align-items:center;gap:6px;" }, [
-          el("span", { style: "font-size:16px;" }, ["🗓"]), "Upcoming exams"
+    const streak = getStreak();
+    const modal = el("div", { class: "modal-backdrop", onclick: (e) => { if (e.target === modal) modal.remove(); } }, [
+      el("div", { class: "modal-card", style: "max-width: 400px; padding: 24px;" }, [
+        el("div", { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;" }, [
+          el("h3", {}, ["📅 Study Calendar & Streaks"]),
+          el("button", { class: "btn btn-ghost btn-sm", onclick: () => modal.remove() }, ["✕"])
         ]),
-        el("a", { href: "planner.html", style: "font-size:12px;" }, ["View planner"])
+        el("p", { style: "font-size: 13px; color: var(--muted-color); margin-bottom: 16px;" }, [
+          `You have maintained a streak of ${streak.count} active study days on MedLink KE. Keep up the brilliant work!`
+        ]),
+        el("div", { style: "text-align: right;" }, [
+          el("button", { class: "btn btn-primary btn-sm", onclick: () => modal.remove() }, ["Close"])
+        ])
       ])
     ]);
-    const list = el("div", { class: "rail-list" });
-    if (!upcomingEvents.length) {
-      list.appendChild(el("div", { class: "faint", style: "font-size:13px;padding:8px 4px;" }, ["No upcoming exams set. Organize your CATs and papers in the Study Planner."]));
-    } else {
-      upcomingEvents.forEach(ev => {
-        const typeLabels = { exam: "Exam", cat: "CAT", revision: "Revision", deadline: "Deadline" };
-        const topics = ev.topics || [];
-        const pct = topics.length ? Math.round(topics.filter(t => t.done).length / topics.length * 100) : 0;
-        list.appendChild(el("a", { class: "rail-item", href: "planner.html", style: "display:block;" }, [
-          el("div", { class: "who", style: "gap:2px;" }, [
-            el("div", { style: "display:flex;align-items:center;gap:6px;justify-content:space-between;" }, [
-              el("div", { style: "display:flex;align-items:center;gap:6px;" }, [
-                el("span", { class: "event-badge " + ev.type, style: "font-size:9px;padding:1px 4px;" }, [typeLabels[ev.type] || ev.type]),
-                el("b", { style: "font-size:13px;" }, [ev.title])
-              ]),
-              topics.length ? el("span", { style: "font-size:11px;font-weight:700;color:" + (pct >= 100 ? "var(--success)" : "var(--accent)") }, [pct + "%"]) : null
-            ]),
-            el("div", { style: "display:flex;justify-content:space-between;align-items:center;margin-top:2px;" }, [
-              el("span", { class: "faint", style: "font-size:11px;" }, [ev.date]),
-              topics.length ? el("div", { style: "width:40px;height:4px;background:var(--border);border-radius:99px;overflow:hidden;" }, [
-                el("div", { style: "width:" + pct + "%;height:100%;background:" + (pct >= 100 ? "var(--success)" : "var(--accent)") })
-              ]) : null
-            ])
+    document.body.appendChild(modal);
+  }
+
+  // ---- units grid ----
+  const units = data.units || [];
+  const resGrid = qs("#resGrid");
+  units.slice(0, 6).forEach(u => {
+    resGrid.appendChild(el("a", { class: "unit-card", href: `study.html?unit=${u.id}` }, [
+      el("div", { class: "unit-code" }, [u.code]),
+      el("div", { class: "unit-name" }, [u.name]),
+      el("div", { class: "unit-meta" }, [el("span", {}, [u.year || "Year 1"]), el("span", {}, ["Notes & past papers ›"])])
+    ]));
+  });
+
+  // ---- community feed / composer ----
+  const composer = qs("#composer");
+  composer.appendChild(el("div", { class: "composer-box" }, [
+    el("textarea", { placeholder: "Ask a medical question or share a clinical insight with your peers...", rows: 2, id: "feedInput" }),
+    el("div", { class: "composer-foot" }, [
+      el("span", { style: "font-size: 12px; color: var(--muted-color);" }, ["Visible to your university & course peers"]),
+      el("button", {
+        class: "btn btn-primary btn-sm",
+        onclick: async () => {
+          const body = qs("#feedInput").value.trim();
+          if (!body) return MedLink.toast("Please write something first.", "error");
+          try {
+            await api.createPost({ body });
+            qs("#feedInput").value = "";
+            MedLink.toast("Posted successfully!");
+            loadFeed();
+          } catch(err) { MedLink.toast(err.message, "error"); }
+        }
+      }, ["Post"])
+    ])
+  ]));
+
+  async function loadFeed() {
+    const list = qs("#feedList");
+    list.innerHTML = `<div style="padding:20px; text-align:center; color:var(--muted-color);">Loading discussions...</div>`;
+    try {
+      const posts = await api.listPosts();
+      list.innerHTML = "";
+      if (!posts.length) {
+        list.innerHTML = `<div style="padding:24px; text-align:center; color:var(--muted-color);">No discussions yet. Start the conversation above!</div>`;
+        return;
+      }
+      posts.forEach(p => {
+        list.appendChild(el("div", { class: "feed-item" }, [
+          el("div", { class: "feed-head" }, [
+            el("strong", {}, [p.author_name || "Medical Student"]),
+            el("span", { style: "font-size: 11px; color: var(--muted-color);" }, [new Date(p.created_at).toLocaleDateString()])
+          ]),
+          el("div", { class: "feed-body" }, [p.body]),
+          el("div", { class: "feed-foot" }, [
+            el("button", { class: "btn btn-ghost btn-xs", onclick: () => MedLink.toast("Liked!") }, ["❤️ " + (p.likes_count || 0)]),
+            el("a", { class: "btn btn-ghost btn-xs", href: `communities.html?post=${p.id}` }, ["💬 Reply"])
           ])
         ]));
       });
+    } catch(e) {
+      list.innerHTML = `<div style="padding:20px; text-align:center; color:var(--muted-color);">Could not load discussions right now.</div>`;
     }
-    card.appendChild(list);
-    upcomingSection.appendChild(card);
   }
-
-  // ---- rail: me ----
-  const stat = (n, label, href) => el("a", { href, style: "text-align:center;flex:1" }, [
-    el("div", { style: "font-size:20px;font-weight:700" }, [Number(n).toLocaleString()]),
-    el("div", { class: "faint", style: "font-size:11.5px" }, [label]),
-  ]);
-  qs("#meCard").replaceChildren(
-    el("div", { class: "rail-item", style: "margin-bottom:14px" }, [
-      MedLink.avatarNode(me, "md", true),
-      el("div", { class: "who" }, [el("b", {}, [me.full_name]), el("span", {}, [MedLink.metaLine(me)])]),
-    ]),
-    el("div", { style: "display:flex;gap:6px;padding-top:12px;border-top:1px solid var(--border)" }, [
-      stat(points, "MedPoints", profileHref(me)), stat(uploads.length, "Notes shared", "study.html"), stat(saved.size, "Saved", "saved.html"),
-    ]),
-  );
-
-  // ---- rail: communities ----
-  const mineFirst = communities.filter(c => joined.has(c.id));
-  const list = (mineFirst.length ? mineFirst : communities).slice(0, 5);
-  mini.replaceChildren(...list.map(c => el("div", { class: "rail-item" }, [
-    MedLink.communityCoverNode(c, "cc-cover cc-sm"),
-    el("a", { class: "who", href: "communities.html?c=" + encodeURIComponent(c.id) }, [el("b", {}, [c.name]), el("span", {}, [plural(count(c.community_members), "member")])]),
-    el("a", { class: "pill-btn", href: "communities.html?c=" + encodeURIComponent(c.id) }, [joined.has(c.id) ? "Open" : "View"]),
-  ])));
-
-  // ---- rail: recent activity (new notes + posts) ----
-  const items = recent.filter(r => r.author).map(r => ({ at: r.created_at, who: r.author, text: "shared “" + r.title + "”", href: "resource.html?id=" + r.id }))
-    .concat(posts.filter(p => p.author).map(p => ({ at: p.created_at, who: p.author, text: p.community ? "posted in " + p.community.name : "posted", href: p.community ? "communities.html?c=" + p.community.id : "#feedList" })))
-    .sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 6);
-  activity.replaceChildren(...(items.length ? items.map(i => el("a", { class: "rail-item", href: i.href }, [
-    MedLink.avatarNode(i.who, "sm", false),
-    el("div", { class: "who" }, [el("b", {}, [i.who.full_name]), el("span", {}, [i.text])]),
-    el("span", { class: "time" }, [timeAgo(i.at)]),
-  ])) : [el("div", { class: "faint", style: "font-size:13px" }, ["Nothing yet — be the first to share."])]));
+  loadFeed();
 });
 </script>
 </body>
