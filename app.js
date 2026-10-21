@@ -798,6 +798,20 @@
       var today = new Date().toISOString().split("T")[0];
       var res = await sb().from("daily_missions").select("*").eq("mission_date", today);
       return res.data || [];
+
+    getLeaderboard: async function (category) {
+      var rpcName = "leaderboard_top_contributors";
+      if (category === "resources") rpcName = "leaderboard_resource_contributors";
+      if (category === "helpers") rpcName = "leaderboard_question_helpers";
+      if (category === "learners") rpcName = "leaderboard_consistent_learners";
+      var res = await sb().rpc(rpcName, { p_limit: 20 });
+      return res.data || [];
+    },
+    toggleLeaderboardOptOut: async function (optOut) {
+      var res = await sb().from("profiles").update({ leaderboard_opt_out: optOut }).eq("id", myId()).select("leaderboard_opt_out").single();
+      return must(res);
+    },
+
     },
     claimMission: async function (missionId) {
       var res = await sb().rpc("claim_daily_mission", { p_mission_id: missionId });

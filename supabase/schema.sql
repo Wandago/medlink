@@ -829,6 +829,106 @@ grant execute on function public.claim_daily_mission(bigint) to authenticated;
 create policy "achievements: owner read" on public.user_achievements for select using (auth.uid() = user_id or public.is_staff());
 create policy "achievements: staff read" on public.user_achievements for select using (public.is_staff());
 
+-- =========================================================
+-- CONTRIBUTION LEADERBOARDS (Views & RPC)
+-- =========================================================
+
+-- Opt-out column in profiles
+alter table public.profiles add column if not exists leaderboard_opt_out boolean not null default false;
+
+-- Leaderboard 1: Top Contributors (lifetime points from medpoint_totals, excluding opted out)
+create or replace function public.leaderboard_top_contributors(p_limit integer default 20)
+returns table (
+  user_id text,
+  username text,
+  full_name text,
+  university_name text,
+  course_id text,
+  year integer,
+  color text,
+  medpoint_level text,
+  score bigint
+) language sql security definer as $$
+  select p.id, p.username, p.full_name, p.university_name, p.course_id, p.year, p.color, p.medpoint_level, coalesce(t.total_points, 0) as score
+  from public.profiles p
+  join public.medpoint_totals t on t.user_id = p.id
+  where not coalesce(p.leaderboard_opt_out, false)
+  order by score desc, p.created_at asc
+  limit p_limit;
+$$;
+
+-- Leaderboard 2: Top Resource Contributors
+create or replace function public.leaderboard_resource_contributors(p_limit integer default 20)
+returns table (
+  user_id text,
+  username text,
+  full_name text,
+  university_name text,
+  course_id text,
+  year integer,
+  color text,
+  medpoint_level text,
+  score bigint
+) language sql security definer as $$
+  select p.id, p.username, p.full_name, p.university_name, p.course_id, p.year, p.color, p.medpoint_level, count(r.id) as score
+  from public.profiles p
+  join public.resources r on r.author_id = p.id and r.status = 'approved'
+  where not coalesce(p.leaderboard_opt_out, false)
+  group by p.id
+  order by score desc, p.created_at asc
+  limit p_limit;
+$$;
+
+-- Leaderboard 3: Top Question Helpers (accepted answers or comments)
+create or replace function public.leaderboard_question_helpers(p_limit integer default 20)
+returns table (
+  user_id text,
+  username text,
+  full_name text,
+  university_name text,
+  course_id text,
+  year integer,
+  color text,
+  medpoint_level text,
+  score bigint
+) language sql security definer as $$
+  select p.id, p.username, p.full_name, p.university_name, p.course_id, p.year, p.color, p.medpoint_level, count(c.id) as score
+  from public.profiles p
+  join public.post_comments c on c.author_id = p.id
+  where not coalesce(p.leaderboard_opt_out, false)
+  group by p.id
+  order by score desc, p.created_at asc
+  limit p_limit;
+$$;
+
+-- Leaderboard 4: Consistent Learners (study session counts)
+create or replace function public.leaderboard_consistent_learners(p_limit integer default 20)
+returns table (
+  user_id text,
+  username text,
+  full_name text,
+  university_name text,
+  course_id text,
+  year integer,
+  color text,
+  medpoint_level text,
+  score bigint
+) language sql security definer as $$
+  select p.id, p.username, p.full_name, p.university_name, p.course_id, p.year, p.color, p.medpoint_level, count(s.id) as score
+  from public.profiles p
+  join public.study_sessions s on s.host_id = p.id and s.qualified = true
+  where not coalesce(p.leaderboard_opt_out, false)
+  group by p.id
+  order by score desc, p.created_at asc
+  limit p_limit;
+$$;
+
+grant execute on function public.leaderboard_top_contributors(integer) to authenticated, anon;
+grant execute on function public.leaderboard_resource_contributors(integer) to authenticated, anon;
+grant execute on function public.leaderboard_question_helpers(integer) to authenticated, anon;
+grant execute on function public.leaderboard_consistent_learners(integer) to authenticated, anon;
+
+
 -- Helper view: total verified points per user
 create or replace view public.medpoint_totals as
   select user_id, coalesce(sum(amount),0) as total_points
