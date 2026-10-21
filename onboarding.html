@@ -219,7 +219,32 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
     const list = coursesForUniversity(uni);
     const valid = list.some(c => c.id === data.courseId);
     if (!valid && list.length) data.courseId = list[0].id;
-    courseSelect.replaceChildren(...list.map(c => el("option", { value: c.id }, [c.name])));
+
+    if (uni === "kmtc") {
+      // Group KMTC courses into Diploma and Higher Diploma optgroups
+      courseSelect.replaceChildren();
+      
+      const dipGroup = el("optgroup", { label: "——— DIPLOMA COURSES ———" });
+      const hdGroup = el("optgroup", { label: "——— HIGHER DIPLOMA COURSES ———" });
+      const otherGroup = el("optgroup", { label: "——— GENERAL COURSES ———" });
+
+      list.forEach(c => {
+        const opt = el("option", { value: c.id }, [c.name]);
+        if (KMTC_DIPLOMA.includes(c.id)) {
+          dipGroup.appendChild(opt);
+        } else if (KMTC_HIGHER_DIPLOMA.includes(c.id)) {
+          hdGroup.appendChild(opt);
+        } else {
+          otherGroup.appendChild(opt);
+        }
+      });
+
+      if (dipGroup.children.length) courseSelect.appendChild(dipGroup);
+      if (hdGroup.children.length) courseSelect.appendChild(hdGroup);
+      if (otherGroup.children.length) courseSelect.appendChild(otherGroup);
+    } else {
+      courseSelect.replaceChildren(...list.map(c => el("option", { value: c.id }, [c.name])));
+    }
     courseSelect.value = data.courseId;
   }
   function validateUniversity() {

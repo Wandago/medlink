@@ -60,37 +60,40 @@ const COURSE_UNIVERSITIES = {
   epidemiology: ["uon", "moi", "jkuat", "aku"],
   environmentalhealth: ["ku", "jkuat", "egerton", "kmtc", "mku"],
   occupationalhealth: ["jkuat", "kmtc", "mku"],
-  kmtc_clinmed: ["kmtc"],
-  kmtc_nursing: ["kmtc"],
-  kmtc_pharmacy: ["kmtc"],
-  kmtc_medlab: ["kmtc"],
-  kmtc_nutrition: ["kmtc"],
-  kmtc_publichealth: ["kmtc"],
-  kmtc_physio: ["kmtc"],
-  kmtc_radiography: ["kmtc"],
-  kmtc_orthopaedic: ["kmtc"],
-  kmtc_dental_tech: ["kmtc"],
-  kmtc_occupational: ["kmtc"],
-  kmtc_optometry: ["kmtc"],
-  kmtc_medical_eng: ["kmtc"],
-  kmtc_health_records: ["kmtc"],
-  kmtc_mortuary: ["kmtc"],
-  kmtc_hd_clinmed: ["kmtc"],
-  kmtc_hd_nursing: ["kmtc"],
-  kmtc_hd_publichealth: ["kmtc"],
 };
+
+// KMTC Course mapping
+const KMTC_DIPLOMA = [
+  "kmtc_dip_dental_tech", "kmtc_dip_optometry", "kmtc_dip_med_eng", "kmtc_dip_occupational", "kmtc_dip_orthopaedic", 
+  "kmtc_dip_physio", "kmtc_dip_health_promotion", "kmtc_dip_community_health", "kmtc_dip_oral_health", "kmtc_dip_nutrition", 
+  "kmtc_dip_public_health", "kmtc_dip_med_social_work", "kmtc_dip_radiography", "kmtc_dip_medlab", "kmtc_dip_health_records", 
+  "kmtc_dip_pharmacy", "kmtc_dip_nursing_comm", "kmtc_dip_nursing_midwifery", "kmtc_dip_nursing_mental", "kmtc_dip_health_counseling", 
+  "kmtc_dip_clinmed", "kmtc_dip_emt", "kmtc_dip_mortuary", "kmtc_dip_ortho_trauma_ped", "kmtc_dip_nursing_gen"
+];
+const KMTC_HIGHER_DIPLOMA = [
+  "kmtc_hd_optometry_contact", "kmtc_hd_diag_equip", "kmtc_hd_dialysis", "kmtc_hd_therap_equip", "kmtc_hd_occ_renal", 
+  "kmtc_hd_occ_cbr", "kmtc_hd_ortho_orthotics", "kmtc_hd_ortho_prosthetics", "kmtc_hd_ortho_manual", "kmtc_hd_women_pelvic", 
+  "kmtc_hd_neuro_rehab", "kmtc_hd_health_promo", "kmtc_hd_renal_nutrition", "kmtc_hd_food_science", "kmtc_hd_solid_waste", 
+  "kmtc_hd_social_work_gbv", "kmtc_hd_ohs", "kmtc_hd_epidemiology", "kmtc_hd_radio_ultra", "kmtc_hd_radiation_therapy", 
+  "kmtc_hd_ct", "kmtc_hd_mri", "kmtc_hd_medlab", "kmtc_hd_health_pro_edu", "kmtc_hd_health_systems", 
+  "kmtc_hd_clin_pharmacy", "kmtc_hd_renal_pharmacy", "kmtc_hd_nursing_family", "kmtc_hd_nursing_periop", "kmtc_hd_nursing_palliative", 
+  "kmtc_hd_nursing_nephrology", "kmtc_hd_nursing_ophthalmic", "kmtc_hd_nursing_psych", "kmtc_hd_nursing_pediatric", 
+  "kmtc_hd_nursing_critical", "kmtc_hd_nursing_anaesthesia", "kmtc_hd_ortho_trauma", "kmtc_hd_ortho_pediatric"
+];
 
 // Course Categories to help filtering
 const COURSE_CATEGORIES = {
   UNIVERSITY: ["mbchb", "nursing", "clinmed", "pharmacy", "dentistry", "medlab", "physiotherapy", "occupational", "radiography", "publichealth", "communityhealth", "nutrition", "biomedical", "healthinformatics", "healthsystems", "healtheconomics", "epidemiology", "environmentalhealth", "occupationalhealth"],
-  KMTC: ["kmtc_clinmed", "kmtc_nursing", "kmtc_pharmacy", "kmtc_medlab", "kmtc_nutrition", "kmtc_publichealth", "kmtc_physio", "kmtc_radiography", "kmtc_orthopaedic", "kmtc_dental_tech", "kmtc_occupational", "kmtc_optometry", "kmtc_medical_eng", "kmtc_health_records", "kmtc_mortuary", "kmtc_hd_clinmed", "kmtc_hd_nursing", "kmtc_hd_publichealth"]
+  KMTC: [...KMTC_DIPLOMA, ...KMTC_HIGHER_DIPLOMA]
 };
 
 function universitiesForCourse(courseId) {
+  if (KMTC_DIPLOMA.includes(courseId) || KMTC_HIGHER_DIPLOMA.includes(courseId)) return UNIVERSITIES.filter(u => u.id === 'kmtc');
   const ids = COURSE_UNIVERSITIES[courseId] || COURSE_UNIVERSITIES.mbchb;
   return UNIVERSITIES.filter(u => ids.includes(u.id));
 }
 function universityOffersCourse(universityId, courseId) {
+  if (universityId === 'kmtc') return KMTC_DIPLOMA.includes(courseId) || KMTC_HIGHER_DIPLOMA.includes(courseId);
   return (COURSE_UNIVERSITIES[courseId] || []).includes(universityId);
 }
 // Programme length differs by course, so the year dropdown is derived from it.
@@ -116,26 +119,72 @@ const COURSES = [
   { id: "occupationalhealth",  name: "Occupational Health",      years: 4 },
   
   // KMTC Specific (Diploma & Higher Diploma)
-  { id: "kmtc_clinmed", name: "Clinical Medicine (KMTC)", years: 3 },
-  { id: "kmtc_nursing", name: "Nursing (KMTC)", years: 3 },
-  { id: "kmtc_pharmacy", name: "Pharmacy (KMTC)", years: 3 },
-  { id: "kmtc_medlab", name: "Medical Laboratory (KMTC)", years: 3 },
-  { id: "kmtc_nutrition", name: "Nutrition & Dietetics (KMTC)", years: 3 },
-  { id: "kmtc_publichealth", name: "Public Health (KMTC)", years: 3 },
-  { id: "kmtc_physio", name: "Physiotherapy (KMTC)", years: 3 },
-  { id: "kmtc_radiography", name: "Radiography (KMTC)", years: 3 },
-  { id: "kmtc_orthopaedic", name: "Orthopaedic Technology (KMTC)", years: 3 },
-  { id: "kmtc_dental_tech", name: "Dental Technology (KMTC)", years: 3 },
-  { id: "kmtc_occupational", name: "Occupational Therapy (KMTC)", years: 3 },
-  { id: "kmtc_optometry", name: "Optometry (KMTC)", years: 3 },
-  { id: "kmtc_medical_eng", name: "Medical Engineering (KMTC)", years: 3 },
-  { id: "kmtc_health_records", name: "Health Records & Information (KMTC)", years: 3 },
-  { id: "kmtc_mortuary", name: "Mortuary Science (KMTC)", years: 2 },
-  
-  // Higher Diplomas
-  { id: "kmtc_hd_clinmed", name: "Higher Diploma in Clinical Medicine (KMTC)", years: 1 },
-  { id: "kmtc_hd_nursing", name: "Higher Diploma in Nursing (KMTC)", years: 1 },
-  { id: "kmtc_hd_publichealth", name: "Higher Diploma in Public Health (KMTC)", years: 1 },
+  // Diploma Courses
+  { id: "kmtc_dip_dental_tech", name: "Diploma in Dental Technology", years: 3 },
+  { id: "kmtc_dip_optometry", name: "Diploma in Optometry", years: 3 },
+  { id: "kmtc_dip_med_eng", name: "Diploma in Medical Engineering", years: 3 },
+  { id: "kmtc_dip_occupational", name: "Diploma in Occupational Therapy", years: 3 },
+  { id: "kmtc_dip_orthopaedic", name: "Diploma in Orthopaedic Technology", years: 3 },
+  { id: "kmtc_dip_physio", name: "Diploma in Physiotherapy", years: 3 },
+  { id: "kmtc_dip_health_promotion", name: "Diploma in Health Promotion", years: 3 },
+  { id: "kmtc_dip_community_health", name: "Diploma in Community Health", years: 3 },
+  { id: "kmtc_dip_oral_health", name: "Diploma in Community Oral Health", years: 3 },
+  { id: "kmtc_dip_nutrition", name: "Diploma in Nutrition and Dietetics", years: 3 },
+  { id: "kmtc_dip_public_health", name: "Diploma in Public Health", years: 3 },
+  { id: "kmtc_dip_med_social_work", name: "Diploma in Medical Social Work", years: 3 },
+  { id: "kmtc_dip_radiography", name: "Diploma in Radiography and Imaging", years: 3 },
+  { id: "kmtc_dip_medlab", name: "Diploma in Medical Laboratory Sciences", years: 3 },
+  { id: "kmtc_dip_health_records", name: "Diploma in Health Records and Information Technology", years: 3 },
+  { id: "kmtc_dip_pharmacy", name: "Diploma in Pharmacy", years: 3 },
+  { id: "kmtc_dip_nursing_comm", name: "Diploma in Community Health Nursing", years: 3 },
+  { id: "kmtc_dip_nursing_midwifery", name: "Diploma in Kenya Registered Nursing and Midwifery", years: 3 },
+  { id: "kmtc_dip_nursing_mental", name: "Diploma in Registered Nursing Mental Health & Psychiatry", years: 3 },
+  { id: "kmtc_dip_health_counseling", name: "Diploma in Health Counseling", years: 3 },
+  { id: "kmtc_dip_clinmed", name: "Diploma in Clinical Medicine and Surgery", years: 3 },
+  { id: "kmtc_dip_emt", name: "Diploma in Emergency Medical Technician", years: 2 },
+  { id: "kmtc_dip_mortuary", name: "Diploma in Mortuary Science", years: 2 },
+  { id: "kmtc_dip_ortho_trauma_ped", name: "Diploma in Orthopaedic & Trauma Medicine (Paediatrics)", years: 3 },
+  { id: "kmtc_dip_nursing_gen", name: "Diploma in Kenya Registered Nursing", years: 3 },
+
+  // Higher Diploma Courses
+  { id: "kmtc_hd_optometry_contact", name: "Higher Diploma in Optometry (Contact Lenses)", years: 1 },
+  { id: "kmtc_hd_diag_equip", name: "Higher Diploma in Diagnostic Equipment", years: 1 },
+  { id: "kmtc_hd_dialysis", name: "Higher Diploma in Dialysis", years: 1 },
+  { id: "kmtc_hd_therap_equip", name: "Higher Diploma in Therapeutic Equipment", years: 1 },
+  { id: "kmtc_hd_occ_renal", name: "Higher Diploma in Occupational Therapy (Renal Rehabilitation)", years: 1 },
+  { id: "kmtc_hd_occ_cbr", name: "Higher Diploma in Community Based Rehabilitation (Occupational Therapy)", years: 1 },
+  { id: "kmtc_hd_ortho_orthotics", name: "Higher Diploma in Orthopaedic Technology (Orthotics)", years: 1 },
+  { id: "kmtc_hd_ortho_prosthetics", name: "Higher Diploma in Orthopaedic Technology (Prosthetics)", years: 1 },
+  { id: "kmtc_hd_ortho_manual", name: "Higher Diploma in Orthopaedic Manual Therapy", years: 1 },
+  { id: "kmtc_hd_women_pelvic", name: "Higher Diploma in Women Health and Pelvic Rehabilitation", years: 1 },
+  { id: "kmtc_hd_neuro_rehab", name: "Higher Diploma in Neuro-Rehabilitation", years: 1 },
+  { id: "kmtc_hd_health_promo", name: "Higher Diploma in Health Education & Promotion", years: 1 },
+  { id: "kmtc_hd_renal_nutrition", name: "Higher Diploma in Renal Nutrition", years: 1 },
+  { id: "kmtc_hd_food_science", name: "Higher Diploma in Food Science and Inspection", years: 1 },
+  { id: "kmtc_hd_solid_waste", name: "Higher Diploma in Solid Waste Management", years: 1 },
+  { id: "kmtc_hd_social_work_gbv", name: "Higher Diploma in Medical Social Work (Gender Based Violence)", years: 1 },
+  { id: "kmtc_hd_ohs", name: "Higher Diploma in Occupational Health and Safety", years: 1 },
+  { id: "kmtc_hd_epidemiology", name: "Higher Diploma in Epidemiology", years: 1 },
+  { id: "kmtc_hd_radio_ultra", name: "Higher Diploma in Radiography and Imaging Ultrasonography", years: 1 },
+  { id: "kmtc_hd_radiation_therapy", name: "Higher Diploma in Radiation Therapy", years: 1 },
+  { id: "kmtc_hd_ct", name: "Higher Diploma in Computed Tomography", years: 1 },
+  { id: "kmtc_hd_mri", name: "Higher Diploma in Magnetic Resonance Imaging", years: 1 },
+  { id: "kmtc_hd_medlab", name: "Higher Diploma in Medical Laboratory Science", years: 1 },
+  { id: "kmtc_hd_health_pro_edu", name: "Higher Diploma in Health Professions Education", years: 1 },
+  { id: "kmtc_hd_health_systems", name: "Higher Diploma in Health Systems Management", years: 1 },
+  { id: "kmtc_hd_clin_pharmacy", name: "Higher Diploma in Clinical Pharmacy", years: 1 },
+  { id: "kmtc_hd_renal_pharmacy", name: "Higher Diploma in Renal Pharmacy", years: 1 },
+  { id: "kmtc_hd_nursing_family", name: "Higher Diploma in Family Health Nursing", years: 1 },
+  { id: "kmtc_hd_nursing_periop", name: "Higher Diploma in Perioperative Nursing", years: 1 },
+  { id: "kmtc_hd_nursing_palliative", name: "Higher Diploma in Palliative Care Nursing", years: 1 },
+  { id: "kmtc_hd_nursing_nephrology", name: "Higher Diploma in Nephrology Nursing", years: 1 },
+  { id: "kmtc_hd_nursing_ophthalmic", name: "Higher Diploma in Ophthalmic Nursing", years: 1 },
+  { id: "kmtc_hd_nursing_psych", name: "Higher Diploma in Psychiatric Nursing", years: 1 },
+  { id: "kmtc_hd_nursing_pediatric", name: "Higher Diploma in Pediatric Nursing", years: 1 },
+  { id: "kmtc_hd_nursing_critical", name: "Higher Diploma in Critical Care Nursing", years: 1 },
+  { id: "kmtc_hd_nursing_anaesthesia", name: "Higher Diploma in Kenya Registered Nurse Anaesthesia", years: 1 },
+  { id: "kmtc_hd_ortho_trauma", name: "Higher Diploma in Orthopaedic Trauma Medicine", years: 1 },
+  { id: "kmtc_hd_ortho_pediatric", name: "Higher Diploma in Orthopaedic & Trauma Medicine (Paediatrics)", years: 1 },
 ];
 const YEARS = ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6"];
 function yearsForCourse(courseId) {
