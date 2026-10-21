@@ -293,6 +293,8 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
     }
     ttCard.appendChild(ttWrap);
 
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
     const monthName = currentMonth.toLocaleString(undefined, { month: "long", year: "numeric" });
 
     const calHeader = el("div", { class: "cal-header-row", style: "margin-bottom:12px;" }, [
