@@ -662,6 +662,152 @@ create trigger log_activity after insert or update or delete on public.user_role
 create trigger log_activity after insert or update or delete on public.user_suspensions for each row execute function public.log_activity();
 create trigger log_activity after insert or update or delete on public.site_images      for each row execute function public.log_activity();
 
+
+-- =========================================================
+-- MEDPOINTS SYSTEM: transaction ledger, level thresholds, achievements
+-- =========================================================
+
+-- Transaction ledger (immutable, idempotent)
+create table if not exists public.medpoint_transactions (
+  id bigint generated always as identity primary key,
+  created_at timestamptz not null default now(),
+  user_id text not null references public.profiles(id) on delete cascade,
+  amount integer not null check (amount <> 0),
+  reason text not null,
+  reference text, -- unique identifier for the activity (e.g., resource_id, answer_id)
+  details jsonb not null default '{}'
+);
+create unique index if not exists medpoint_tx_ref_idx on public.medpoint_transactions (user_id, reference) where reference is not null;
+create index if not exists medpoint_tx_user_idx on public.medpoint_transactions (user_id);
+
+-- Level thresholds (configurable)
+create table if not exists public.medpoint_levels (
+  level_name text primary key,
+  min_points integer not null,
+  max_points integer not null,
+  badge_url text -- optional path to badge image
+);
+
+-- Insert default thresholds (order matters for range queries)
+insert into public.medpoint_levels (level_name, min_points, max_points, badge_url) values
+  ('New Student', 0, 99, 'badges/new_student.png'),
+  ('Contributor', 100, 499, 'badges/contributor.png'),
+  ('Scholar', 500, 999, 'badges/scholar.png'),
+  ('Researcher', 1000, 2499, 'badges/researcher.png'),
+  ('Academic Leader', 2500, 4999, 'badges/academic_leader.png'),
+  ('MedLink Elite', 5000, 2147483647, 'badges/elite.png')
+  on conflict do nothing;
+
+-- Achievements definitions
+create table if not exists public.medpoint_achievements (
+  id serial primary key,
+  name text not null,
+  description text not null,
+  criteria_type text not null, -- e.g., 'approved_resources', 'accepted_answers', 'study_sessions', 'streak_days'
+  required_count integer not null,
+  badge_url text
+);
+
+insert into public.medpoint_achievements (name, description, criteria_type, required_count, badge_url) values
+  ('First Approved Resource', 'Your first approved resource earned you this badge.', 'approved_resources', 1, 'badges/first_resource.png'),
+  ('10 Approved Resources', 'You have 10 approved resources.', 'approved_resources', 10, 'badges/10_resources.png'),
+  ('25 Approved Resources', 'You have 25 approved resources.', 'approved_resources', 25, 'badges/25_resources.png'),
+  ('First Accepted Answer', 'Your first answer was accepted.', 'accepted_answers', 1, 'badges/first_answer.png'),
+  ('10 Accepted Answers', 'You have 10 accepted answers.', 'accepted_answers', 10, 'badges/10_answers.png'),
+  ('50 Accepted Answers', 'You have 50 accepted answers.', 'accepted_answers', 50, 'badges/50_answers.png'),
+  ('First Qualifying Study Session', 'Completed your first qualifying study session.', 'study_sessions', 1, 'badges/first_session.png'),
+  ('5 Qualifying Sessions', 'Completed 5 qualifying study sessions.', 'study_sessions', 5, 'badges/5_sessions.png'),
+  ('20 Qualifying Sessions', 'Completed 20 qualifying study sessions.', 'study_sessions', 20, 'badges/20_sessions.png'),
+  ('7-Day Study Streak', 'Maintained a 7‑day study streak.', 'streak_days', 7, 'badges/7day_streak.png'),
+  ('30-Day Study Streak', 'Maintained a 30‑day study streak.', 'streak_days', 30, 'badges/30day_streak.png')
+  on conflict do nothing;
+
+-- User achievements (earned)
+create table if not exists public.user_achievements (
+  user_id text not null references public.profiles(id) on delete cascade,
+  achievement_id integer not null references public.medpoint_achievements(id),
+  earned_at timestamptz not null default now(),
+  primary key (user_id, achievement_id)
+);
+
+-- RLS policies for transaction ledger (only server functions can insert)
+alter table public.medpoint_transactions enable row level security;
+grant select on public.medpoint_transactions to authenticated;
+revoke insert, update, delete on public.medpoint_transactions from authenticated, anon;
+-- Functions will be granted explicit rights later.
+
+-- RLS for user_achievements (readable by owner or staff)
+alter table public.user_achievements enable row level security;
+create policy "achievements: owner read" on public.user_achievements for select using (auth.uid() = user_id or public.is_staff());
+create policy "achievements: staff read" on public.user_achievements for select using (public.is_staff());
+
+-- Helper view: total verified points per user
+create or replace view public.medpoint_totals as
+  select user_id, coalesce(sum(amount),0) as total_points
+  from public.medpoint_transactions
+  group by user_id;
+
+-- Function to award points idempotently
+create or replace function public.award_medpoints(p_user_id text, p_amount integer, p_reason text, p_reference text default null, p_details jsonb default '{}'::jsonb)
+returns void language plpgsql security definer as $$
+begin
+  if p_amount = 0 then raise exception 'Amount cannot be zero'; end if;
+  insert into public.medpoint_transactions (user_id, amount, reason, reference, details)
+    values (p_user_id, p_amount, p_reason, p_reference, p_details)
+    on conflict (user_id, reference) do nothing;
+  -- After awarding, check level and achievements (simple check)
+  perform public.update_user_medpoint_level(p_user_id);
+  perform public.check_and_award_achievements(p_user_id);
+end $$;
+
+-- Function to compute and store user level (cached in profiles)
+create or replace function public.update_user_medpoint_level(p_user_id text)
+returns void language plpgsql security definer as $$
+declare
+  pts integer;
+  lvl record;
+begin
+  select total_points into pts from public.medpoint_totals where user_id = p_user_id;
+  if pts is null then pts := 0; end if;
+  select * into lvl from public.medpoint_levels where pts >= min_points and pts <= max_points limit 1;
+  if lvl is not null then
+    update public.profiles set medpoint_level = lvl.level_name where id = p_user_id;
+  end if;
+end $$;
+
+-- Function to award achievements based on counts
+create or replace function public.check_and_award_achievements(p_user_id text)
+returns void language plpgsql security definer as $$
+declare
+  ach record;
+  cnt integer;
+begin
+  for ach in select * from public.medpoint_achievements loop
+    -- Determine count based on criteria_type
+    if ach.criteria_type = 'approved_resources' then
+      select count(*) into cnt from public.resources where author_id = p_user_id and status = 'approved';
+    elsif ach.criteria_type = 'accepted_answers' then
+      select count(*) into cnt from public.answers where author_id = p_user_id and is_accepted = true;
+    elsif ach.criteria_type = 'study_sessions' then
+      select count(*) into cnt from public.study_sessions where host_id = p_user_id and qualified = true;
+    elsif ach.criteria_type = 'streak_days' then
+      select max(streak) into cnt from public.study_streaks where user_id = p_user_id; -- placeholder
+    else
+      cnt := 0;
+    end if;
+    if cnt >= ach.required_count then
+      insert into public.user_achievements (user_id, achievement_id) values (p_user_id, ach.id) on conflict do nothing;
+    end if;
+  end loop;
+end $$;
+
+-- Grant execute rights to service role (assume anon/ authenticated cannot call directly)
+grant execute on function public.award_medpoints(text, integer, text, text, jsonb) to authenticated;
+grant execute on function public.update_user_medpoint_level(text) to authenticated;
+grant execute on function public.check_and_award_achievements(text) to authenticated;
+
+-- End of MedPoints system additions
+
 -- =========================================================
 -- ADMIN FUNCTIONS
 -- =========================================================
