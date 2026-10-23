@@ -154,12 +154,37 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
   let groups = loadGroups();
   let activeGroupId = null;
 
-  function renderView() {
+  // Handle direct hash navigation if user refreshes inside a group page
+  function checkHash() {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith("#group=")) {
+      const id = hash.replace("#group=", "");
+      if (groups.some(g => g.id === id)) {
+        activeGroupId = id;
+      }
+    }
+  }
+  checkHash();
+
+  window.addEventListener("hashchange", () => {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith("#group=")) {
+      activeGroupId = hash.replace("#group=", "");
+    } else {
+      activeGroupId = null;
+    }
+    renderView();
+  });
     root.replaceChildren();
 
     if (activeGroupId) {
+      window.location.hash = "group=" + activeGroupId;
       renderGroupPage(activeGroupId);
       return;
+    } else {
+      if (window.location.hash.startsWith("#group=")) {
+        history.pushState("", document.title, window.location.pathname + window.location.search);
+      }
     }
 
     const topHeader = el("div", { class: "group-header" }, [
@@ -225,7 +250,11 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
     const header = el("div", { class: "group-view-header" }, [
       el("button", { 
         class: "back-btn", 
-        onclick: () => { activeGroupId = null; renderView(); } 
+        onclick: () => { 
+          activeGroupId = null; 
+          history.pushState("", document.title, window.location.pathname + window.location.search);
+          renderView(); 
+        } 
       }, ["←"]),
       el("div", {}, [
         el("h1", { class: "disp", style: "font-size:22px;margin:0;" }, [g.name]),
@@ -270,12 +299,11 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
         class: "btn btn-ghost btn-sm",
         style: "width:100%;color:var(--error);",
         onclick: () => {
-          if (confirm("Delete this group and all messages?")) {
-            groups = groups.filter(x => x.id !== g.id);
-            saveGroups(groups);
-            activeGroupId = null;
-            renderView();
-          }
+          groups = groups.filter(x => x.id !== g.id);
+          saveGroups(groups);
+          activeGroupId = null;
+          history.pushState("", document.title, window.location.pathname + window.location.search);
+          renderView();
         }
       }, ["Delete Group"])
     ]);

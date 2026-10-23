@@ -11,7 +11,7 @@ MedLink KE is an all-in-one platform for medical students in Kenya and worldwide
 - [x] Integrate streak counter and study planner into a unified interactive dashboard header with overall study readiness percentage
 - [x] Add school timetable photo upload and instant viewer card to the Study Planner
 - [x] Support image zoom/enlargement and easy replacement or removal of timetable photos
-- [x] Enhance streaks to track daily time spent on MedLink (e.g. 1hr 30min) and relocate streak card to top right of dashboard above upcoming events
+- [x] Enhance study groups with dedicated chat spaces and individual study group landing pages with hash navigation and member management
 
 ## What you need to do
 1. Connect your Supabase and Clerk keys in `config.js` if you are using real authentication.
