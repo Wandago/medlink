@@ -365,21 +365,12 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
 
   function openCreateModal() {
     const nameInput = el("input", { type: "text", placeholder: "e.g. 3rd Year Histology Crushes", required: true, maxlength: 60 });
-    const typeSelect = el("select", {}, [
-      el("option", { value: "friends" }, ["Close study friends"]),
-      el("option", { value: "unit" }, ["Common unit"]),
-      el("option", { value: "university" }, ["University / Campus peers"])
-    ]);
     const descInput = el("textarea", { rows: 2, placeholder: "What will this group focus on?", maxlength: 180 });
 
     const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
       el("div", { class: "field" }, [
         el("label", {}, ["Group Name"]),
         nameInput
-      ]),
-      el("div", { class: "field" }, [
-        el("label", {}, ["Group Focus / Category"]),
-        typeSelect
       ]),
       el("div", { class: "field" }, [
         el("label", {}, ["Short Description"]),
@@ -395,19 +386,13 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       e.preventDefault();
       const name = nameInput.value.trim();
       if (!name) return;
-      const type = typeSelect.value;
-      const typeLabels = {
-        friends: "Close Study Friends",
-        unit: "Common Unit",
-        university: "University"
-      };
 
       const newGroup = {
         id: "g_" + Date.now(),
         name,
-        type,
-        typeLabel: typeLabels[type],
-        description: descInput.value.trim() || ("Group for " + typeLabels[type]),
+        type: "custom",
+        typeLabel: "Study Group",
+        description: descInput.value.trim() || "Custom study group",
         creator: me.username,
         members: [{ username: me.username, name: me.full_name, color: me.color }],
         messages: [{ sender: me.username, text: "Group created! Add friends by username above.", time: "Just now" }],
