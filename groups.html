@@ -76,31 +76,23 @@
   padding: 8px 12px;
   border-radius: 10px;
   background: var(--bg-soft, #F5F7FA);
+  color: var(--text, #101828);
   max-width: 80%;
   font-size: 13.5px;
 }
 .chat-msg.mine {
   align-self: flex-end;
-  background: var(--primary, #1A56F0);
-  color: #fff;
+  background: var(--bg-soft, #F5F7FA);
+  color: var(--text, #101828);
+  border: 1px solid var(--border, #E4E7EC);
 }
 .chat-meta {
   font-size: 11px;
-
-    .group-sidebar {
-      max-height: 300px;
-      overflow-y: auto;
-      padding: 8px;
-      background: var(--bg-soft, #F5F7FA);
-      border: 1px solid var(--border, #E4E7EC);
-      border-radius: 12px;
-    }
-
   color: var(--muted, #667085);
   margin-bottom: 2px;
 }
 .chat-msg.mine .chat-meta {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--muted, #667085);
 }
 </style>
 </head>
