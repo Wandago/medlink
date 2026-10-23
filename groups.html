@@ -109,6 +109,81 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
   const root = qs("#groups-root");
   const STORAGE_KEY = "medlink_study_groups_" + (me ? me.id : "guest");
 
+    .chat-menu-wrapper {
+      position: relative;
+    }
+    .chat-menu-dropdown {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      margin-bottom: 8px;
+      background: var(--card-bg, #FFF);
+      border: 1px solid var(--border, #E4E7EC);
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      display: none;
+      flex-direction: column;
+      min-width: 160px;
+      z-index: 20;
+      overflow: hidden;
+    }
+    .chat-menu-dropdown.show {
+      display: flex;
+    }
+    .chat-menu-dropdown button {
+      background: none;
+      border: none;
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 13.5px;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .chat-menu-dropdown button:hover {
+      background: var(--bg-soft, #F5F7FA);
+    }
+    .poll-card {
+      background: var(--bg-soft, #F5F7FA);
+      border: 1px solid var(--border, #E4E7EC);
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 6px;
+      max-width: 320px;
+      width: 100%;
+    }
+    .poll-option-btn {
+      width: 100%;
+      text-align: left;
+      background: var(--card-bg, #FFF);
+      border: 1px solid var(--border, #E4E7EC);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-top: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .poll-option-btn:hover {
+      border-color: var(--primary, #1A56F0);
+    }
+    .poll-bar {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      background: rgba(26, 86, 240, 0.08);
+      z-index: 1;
+      transition: width 0.3s;
+    }
+    .poll-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+
   function loadGroups() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -326,9 +401,53 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
     const chatMsgs = el("div", { class: "chat-messages" });
     (g.messages || []).forEach(msg => {
       const isMine = msg.sender === me.username;
+      
+      let contentNode = el("div", {}, [msg.text]);
+      if (msg.type === "image") {
+        contentNode = el("div", {}, [
+          el("img", { src: msg.url, style: "max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;" })
+        ]);
+      } else if (msg.type === "poll") {
+        const totalVotes = Object.values(msg.votes || {}).reduce((a, b) => a + b, 0);
+        const optionsList = el("div", { style: "margin-top:8px;" });
+        
+        msg.options.forEach((opt, optIdx) => {
+          const count = (msg.votes || {})[optIdx] || 0;
+          const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+          
+          optionsList.appendChild(el("button", {
+            class: "poll-option-btn",
+            onclick: () => {
+              msg.userVotes = msg.userVotes || {};
+              msg.votes = msg.votes || {};
+              const prevVote = msg.userVotes[me.username];
+              if (prevVote !== undefined) {
+                msg.votes[prevVote] = Math.max(0, (msg.votes[prevVote] || 1) - 1);
+              }
+              msg.userVotes[me.username] = optIdx;
+              msg.votes[optIdx] = (msg.votes[optIdx] || 0) + 1;
+              saveGroups(groups);
+              renderView();
+            }
+          }, [
+            el("div", { class: "poll-bar", style: "width:" + pct + "%;" }),
+            el("div", { class: "poll-content" }, [
+              el("span", { style: "font-weight:500;" }, [opt]),
+              el("span", { class: "muted", style: "font-size:12px;" }, [count + " (" + pct + "%)"])
+            ])
+          ]));
+        });
+
+        contentNode = el("div", { class: "poll-card" }, [
+          el("div", { style: "font-weight:600;font-size:14px;margin-bottom:4px;" }, ["📊 " + msg.question]),
+          optionsList,
+          el("div", { class: "faint", style: "font-size:11px;margin-top:8px;" }, [totalVotes + " total vote" + (totalVotes === 1 ? "" : "s")])
+        ]);
+      }
+
       chatMsgs.appendChild(el("div", { class: "chat-msg" + (isMine ? " mine" : "") }, [
         el("div", { class: "chat-meta" }, ["@" + msg.sender + " · " + (msg.time || "")]),
-        el("div", {}, [msg.text])
+        contentNode
       ]));
     });
     // Scroll to bottom
@@ -340,20 +459,112 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       style: "flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:10px;"
     });
 
+    const menuDropdown = el("div", { class: "chat-menu-dropdown" }, [
+      el("button", {
+        type: "button",
+        onclick: () => {
+          menuDropdown.classList.remove("show");
+          const url = prompt("Enter image URL (e.g. https://images.unsplash.com/...):");
+          if (!url) return;
+          g.messages = g.messages || [];
+          g.messages.push({ sender: me.username, type: "image", url, text: "Shared an image", time: "Just now" });
+          saveGroups(groups);
+          renderView();
+        }
+      }, ["📷 Share Image"]),
+      el("button", {
+        type: "button",
+        onclick: () => {
+          menuDropdown.classList.remove("show");
+          openPollModal(g);
+        }
+      }, ["📊 Create Poll"])
+    ]);
+
+    const plusBtn = el("button", {
+      type: "button",
+      class: "btn btn-ghost",
+      style: "padding:8px 12px;font-size:18px;font-weight:700;",
+      onclick: (e) => {
+        e.stopPropagation();
+        menuDropdown.classList.toggle("show");
+
+  function openPollModal(group) {
+    const questionInput = el("input", { type: "text", placeholder: "e.g. Which topic should we revise next?", required: true, maxlength: 100 });
+    const opt1Input = el("input", { type: "text", placeholder: "Option A (e.g. Cardiology)", required: true });
+    const opt2Input = el("input", { type: "text", placeholder: "Option B (e.g. Neurology)", required: true });
+    const opt3Input = el("input", { type: "text", placeholder: "Option C (optional)" });
+
+    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
+      el("div", { class: "field" }, [
+        el("label", {}, ["Poll Question"]),
+        questionInput
+      ]),
+      el("div", { class: "field" }, [
+        el("label", {}, ["Options"]),
+        opt1Input,
+        el("div", { style: "height:8px;" }),
+        opt2Input,
+        el("div", { style: "height:8px;" }),
+        opt3Input
+      ]),
+      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
+        el("button", { type: "button", class: "btn btn-ghost", onclick: () => closeModal() }, ["Cancel"]),
+        el("button", { type: "submit", class: "btn btn-primary" }, ["Create Poll"])
+      ])
+    ]);
+
+    const closeModal = MedLink.modal("Create Custom Poll", form);
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const question = questionInput.value.trim();
+      const options = [opt1Input.value.trim(), opt2Input.value.trim(), opt3Input.value.trim()].filter(Boolean);
+      if (!question || options.length < 2) {
+        MedLink.toast("Please provide a question and at least 2 options.", "error");
+        return;
+      }
+
+      group.messages = group.messages || [];
+      group.messages.push({
+        sender: me.username,
+        type: "poll",
+        question,
+        options,
+        votes: {},
+        userVotes: {},
+        time: "Just now"
+      });
+      saveGroups(group.messages); // wait, saveGroups(groups)
+      saveGroups(groups);
+      closeModal();
+      renderView();
+    });
+  }
+
+      }
+    }, ["⋮"]);
+
+    document.addEventListener("click", () => menuDropdown.classList.remove("show"), { once: true });
+
     const chatForm = el("form", {
       class: "chat-input-area",
-      style: "display:flex;gap:10px;",
+      style: "display:flex;gap:10px;position:relative;",
       onsubmit: (e) => {
         e.preventDefault();
         const text = chatInput.value.trim();
         if (!text) return;
         g.messages = g.messages || [];
-        g.messages.push({ sender: me.username, text, time: "Just now" });
+        g.messages.push({ sender: me.username, type: "text", text, time: "Just now" });
         saveGroups(groups);
         chatInput.value = "";
         renderView();
       }
-    }, [chatInput, el("button", { class: "btn btn-primary" }, ["Send"])]);
+    }, [
+      el("div", { class: "chat-menu-wrapper" }, [plusBtn, menuDropdown]),
+      chatInput,
+      el("button", { class: "btn btn-primary" }, ["Send"])
+    ]);
 
     const mainChat = el("div", { class: "chat-container" }, [
       chatMsgs,
