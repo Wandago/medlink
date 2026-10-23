@@ -488,59 +488,8 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       onclick: (e) => {
         e.stopPropagation();
         menuDropdown.classList.toggle("show");
-
-  function openPollModal(group) {
-    const questionInput = el("input", { type: "text", placeholder: "e.g. Which topic should we revise next?", required: true, maxlength: 100 });
-    const opt1Input = el("input", { type: "text", placeholder: "Option A (e.g. Cardiology)", required: true });
-    const opt2Input = el("input", { type: "text", placeholder: "Option B (e.g. Neurology)", required: true });
-    const opt3Input = el("input", { type: "text", placeholder: "Option C (optional)" });
-
-    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
-      el("div", { class: "field" }, [
-        el("label", {}, ["Poll Question"]),
-        questionInput
-      ]),
-      el("div", { class: "field" }, [
-        el("label", {}, ["Options"]),
-        opt1Input,
-        el("div", { style: "height:8px;" }),
-        opt2Input,
-        el("div", { style: "height:8px;" }),
-        opt3Input
-      ]),
-      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
-        el("button", { type: "button", class: "btn btn-ghost", onclick: () => closeModal() }, ["Cancel"]),
-        el("button", { type: "submit", class: "btn btn-primary" }, ["Create Poll"])
-      ])
-    ]);
-
-    const closeModal = MedLink.modal("Create Custom Poll", form);
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const question = questionInput.value.trim();
-      const options = [opt1Input.value.trim(), opt2Input.value.trim(), opt3Input.value.trim()].filter(Boolean);
-      if (!question || options.length < 2) {
-        MedLink.toast("Please provide a question and at least 2 options.", "error");
-        return;
       }
-
-      group.messages = group.messages || [];
-      group.messages.push({
-        sender: me.username,
-        type: "poll",
-        question,
-        options,
-        votes: {},
-        userVotes: {},
-        time: "Just now"
-      });
-      saveGroups(group.messages); // wait, saveGroups(groups)
-      saveGroups(groups);
-      closeModal();
-      renderView();
-    });
-  }
+    }, ["⋮"]);
 
       }
     }, ["⋮"]);
