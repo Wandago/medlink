@@ -253,13 +253,17 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
 
     const header = el("div", { class: "group-view-header" }, [
       el("button", { 
-        class: "back-btn", 
+        class: "btn btn-ghost btn-sm", 
+        style: "display:flex;align-items:center;gap:6px;font-weight:600;",
         onclick: () => { 
           activeGroupId = null; 
           history.pushState("", document.title, window.location.pathname + window.location.search);
           renderView(); 
         } 
-      }, ["←"]),
+      }, [
+        el("span", {}, ["←"]),
+        el("span", {}, ["Back to Study Groups"])
+      ]),
       el("div", {}, [
         el("h1", { class: "disp", style: "font-size:22px;margin:0;" }, [g.name]),
         el("span", { class: "muted", style: "font-size:13px;" }, [g.typeLabel || g.type])
