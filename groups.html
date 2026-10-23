@@ -108,66 +108,6 @@
 MedLink.run({ page: "groups" }, async ({ api, me }) => {
   const root = qs("#groups-root");
   const STORAGE_KEY = "medlink_study_groups_" + (me ? me.id : "guest");
-
-    .chat-menu-wrapper {
-      position: relative;
-    }
-    .chat-menu-dropdown {
-      position: absolute;
-      bottom: 100%;
-      left: 0;
-      margin-bottom: 8px;
-      background: var(--card-bg, #FFF);
-      border: 1px solid var(--border, #E4E7EC);
-      border-radius: 10px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-      display: none;
-      flex-direction: column;
-      min-width: 160px;
-      z-index: 20;
-      overflow: hidden;
-    }
-    .chat-menu-dropdown.show {
-      display: flex;
-    }
-    .chat-menu-dropdown button {
-      background: none;
-      border: none;
-      text-align: left;
-      padding: 10px 14px;
-      font-size: 13.5px;
-      cursor: pointer;
-      color: var(--text);
-    }
-    .chat-menu-dropdown button:hover {
-      background: var(--bg-soft, #F5F7FA);
-    }
-    .poll-card {
-      background: var(--bg-soft, #F5F7FA);
-      border: 1px solid var(--border, #E4E7EC);
-      border-radius: 12px;
-      padding: 14px;
-      margin-top: 6px;
-      max-width: 320px;
-      width: 100%;
-    }
-    .poll-option-btn {
-      width: 100%;
-      text-align: left;
-      background: var(--card-bg, #FFF);
-      border: 1px solid var(--border, #E4E7EC);
-      border-radius: 8px;
-      padding: 8px 12px;
-      margin-top: 6px;
-      font-size: 13px;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.2s;
-    }
-    .poll-option-btn:hover {
-      border-color: var(--primary, #1A56F0);
-    }
     .poll-bar {
       position: absolute;
       top: 0; left: 0; bottom: 0;
@@ -431,7 +371,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
             }
           }, [
             el("div", { class: "poll-bar", style: "width:" + pct + "%;" }),
-            el("div", { class: "poll-content" }, [
+            el("div", { class: "poll-option-content" }, [
               el("span", { style: "font-weight:500;" }, [opt]),
               el("span", { class: "muted", style: "font-size:12px;" }, [count + " (" + pct + "%)"])
             ])
