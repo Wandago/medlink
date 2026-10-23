@@ -175,6 +175,8 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
     }
     renderView();
   });
+
+  function renderView() {
     root.replaceChildren();
 
     if (activeGroupId) {
