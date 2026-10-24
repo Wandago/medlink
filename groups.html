@@ -27,7 +27,7 @@
   flex-direction: column;
   border: 1px solid var(--border, #E4E7EC);
   border-radius: 14px;
-  background: var(--card-bg, #FFFFFF);
+  background: var(--surface, #FFFFFF);
   height: calc(100vh - 260px);
   min-height: 480px;
 }
@@ -42,7 +42,7 @@
 .chat-input-area {
   padding: 14px 16px;
   border-top: 1px solid var(--border, #E4E7EC);
-  background: var(--card-bg, #FFFFFF);
+  background: var(--surface, #FFFFFF);
 }
 .group-tag {
   display: inline-block;
@@ -52,7 +52,7 @@
   font-weight: 600;
   text-transform: uppercase;
 }
-.group-tag-friends { background: rgba(26, 86, 240, 0.1); color: var(--primary, #1A56F0); }
+.group-tag-friends { background: rgba(26, 86, 240, 0.1); color: var(--accent, #1A56F0); }
 .group-tag-unit { background: rgba(16, 179, 158, 0.12); color: #0d8274; }
 .group-tag-university { background: rgba(255, 122, 26, 0.12); color: #d95d08; }
 .members-list {
@@ -65,7 +65,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--bg-soft, #F5F7FA);
+  background: var(--surface-2, #F5F7FA);
   border: 1px solid var(--border, #E4E7EC);
   border-radius: 999px;
   padding: 4px 10px 4px 6px;
@@ -80,7 +80,7 @@
   padding: 0 2px;
 }
 .group-chat-box {
-  background: var(--card-bg, #FFFFFF);
+  background: var(--surface, #FFFFFF);
   border: 1px solid var(--border, #E4E7EC);
   border-radius: 12px;
   padding: 16px;
@@ -97,15 +97,15 @@
 .chat-msg {
   padding: 8px 12px;
   border-radius: 10px;
-  background: var(--bg-soft, #F5F7FA);
-  color: var(--text, #101828);
+  background: var(--surface-2, #F5F7FA);
+  color: var(--text, #0B1533);
   max-width: 80%;
   font-size: 13.5px;
 }
 .chat-msg.mine {
   align-self: flex-end;
-  background: var(--bg-soft, #F5F7FA);
-  color: var(--text, #101828);
+  background: var(--surface-2, #F5F7FA);
+  color: var(--text, #0B1533);
   border: 1px solid var(--border, #E4E7EC);
 }
 .chat-meta {
@@ -117,7 +117,7 @@
   color: var(--muted, #667085);
 }
 .poll-card {
-  background: var(--card-bg);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px;
@@ -127,7 +127,7 @@
   display: block;
   width: 100%;
   text-align: left;
-  background: var(--bg-soft);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 14px;
@@ -159,7 +159,7 @@
   bottom: 100%;
   left: 0;
   margin-bottom: 8px;
-  background: var(--card-bg, #FFFFFF);
+  background: var(--surface, #FFFFFF);
   border: 1px solid var(--border, #E4E7EC);
   border-radius: 10px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
@@ -179,7 +179,7 @@
   text-align: left;
   font-size: 13.5px;
   font-weight: 500;
-  color: var(--text, #101828);
+  color: var(--text, #0B1533);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -187,7 +187,7 @@
   width: 100%;
 }
 .chat-menu-dropdown button:hover {
-  background: var(--bg-soft, #F5F7FA);
+  background: var(--surface-2, #F5F7FA);
 }
 </style>
 </head>
@@ -371,7 +371,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       // Top Right Compact Members Box
       el("div", { 
         class: "card", 
-        style: "padding:8px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:10px;" 
+        style: "padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:10px;" 
       }, [
         el("div", { style: "display:flex;align-items:center;gap:6px;" }, [
           el("span", { style: "font-size:12px;font-weight:600;color:var(--muted);" }, ["Members:"]),
@@ -473,7 +473,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
     const chatInput = el("input", {
       type: "text",
       placeholder: "Write a message...",
-      style: "flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:10px;"
+      style: "flex:1;min-width:0;padding:10px 14px;border:1px solid var(--border);border-radius:10px;"
     });
 
     const menuDropdown = el("div", { class: "chat-menu-dropdown" }, [
@@ -501,7 +501,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
     const plusBtn = el("button", {
       type: "button",
       class: "btn btn-primary",
-      style: "padding:8px 14px;font-size:18px;font-weight:700;line-height:1;border-radius:10px;cursor:pointer;background:var(--primary);color:#fff;",
+      style: "padding:8px 14px;font-size:18px;font-weight:700;line-height:1;border-radius:10px;cursor:pointer;background:var(--accent);color:#fff;",
       title: "Add attachment or poll",
       onclick: (e) => {
         e.preventDefault();
@@ -539,6 +539,39 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
     ]);
 
     root.append(header, mainChat);
+  }
+
+  function openPollModal(group) {
+    const questionInput = el("input", { type: "text", placeholder: "e.g. Which topic should we revise next?", required: true, maxlength: 100 });
+    const optionInputs = [
+      el("input", { type: "text", placeholder: "Option A (e.g. Cardiology)", required: true, maxlength: 60 }),
+      el("input", { type: "text", placeholder: "Option B (e.g. Neurology)", required: true, maxlength: 60 }),
+      el("input", { type: "text", placeholder: "Option C (optional)", maxlength: 60 }),
+    ];
+    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
+      el("div", { class: "field" }, [el("label", {}, ["Poll question"]), questionInput]),
+      el("div", { class: "field" }, [el("label", {}, ["Options"]), el("div", { style: "display:grid;gap:8px;" }, optionInputs)]),
+      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
+        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]),
+        el("button", { type: "submit", class: "btn btn-primary" }, ["Create poll"]),
+      ]),
+    ]);
+    const close = MedLink.modal("Create a poll", form);
+    questionInput.focus();
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const question = questionInput.value.trim();
+      const options = optionInputs.map(i => i.value.trim()).filter(Boolean);
+      if (!question || options.length < 2) {
+        MedLink.toast("Add a question and at least 2 options.", "error");
+        return;
+      }
+      group.messages = group.messages || [];
+      group.messages.push({ sender: me.username, type: "poll", question, options, votes: {}, userVotes: {}, time: "Just now" });
+      saveGroups(groups);
+      close();
+      renderView();
+    });
   }
 
   function renderGroupCard_old(g) {

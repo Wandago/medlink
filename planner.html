@@ -16,18 +16,22 @@
 <style>
 .planner-layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
 }
 @media(max-width: 900px) {
-  .planner-layout { grid-template-columns: 1fr; }
+  .planner-layout { grid-template-columns: minmax(0, 1fr); }
 }
 .cal-grid-full {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
   text-align: center;
 }
+.cal-header-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cal-header-row h2 { margin: 0; font-size: 18px; text-align: center; flex: 1; min-width: 0; }
+.cal-nav-btn { flex-shrink: 0; }
+@media(max-width: 600px) { .cal-header-row h2 { font-size: 15px; } .cal-nav-btn { padding-left: 10px; padding-right: 10px; } }
 .cal-day-header {
   font-size: 12px;
   font-weight: 700;
@@ -45,6 +49,7 @@
   flex-direction: column;
   justify-content: flex-start;
   position: relative;
+  min-width: 0;
   transition: border-color 0.15s;
 }
 .cal-box:hover { border-color: var(--accent); }
@@ -72,6 +77,11 @@
 .event-badge.revision { background: rgba(26, 86, 240, 0.12); color: var(--accent); border: 1px solid rgba(26, 86, 240, 0.3); }
 .event-badge.deadline { background: rgba(123, 97, 255, 0.15); color: var(--purple); border: 1px solid rgba(123, 97, 255, 0.3); }
 
+@media(max-width: 600px) {
+  .cal-grid-full { gap: 4px; }
+  .cal-box { min-height: 64px; padding: 4px; border-radius: 8px; }
+  .event-badge { font-size: 9.5px; padding: 1px 3px; }
+}
 .timetable-wrap {
   position: relative;
   border-radius: 12px;
@@ -298,9 +308,9 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
     const monthName = currentMonth.toLocaleString(undefined, { month: "long", year: "numeric" });
 
     const calHeader = el("div", { class: "cal-header-row", style: "margin-bottom:12px;" }, [
-      el("button", { class: "cal-nav-btn", onclick: () => { currentMonth.setMonth(currentMonth.getMonth() - 1); renderView(); } }, ["‹ Prev month"]),
+      el("button", { type: "button", class: "btn btn-ghost btn-sm cal-nav-btn", onclick: () => { currentMonth.setMonth(currentMonth.getMonth() - 1); renderView(); } }, ["‹ Prev month"]),
       el("h2", { style: "font-size:17px;font-weight:700;" }, [monthName]),
-      el("button", { class: "cal-nav-btn", onclick: () => { currentMonth.setMonth(currentMonth.getMonth() + 1); renderView(); } }, ["Next month ›"])
+      el("button", { type: "button", class: "btn btn-ghost btn-sm cal-nav-btn", onclick: () => { currentMonth.setMonth(currentMonth.getMonth() + 1); renderView(); } }, ["Next month ›"])
     ]);
 
     const calContainer = el("div", { class: "card pad", style: "margin-bottom:20px;" }, [

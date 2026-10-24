@@ -13,7 +13,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
-</head>
 <style>
 .chat-menu-wrapper {
   position: relative;
@@ -24,7 +23,7 @@
   bottom: 100%;
   left: 0;
   margin-bottom: 8px;
-  background: var(--card-bg, #FFFFFF);
+  background: var(--surface, #FFFFFF);
   border: 1px solid var(--border, #E4E7EC);
   border-radius: 10px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
@@ -44,7 +43,7 @@
   text-align: left;
   font-size: 13.5px;
   font-weight: 500;
-  color: var(--text, #101828);
+  color: var(--text, #0B1533);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -52,9 +51,11 @@
   width: 100%;
 }
 .chat-menu-dropdown button:hover {
-  background: var(--bg-soft, #F5F7FA);
+  background: var(--surface-2, #F5F7FA);
 }
+.composer-foot .chat-menu-wrapper { margin-right: auto; }
 </style>
+</head>
 <body>
 <main id="page" hidden>
 <div class="fade-in" id="root"></div>
@@ -146,7 +147,7 @@ MedLink.run({ page: "communities" }, async ({ api, me }) => {
             onPosted: post => { qs(".empty-state", feed)?.remove(); feed.prepend(MedLink.feedPostNode(post, { liked: new Set() })); },
           });
           setTimeout(() => {
-            const toolbar = qs(".composer-toolbar", comp);
+            const toolbar = qs(".composer-foot", comp);
             if (toolbar) {
               const menuDropdown = el("div", { class: "chat-menu-dropdown" }, [
                 el("button", {

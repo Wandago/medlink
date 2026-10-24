@@ -1367,11 +1367,40 @@
         ]),
       ]),
       el("div", { class: "post-meta" }, [metaLine(author) + " · " + timeAgo(post.created_at) + " ", where]),
-      el("div", { class: "post-body" }, [post.body]),
+      postBodyNode(post.body),
       actions,
       thread,
     ]);
     return card;
+  }
+
+  // Post text, with the extras the community composer's ⋮ menu inserts:
+  // "[POLL: question | option | option]" lines and image links on their own line.
+  var POLL_RE = /^\[POLL:\s*([^|\]]+?)\s*((?:\|\s*[^|\]]+?\s*){2,})\]$/;
+  var IMAGE_RE = /^https:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?$/i;
+  function postBodyNode(body) {
+    var box = el("div", { class: "post-body" });
+    var text = [];
+    var flush = function () { if (text.length) { box.appendChild(document.createTextNode(text.join("\n"))); text = []; } };
+    String(body || "").split("\n").forEach(function (line) {
+      var t = line.trim(), m = POLL_RE.exec(t);
+      if (m) {
+        flush();
+        var options = m[2].split("|").map(function (o) { return o.trim(); }).filter(Boolean);
+        box.appendChild(el("div", { class: "post-poll" }, [
+          el("div", { class: "post-poll-q" }, ["📊 " + m[1]]),
+          el("ol", { class: "post-poll-options" }, options.map(function (o) { return el("li", {}, [o]); })),
+          el("div", { class: "faint post-poll-note" }, ["Reply in the comments with your pick."]),
+        ]));
+      } else if (IMAGE_RE.test(t)) {
+        flush();
+        box.appendChild(el("a", { href: t, target: "_blank", rel: "noopener noreferrer", class: "post-image" }, [
+          el("img", { src: t, alt: "Shared image", loading: "lazy", referrerpolicy: "no-referrer" }),
+        ]));
+      } else text.push(line);
+    });
+    flush();
+    return box;
   }
 
   // Post list with one likes lookup for the whole batch.
