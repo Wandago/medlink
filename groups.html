@@ -22,6 +22,28 @@
   gap: 12px;
   margin-bottom: 22px;
 }
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border, #E4E7EC);
+  border-radius: 14px;
+  background: var(--card-bg, #FFFFFF);
+  height: calc(100vh - 260px);
+  min-height: 480px;
+}
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.chat-input-area {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border, #E4E7EC);
+  background: var(--card-bg, #FFFFFF);
+}
 .group-tag {
   display: inline-block;
   padding: 3px 8px;
