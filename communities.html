@@ -13,7 +13,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
-</head>
 <style>
 .chat-menu-wrapper {
   position: relative;
@@ -44,7 +43,7 @@
   text-align: left;
   font-size: 13.5px;
   font-weight: 500;
-  color: var(--text, #101828);
+  color: var(--text, #0B1533);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -54,7 +53,9 @@
 .chat-menu-dropdown button:hover {
   background: var(--surface-2, #F5F7FA);
 }
+.composer-foot .chat-menu-wrapper { margin-right: auto; }
 </style>
+</head>
 <body>
 <main id="page" hidden>
 <div class="fade-in" id="root"></div>
@@ -146,7 +147,7 @@ MedLink.run({ page: "communities" }, async ({ api, me }) => {
             onPosted: post => { qs(".empty-state", feed)?.remove(); feed.prepend(MedLink.feedPostNode(post, { liked: new Set() })); },
           });
           setTimeout(() => {
-            const toolbar = qs(".composer-toolbar", comp);
+            const toolbar = qs(".composer-foot", comp);
             if (toolbar) {
               const menuDropdown = el("div", { class: "chat-menu-dropdown" }, [
                 el("button", {
@@ -166,17 +167,34 @@ MedLink.run({ page: "communities" }, async ({ api, me }) => {
                   type: "button",
                   onclick: () => {
                     menuDropdown.classList.remove("show");
-                    const q = prompt("Enter poll question:");
-                    if (!q) return;
-                    const opt1 = prompt("Option A:");
-                    if (!opt1) return;
-                    const opt2 = prompt("Option B:");
-                    if (!opt2) return;
                     const textarea = qs("textarea", comp);
-                    if (textarea) {
-                      textarea.value += (textarea.value ? "\n" : "") + `[POLL: ${q} | ${opt1} | ${opt2}]`;
-                      textarea.dispatchEvent(new Event('input'));
-                    }
+                    const question = el("input", { type: "text", maxlength: "120", required: true, placeholder: "e.g. Which atlas do you use?" });
+                    const optionInputs = ["Option A", "Option B", "Option C (optional)", "Option D (optional)"].map((ph, i) =>
+                      el("input", { type: "text", maxlength: "60", placeholder: ph, required: i < 2 }));
+                    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
+                      el("div", { class: "field" }, [el("label", {}, ["Question"]), question]),
+                      el("div", { class: "field" }, [el("label", {}, ["Options"]), el("div", { style: "display:grid;gap:8px;" }, optionInputs)]),
+                      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
+                        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]),
+                        el("button", { type: "submit", class: "btn btn-primary" }, ["Add poll"]),
+                      ]),
+                    ]);
+                    const close = MedLink.modal("Add a poll", form);
+                    question.focus();
+                    form.addEventListener("submit", (e) => {
+                      e.preventDefault();
+                      // "|" and "]" would break the poll line, so strip them.
+                      const clean = v => v.replace(/[|\[\]]/g, " ").replace(/\s+/g, " ").trim();
+                      const q = clean(question.value);
+                      const opts = optionInputs.map(i => clean(i.value)).filter(Boolean);
+                      if (!q || opts.length < 2) { MedLink.toast("Add a question and at least 2 options.", "error"); return; }
+                      if (textarea) {
+                        textarea.value += (textarea.value ? "\n" : "") + `[POLL: ${q} | ${opts.join(" | ")}]`;
+                        textarea.dispatchEvent(new Event("input"));
+                        textarea.focus();
+                      }
+                      close();
+                    });
                   }
                 }, ["📊 Create Poll"])
               ]);
