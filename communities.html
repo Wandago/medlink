@@ -14,6 +14,47 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
 </head>
+<style>
+.chat-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.chat-menu-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 8px;
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border, #E4E7EC);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  display: none;
+  flex-direction: column;
+  min-width: 160px;
+  z-index: 1000;
+  padding: 6px 0;
+}
+.chat-menu-dropdown.show {
+  display: flex !important;
+}
+.chat-menu-dropdown button {
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text, #101828);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.chat-menu-dropdown button:hover {
+  background: var(--bg-soft, #F5F7FA);
+}
+</style>
 <body>
 <main id="page" hidden>
 <div class="fade-in" id="root"></div>
@@ -98,10 +139,54 @@ MedLink.run({ page: "communities" }, async ({ api, me }) => {
       },
     }, [label])));
     const postsBox = el("div", {}, [
-      el("div", { style: "margin-bottom:12px" }, [MedLink.composerNode({
-        communityId: c.id, placeholder: `Share something with ${c.name}…`,
-        onPosted: post => { qs(".empty-state", feed)?.remove(); feed.prepend(MedLink.feedPostNode(post, { liked: new Set() })); },
-      })]),
+      el("div", { style: "margin-bottom:12px" }, [
+        (function() {
+          const comp = MedLink.composerNode({
+            communityId: c.id, placeholder: `Share something with ${c.name}…`,
+            onPosted: post => { qs(".empty-state", feed)?.remove(); feed.prepend(MedLink.feedPostNode(post, { liked: new Set() })); },
+          });
+          setTimeout(() => {
+            const toolbar = qs(".composer-toolbar", comp);
+            if (toolbar) {
+              const menuDropdown = el("div", { class: "chat-menu-dropdown" }, [
+                el("button", {
+                  type: "button",
+                  onclick: () => {
+                    menuDropdown.classList.remove("show");
+                    const url = prompt("Enter image URL:");
+                    if (!url) return;
+                    const textarea = qs("textarea", comp);
+                    if (textarea) {
+                      textarea.value += (textarea.value ? "\n" : "") + url;
+                      textarea.dispatchEvent(new Event('input'));
+                    }
+                  }
+                }, ["📷 Share Image"]),
+                el("button", {
+                  type: "button",
+                  onclick: () => {
+                    menuDropdown.classList.remove("show");
+                    MedLink.toast("Poll feature available in study groups!", "info");
+                  }
+                }, ["📊 Create Poll"])
+              ]);
+
+              const plusBtn = el("button", {
+                type: "button",
+                class: "btn btn-ghost btn-sm",
+                style: "font-size:18px;font-weight:700;padding:4px 10px;",
+                onclick: (e) => { e.stopPropagation(); menuDropdown.classList.toggle("show"); }
+              }, ["⋮"]);
+
+              window.addEventListener("click", () => menuDropdown.classList.remove("show"));
+              
+              const wrap = el("div", { class: "chat-menu-wrapper" }, [plusBtn, menuDropdown]);
+              toolbar.prepend(wrap);
+            }
+          }, 50);
+          return comp;
+        })()
+      ]),
       feed,
     ]);
     const activeBox = el("div", { class: "rail-list" }, [MedLink.loadingState()]);
