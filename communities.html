@@ -166,7 +166,17 @@ MedLink.run({ page: "communities" }, async ({ api, me }) => {
                   type: "button",
                   onclick: () => {
                     menuDropdown.classList.remove("show");
-                    MedLink.toast("Poll feature available in study groups!", "info");
+                    const q = prompt("Enter poll question:");
+                    if (!q) return;
+                    const opt1 = prompt("Option A:");
+                    if (!opt1) return;
+                    const opt2 = prompt("Option B:");
+                    if (!opt2) return;
+                    const textarea = qs("textarea", comp);
+                    if (textarea) {
+                      textarea.value += (textarea.value ? "\n" : "") + `[POLL: ${q} | ${opt1} | ${opt2}]`;
+                      textarea.dispatchEvent(new Event('input'));
+                    }
                   }
                 }, ["📊 Create Poll"])
               ]);
