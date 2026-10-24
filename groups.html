@@ -128,6 +128,45 @@
   justify-content: space-between;
   align-items: center;
 }
+.chat-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.chat-menu-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 8px;
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border, #E4E7EC);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  display: none;
+  flex-direction: column;
+  min-width: 160px;
+  z-index: 1000;
+  padding: 6px 0;
+}
+.chat-menu-dropdown.show {
+  display: flex !important;
+}
+.chat-menu-dropdown button {
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text, #101828);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.chat-menu-dropdown button:hover {
+  background: var(--bg-soft, #F5F7FA);
+}
 </style>
 </head>
 <body>
@@ -440,14 +479,17 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
     const plusBtn = el("button", {
       type: "button",
       class: "btn btn-ghost",
-      style: "padding:8px 12px;font-size:18px;font-weight:700;",
+      style: "padding:8px 12px;font-size:20px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;height:100%;",
       onclick: (e) => {
+        e.preventDefault();
         e.stopPropagation();
         menuDropdown.classList.toggle("show");
       }
     }, ["⋮"]);
 
-    document.addEventListener("click", () => menuDropdown.classList.remove("show"), { once: true });
+    window.addEventListener("click", () => {
+      menuDropdown.classList.remove("show");
+    });
 
     const chatForm = el("form", {
       class: "chat-input-area",
