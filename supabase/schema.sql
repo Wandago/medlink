@@ -1511,6 +1511,195 @@ $$;
 revoke all on function public.admin_users(text, text, integer, integer) from public, anon;
 grant execute on function public.admin_users(text, text, integer, integer) to authenticated;
 
+-- =========================================================
+-- v5: STUDY GROUPS (shared, members only) + COMMUNITY POLL VOTES
+-- =========================================================
+
+-- ---- study groups -----------------------------------------
+create table if not exists public.study_groups (
+  id               uuid primary key default gen_random_uuid(),
+  name             text not null check (char_length(name) between 2 and 60),
+  description      text not null default '' check (char_length(description) <= 180),
+  created_by       text not null default public.requesting_user_id() references public.profiles(id) on delete cascade,
+  created_at       timestamptz not null default now(),
+  last_activity_at timestamptz not null default now()
+);
+alter table public.study_groups enable row level security;
+
+create table if not exists public.study_group_members (
+  group_id   uuid not null references public.study_groups(id) on delete cascade,
+  user_id    text not null references public.profiles(id) on delete cascade,
+  role       text not null default 'member' check (role in ('owner', 'member')),
+  added_by   text default public.requesting_user_id(),
+  created_at timestamptz not null default now(),
+  primary key (group_id, user_id)
+);
+create index if not exists study_group_members_user_idx on public.study_group_members (user_id);
+alter table public.study_group_members enable row level security;
+
+create table if not exists public.study_group_messages (
+  id           uuid primary key default gen_random_uuid(),
+  group_id     uuid not null references public.study_groups(id) on delete cascade,
+  sender_id    text not null default public.requesting_user_id() references public.profiles(id) on delete cascade,
+  kind         text not null default 'text' check (kind in ('text', 'image', 'poll')),
+  body         text not null default '' check (char_length(body) <= 2000),
+  image_url    text check (image_url is null or image_url ~ '^https://'),
+  poll_options text[] check (poll_options is null or array_length(poll_options, 1) between 2 and 6),
+  created_at   timestamptz not null default now(),
+  check ((kind = 'text'  and char_length(body) >= 1)
+      or (kind = 'image' and image_url is not null)
+      or (kind = 'poll'  and char_length(body) >= 1 and poll_options is not null))
+);
+create index if not exists study_group_messages_group_idx on public.study_group_messages (group_id, created_at desc);
+alter table public.study_group_messages enable row level security;
+
+create table if not exists public.study_group_poll_votes (
+  message_id uuid not null references public.study_group_messages(id) on delete cascade,
+  user_id    text not null default public.requesting_user_id() references public.profiles(id) on delete cascade,
+  option     smallint not null check (option between 0 and 5),
+  created_at timestamptz not null default now(),
+  primary key (message_id, user_id)
+);
+alter table public.study_group_poll_votes enable row level security;
+
+-- Membership checks that don't loop back through RLS.
+create or replace function public.is_group_member(gid uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.study_group_members where group_id = gid and user_id = public.requesting_user_id())
+$$;
+create or replace function public.is_group_owner(gid uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.study_group_members where group_id = gid and user_id = public.requesting_user_id() and role = 'owner')
+$$;
+revoke all on function public.is_group_member(uuid) from public, anon;
+revoke all on function public.is_group_owner(uuid) from public, anon;
+grant execute on function public.is_group_member(uuid) to authenticated;
+grant execute on function public.is_group_owner(uuid) to authenticated;
+
+-- Creating a group also makes you its owner (one call, so the new row is readable straight away).
+create or replace function public.create_study_group(p_name text, p_description text default '')
+returns public.study_groups language plpgsql security definer set search_path = public as $$
+declare g public.study_groups;
+begin
+  if not public.is_active_user() then raise exception 'Your account can''t create groups right now.'; end if;
+  insert into public.study_groups (name, description, created_by)
+  values (trim(p_name), coalesce(trim(p_description), ''), public.requesting_user_id())
+  returning * into g;
+  insert into public.study_group_members (group_id, user_id, role, added_by)
+  values (g.id, public.requesting_user_id(), 'owner', public.requesting_user_id());
+  return g;
+end $$;
+revoke all on function public.create_study_group(text, text) from public, anon;
+grant execute on function public.create_study_group(text, text) to authenticated;
+
+-- Keep "most recently active first" ordering cheap.
+create or replace function public.touch_study_group()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  update public.study_groups set last_activity_at = new.created_at where id = new.group_id;
+  return null;
+end $$;
+drop trigger if exists touch_study_group on public.study_group_messages;
+create trigger touch_study_group after insert on public.study_group_messages
+  for each row execute function public.touch_study_group();
+
+drop policy if exists "study_groups: members read" on public.study_groups;
+create policy "study_groups: members read" on public.study_groups
+  for select to authenticated using (public.is_group_member(id));
+drop policy if exists "study_groups: owner edits" on public.study_groups;
+create policy "study_groups: owner edits" on public.study_groups
+  for update to authenticated using (public.is_group_owner(id)) with check (public.is_group_owner(id));
+drop policy if exists "study_groups: owner deletes" on public.study_groups;
+create policy "study_groups: owner deletes" on public.study_groups
+  for delete to authenticated using (public.is_group_owner(id));
+revoke update on public.study_groups from authenticated, anon;
+grant update (name, description) on public.study_groups to authenticated;
+
+drop policy if exists "study_group_members: members read" on public.study_group_members;
+create policy "study_group_members: members read" on public.study_group_members
+  for select to authenticated using (public.is_group_member(group_id));
+drop policy if exists "study_group_members: members add classmates" on public.study_group_members;
+create policy "study_group_members: members add classmates" on public.study_group_members
+  for insert to authenticated with check (
+    public.is_group_member(group_id) and public.is_active_user()
+    and role = 'member' and added_by = public.requesting_user_id());
+drop policy if exists "study_group_members: leave or owner removes" on public.study_group_members;
+create policy "study_group_members: leave or owner removes" on public.study_group_members
+  for delete to authenticated using (
+    (user_id = public.requesting_user_id() and role <> 'owner')
+    or (public.is_group_owner(group_id) and user_id <> public.requesting_user_id()));
+
+drop policy if exists "study_group_messages: members read" on public.study_group_messages;
+create policy "study_group_messages: members read" on public.study_group_messages
+  for select to authenticated using (public.is_group_member(group_id));
+drop policy if exists "study_group_messages: members post" on public.study_group_messages;
+create policy "study_group_messages: members post" on public.study_group_messages
+  for insert to authenticated with check (
+    sender_id = public.requesting_user_id() and public.is_group_member(group_id) and public.is_active_user());
+drop policy if exists "study_group_messages: delete own or owner" on public.study_group_messages;
+create policy "study_group_messages: delete own or owner" on public.study_group_messages
+  for delete to authenticated using (sender_id = public.requesting_user_id() or public.is_group_owner(group_id));
+
+-- Votes are visible to the group; the message subquery is itself limited to your groups by RLS.
+drop policy if exists "study_group_poll_votes: members read" on public.study_group_poll_votes;
+create policy "study_group_poll_votes: members read" on public.study_group_poll_votes
+  for select to authenticated using (exists (select 1 from public.study_group_messages m where m.id = message_id));
+drop policy if exists "study_group_poll_votes: vote as yourself" on public.study_group_poll_votes;
+create policy "study_group_poll_votes: vote as yourself" on public.study_group_poll_votes
+  for insert to authenticated with check (
+    user_id = public.requesting_user_id() and public.is_active_user()
+    and exists (select 1 from public.study_group_messages m
+                where m.id = message_id and m.kind = 'poll' and option < array_length(m.poll_options, 1)));
+drop policy if exists "study_group_poll_votes: change own vote" on public.study_group_poll_votes;
+create policy "study_group_poll_votes: change own vote" on public.study_group_poll_votes
+  for update to authenticated using (user_id = public.requesting_user_id())
+  with check (
+    user_id = public.requesting_user_id()
+    and exists (select 1 from public.study_group_messages m
+                where m.id = message_id and m.kind = 'poll' and option < array_length(m.poll_options, 1)));
+drop policy if exists "study_group_poll_votes: remove own vote" on public.study_group_poll_votes;
+create policy "study_group_poll_votes: remove own vote" on public.study_group_poll_votes
+  for delete to authenticated using (user_id = public.requesting_user_id());
+
+-- ---- community poll votes ---------------------------------
+-- A poll is a post line like "[POLL: question | option | option]".
+create table if not exists public.post_poll_votes (
+  post_id    uuid not null references public.posts(id) on delete cascade,
+  user_id    text not null default public.requesting_user_id() references public.profiles(id) on delete cascade,
+  option     smallint not null check (option between 0 and 5),
+  created_at timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+alter table public.post_poll_votes enable row level security;
+
+-- Who voted for what stays private; everyone sees the totals through poll_results().
+drop policy if exists "post_poll_votes: read own" on public.post_poll_votes;
+create policy "post_poll_votes: read own" on public.post_poll_votes
+  for select to authenticated using (user_id = public.requesting_user_id());
+drop policy if exists "post_poll_votes: vote as yourself" on public.post_poll_votes;
+create policy "post_poll_votes: vote as yourself" on public.post_poll_votes
+  for insert to authenticated with check (
+    user_id = public.requesting_user_id() and public.is_active_user()
+    and exists (select 1 from public.posts p where p.id = post_id and p.body like '%[POLL:%'));
+drop policy if exists "post_poll_votes: change own vote" on public.post_poll_votes;
+create policy "post_poll_votes: change own vote" on public.post_poll_votes
+  for update to authenticated using (user_id = public.requesting_user_id()) with check (user_id = public.requesting_user_id());
+drop policy if exists "post_poll_votes: remove own vote" on public.post_poll_votes;
+create policy "post_poll_votes: remove own vote" on public.post_poll_votes
+  for delete to authenticated using (user_id = public.requesting_user_id());
+
+create or replace function public.poll_results(p_post_ids uuid[])
+returns table (post_id uuid, option smallint, votes bigint, mine boolean)
+language sql stable security definer set search_path = public as $$
+  select v.post_id, v.option, count(*), bool_or(v.user_id = public.requesting_user_id())
+  from public.post_poll_votes v
+  where public.requesting_user_id() is not null
+    and v.post_id = any (p_post_ids[1:100])
+  group by v.post_id, v.option
+$$;
+revoke all on function public.poll_results(uuid[]) from public, anon;
+grant execute on function public.poll_results(uuid[]) to authenticated;
+
 -- Make the API see new tables and columns straight away
 -- (fixes "Could not find the table … in the schema cache").
 notify pgrst, 'reload schema';

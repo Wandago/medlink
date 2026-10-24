@@ -224,489 +224,397 @@
 <script>
 MedLink.run({ page: "groups" }, async ({ api, me }) => {
   const root = qs("#groups-root");
-  const STORAGE_KEY = "medlink_study_groups_" + (me ? me.id : "guest");
+  // Groups made before they were saved online lived only in this browser.
+  const LOCAL_KEY = "medlink_study_groups_" + me.id;
+  const REFRESH_MS = 5000;
+  let groups = [];
+  let refreshTimer = null;
 
-  function loadGroups() {
+  // One listener closes any open ⋮ menu.
+  document.addEventListener("click", () => qsa(".chat-menu-dropdown.show").forEach(n => n.classList.remove("show")));
+  window.addEventListener("hashchange", route);
+
+  const groupIdFromHash = () => location.hash.startsWith("#group=") ? decodeURIComponent(location.hash.slice(7)) : null;
+  const backToList = () => { history.pushState("", document.title, location.pathname + location.search); route(); };
+  const personName = p => (p && (p.full_name || p.username)) || "Someone";
+
+  async function route() {
+    clearInterval(refreshTimer);
+    const id = groupIdFromHash();
+    root.replaceChildren(MedLink.loadingState());
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    // Starter templates tailored to the user's university & units
-    return [
-      {
-        id: "g_friends_" + Date.now(),
-        name: "Inner Circle Study Buddies",
-        type: "friends",
-        typeLabel: "Close Study Friends",
-        description: "Private study circle for revisions, daily targets, and discussing tricky concepts.",
-        creator: me.username,
-        members: [
-          { username: me.username, name: me.full_name, color: me.color }
-        ],
-        messages: [
-          { sender: me.username, text: "Hey! Added you to our study circle.", time: "Just now" }
-        ],
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: "g_uni_" + (Date.now() + 1),
-        name: (uniLabel(me) || "Campus") + " Class Peers",
-        type: "university",
-        typeLabel: "University",
-        description: "Connect and prepare exams with peers from " + (uniFull(me) || "our university") + ".",
-        creator: me.username,
-        members: [
-          { username: me.username, name: me.full_name, color: me.color }
-        ],
-        messages: [],
-        createdAt: new Date().toISOString()
-      }
-    ];
-  }
-
-  function saveGroups(groups) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
-    } catch (e) {}
-  }
-
-  let groups = loadGroups();
-  let activeGroupId = null;
-
-  // Handle direct hash navigation if user refreshes inside a group page
-  function checkHash() {
-    const hash = window.location.hash;
-    if (hash && hash.startsWith("#group=")) {
-      const id = hash.replace("#group=", "");
-      if (groups.some(g => g.id === id)) {
-        activeGroupId = id;
-      }
-    }
-  }
-  checkHash();
-
-  window.addEventListener("hashchange", () => {
-    const hash = window.location.hash;
-    if (hash && hash.startsWith("#group=")) {
-      activeGroupId = hash.replace("#group=", "");
-    } else {
-      activeGroupId = null;
-    }
-    renderView();
-  });
-
-  function renderView() {
-    root.replaceChildren();
-
-    if (activeGroupId) {
-      window.location.hash = "group=" + activeGroupId;
-      renderGroupPage(activeGroupId);
+      groups = await api.myGroups();
+    } catch (err) {
+      console.error(err);
+      root.replaceChildren(MedLink.emptyState("Couldn't load study groups: " + MedLink.errorMessage(err) +
+        (/study_groups|schema cache/i.test(err.message || "") ? " — an admin needs to run the latest supabase/schema.sql." : "")));
       return;
-    } else {
-      if (window.location.hash.startsWith("#group=")) {
-        history.pushState("", document.title, window.location.pathname + window.location.search);
-      }
     }
+    if (id) return renderGroupPage(id);
+    renderList();
+  }
 
-    const topHeader = el("div", { class: "group-header" }, [
+  // ---------------- list ----------------
+  function renderList() {
+    const header = el("div", { class: "group-header" }, [
       el("div", {}, [
         el("h1", { class: "disp", style: "font-size:24px;margin:0 0 4px;" }, ["Study Groups"]),
         el("p", { class: "muted", style: "margin:0;font-size:14px;" }, [
-          "Create and organize focused study groups for close friends, a specific unit, or your campus."
+          "Private groups for close friends, a unit or your campus. Only the members you add can see the chat.",
         ]),
       ]),
-      el("button", {
-        type: "button",
-        class: "btn btn-primary",
-        onclick: openCreateModal
-      }, ["+ New study group"])
+      el("button", { type: "button", class: "btn btn-primary", onclick: openCreateModal }, ["+ New study group"]),
     ]);
-
     const grid = el("div", { class: "grid grid-fill-260" });
-
     if (!groups.length) {
-      grid.appendChild(MedLink.emptyState("No study groups yet. Create your first group and invite peers by username!",
-        el("button", { class: "btn btn-primary btn-sm", onclick: openCreateModal }, ["Create group"])
-      ));
-    } else {
-      groups.forEach(g => {
-        grid.appendChild(renderGroupCard(g));
-      });
+      grid.appendChild(MedLink.emptyState("No study groups yet. Create one and add classmates by their @username.",
+        el("button", { type: "button", class: "btn btn-primary btn-sm", onclick: openCreateModal }, ["Create group"])));
     }
-
-    root.append(topHeader, grid);
+    groups.forEach(g => grid.appendChild(groupCard(g)));
+    root.replaceChildren(...[header, localMoveBanner(), grid].filter(Boolean));
   }
 
-  function renderGroupCard(g) {
-    const tagClass = g.type === "friends" ? "group-tag-friends" : g.type === "unit" ? "group-tag-unit" : "group-tag-university";
-
-    return el("div", { 
-      class: "card pad group-card",
-      onclick: () => {
-        activeGroupId = g.id;
-        renderView();
-      }
-    }, [
+  function groupCard(g) {
+    const mine = g.created_by === me.id;
+    return el("a", { class: "card pad group-card", href: "#group=" + encodeURIComponent(g.id),
+      style: "display:flex;flex-direction:column;color:inherit;text-decoration:none;" }, [
       el("div", { style: "display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;" }, [
-        el("span", { class: "group-tag " + tagClass }, [g.typeLabel || g.type]),
-        el("span", { class: "muted", style: "font-size:12px;" }, [g.members.length + " members"])
+        el("span", { class: "group-tag " + (mine ? "group-tag-friends" : "group-tag-unit") }, [mine ? "Your group" : "Member"]),
+        el("span", { class: "muted", style: "font-size:12px;" }, [plural(count(g.study_group_members), "member")]),
       ]),
       el("h3", { style: "margin:0 0 6px;font-size:17px;font-weight:700;" }, [g.name]),
-      el("p", { class: "muted", style: "font-size:13px;line-height:1.5;margin:0 0 10px;" }, [g.description]),
-      el("div", { style: "margin-top:auto;display:flex;justify-content:space-between;align-items:center;" }, [
-        el("span", { class: "faint", style: "font-size:12px;" }, [(g.messages || []).length + " messages"]),
-        el("span", { class: "btn btn-ghost btn-sm", style: "padding:2px 8px;font-size:11px;" }, ["Open Group →"])
-      ])
+      el("p", { class: "muted", style: "font-size:13px;line-height:1.5;margin:0 0 10px;" }, [g.description || ""]),
+      el("div", { style: "margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:8px;" }, [
+        el("span", { class: "faint", style: "font-size:12px;" }, [plural(count(g.study_group_messages), "message") + " · active " + timeAgo(g.last_activity_at)]),
+        el("span", { class: "btn btn-ghost btn-sm", style: "padding:2px 8px;font-size:11px;" }, ["Open group →"]),
+      ]),
     ]);
   }
 
-  function renderGroupPage(groupId) {
-    const g = groups.find(x => x.id === groupId);
+  // ---------------- one group ----------------
+  async function renderGroupPage(id) {
+    const g = groups.find(x => x.id === id);
     if (!g) {
-      activeGroupId = null;
-      renderView();
+      root.replaceChildren(MedLink.emptyState("This group doesn't exist, or you're not a member.",
+        el("button", { type: "button", class: "btn btn-primary btn-sm", onclick: backToList }, ["All study groups"])));
       return;
     }
+    let members = [], messages = [], votes = [];
+    try {
+      [members, messages] = await Promise.all([api.groupMembers(id), api.groupMessages(id)]);
+      votes = await api.groupPollVotes(messages.filter(m => m.kind === "poll").map(m => m.id));
+    } catch (err) { MedLink.reportError(err); return; }
+    const isOwner = () => members.some(m => m.user_id === me.id && m.role === "owner");
 
-    const header = el("div", { 
-      class: "group-view-header", 
-      style: "display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:20px;" 
-    }, [
-      el("div", { style: "display:flex;align-items:center;gap:12px;" }, [
-        el("button", { 
-          class: "btn btn-ghost btn-sm", 
-          style: "display:flex;align-items:center;gap:6px;font-weight:600;",
-          onclick: () => { 
-            activeGroupId = null; 
-            history.pushState("", document.title, window.location.pathname + window.location.search);
-            renderView(); 
-          } 
-        }, [
-          el("span", {}, ["←"]),
-          el("span", {}, ["Back"])
+    const membersBox = el("div", { style: "display:flex;align-items:center;gap:4px;max-width:240px;overflow-x:auto;padding-bottom:2px;" });
+    const paintMembers = () => membersBox.replaceChildren(...members.map(m => {
+      const p = m.profile || {}, isMe = m.user_id === me.id, removable = isOwner() && !isMe;
+      return el(removable ? "button" : "span", {
+        type: removable ? "button" : null,
+        title: "@" + (p.username || "?") + (isMe ? " (you)" : "") + (m.role === "owner" ? " · owner" : "") + (removable ? " — tap to remove" : ""),
+        "aria-label": removable ? "Remove @" + p.username : null,
+        style: "display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;border:none;padding:0;flex-shrink:0;background:" +
+          safeColor(p.color) + ";color:#fff;font-size:10px;font-weight:700;" + (removable ? "cursor:pointer;" : ""),
+        onclick: removable ? async () => {
+          if (!confirm("Remove @" + p.username + " from " + g.name + "?")) return;
+          try { await api.removeGroupMember(g.id, m.user_id); members = members.filter(x => x.user_id !== m.user_id); paintMembers(); }
+          catch (err) { MedLink.reportError(err); }
+        } : null,
+      }, [initials(personName(p))]);
+    }));
+    paintMembers();
+
+    const ownerOrLeave = isOwner()
+      ? el("button", { type: "button", class: "btn btn-ghost btn-sm", title: "Delete group", "aria-label": "Delete group",
+          style: "padding:4px 8px;font-size:11px;border-radius:6px;color:var(--error);",
+          onclick: async () => {
+            if (!confirm("Delete " + g.name + " and all its messages for everyone?")) return;
+            try { await api.deleteGroup(g.id); MedLink.toast("Group deleted."); backToList(); } catch (err) { MedLink.reportError(err); }
+          } }, ["🗑"])
+      : el("button", { type: "button", class: "btn btn-ghost btn-sm", style: "padding:4px 8px;font-size:11px;border-radius:6px;",
+          onclick: async () => {
+            if (!confirm("Leave " + g.name + "? You'll need a member to add you back.")) return;
+            try { await api.removeGroupMember(g.id, me.id); MedLink.toast("You left " + g.name + "."); backToList(); } catch (err) { MedLink.reportError(err); }
+          } }, ["Leave"]);
+
+    const header = el("div", { class: "group-view-header",
+      style: "display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:20px;" }, [
+      el("div", { style: "display:flex;align-items:center;gap:12px;min-width:0;" }, [
+        el("button", { type: "button", class: "btn btn-ghost btn-sm", style: "display:flex;align-items:center;gap:6px;font-weight:600;", onclick: backToList }, [
+          el("span", {}, ["←"]), el("span", {}, ["Back"]),
         ]),
-        el("div", {}, [
+        el("div", { style: "min-width:0;" }, [
           el("h1", { class: "disp", style: "font-size:22px;margin:0;" }, [g.name]),
-          el("p", { class: "muted", style: "font-size:13px;margin:2px 0 0;" }, [g.description || ""])
-        ])
-      ]),
-      // Top Right Compact Members Box
-      el("div", { 
-        class: "card", 
-        style: "padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:10px;" 
-      }, [
-        el("div", { style: "display:flex;align-items:center;gap:6px;" }, [
-          el("span", { style: "font-size:12px;font-weight:600;color:var(--muted);" }, ["Members:"]),
-          el("div", { style: "display:flex;align-items:center;gap:4px;max-width:240px;overflow-x:auto;padding-bottom:2px;" }, 
-            g.members.map(m => {
-              const isMe = m.username === me.username;
-              return el("span", {
-                title: "@" + m.username + (isMe ? " (You)" : ""),
-                style: "display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:" + safeColor(m.color) + ";color:#fff;font-size:10px;font-weight:700;cursor:pointer;position:relative;",
-                onclick: () => {
-                  if (!isMe && confirm("Remove @" + m.username + " from group?")) {
-                    g.members = g.members.filter(x => x.username !== m.username);
-                    saveGroups(groups);
-                    renderView();
-                  }
-                }
-              }, [initials(m.name || m.username)]);
-            })
-          )
+          el("p", { class: "muted", style: "font-size:13px;margin:2px 0 0;" }, [g.description || ""]),
         ]),
-        el("button", {
-          class: "btn btn-primary btn-sm",
-          style: "padding:4px 8px;font-size:11px;border-radius:6px;",
-          onclick: () => openAddMemberModal(g)
-        }, ["+ Add"]),
-        el("button", {
-          class: "btn btn-ghost btn-sm",
-          style: "padding:4px 6px;font-size:11px;color:var(--error);",
-          title: "Delete group",
-          onclick: () => {
-            if (confirm("Delete this group and all its messages?")) {
-              groups = groups.filter(x => x.id !== g.id);
-              saveGroups(groups);
-              activeGroupId = null;
-              history.pushState("", document.title, window.location.pathname + window.location.search);
-              renderView();
-            }
-          }
-        }, ["🗑"])
-      ])
+      ]),
+      el("div", { class: "card", style: "padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:10px;" }, [
+        el("div", { style: "display:flex;align-items:center;gap:6px;" }, [
+          el("span", { style: "font-size:12px;font-weight:600;color:var(--muted);" }, ["Members:"]), membersBox,
+        ]),
+        el("button", { type: "button", class: "btn btn-primary btn-sm", style: "padding:4px 8px;font-size:11px;border-radius:6px;",
+          onclick: () => openAddMemberModal(g, members, added => { members.push(added); paintMembers(); }) }, ["+ Add"]),
+        ownerOrLeave,
+      ]),
     ]);
 
-    // Main Chat Area
+    // ---- chat ----
     const chatMsgs = el("div", { class: "chat-messages" });
-    (g.messages || []).forEach(msg => {
-      const isMine = msg.sender === me.username;
-      
-      let contentNode = el("div", {}, [msg.text]);
-      if (msg.type === "image") {
-        contentNode = el("div", {}, [
-          el("img", { src: msg.url, style: "max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;" })
+    let painted = "";
+    const paintChat = (force) => {
+      const sig = JSON.stringify([messages.map(m => m.id), votes.map(v => v.message_id + v.user_id + v.option)]);
+      if (!force && sig === painted) return;
+      painted = sig;
+      const nearBottom = chatMsgs.scrollHeight - chatMsgs.scrollTop - chatMsgs.clientHeight < 80;
+      chatMsgs.replaceChildren(...(messages.length ? messages.map(messageNode)
+        : [el("div", { class: "faint", style: "text-align:center;font-size:13px;margin:auto;" }, ["No messages yet — say hello 👋"])]));
+      if (force || nearBottom) chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    };
+
+    function messageNode(m) {
+      const isMine = m.sender_id === me.id;
+      let content = el("div", { style: "white-space:pre-wrap;word-break:break-word;" }, [m.body]);
+      if (m.kind === "image") {
+        content = el("a", { href: m.image_url, target: "_blank", rel: "noopener noreferrer" }, [
+          el("img", { src: m.image_url, alt: "Shared image", loading: "lazy", referrerpolicy: "no-referrer",
+            style: "display:block;max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;" }),
         ]);
-      } else if (msg.type === "poll") {
-        const totalVotes = Object.values(msg.votes || {}).reduce((a, b) => a + b, 0);
-        const optionsList = el("div", { style: "margin-top:8px;" });
-        
-        msg.options.forEach((opt, optIdx) => {
-          const count = (msg.votes || {})[optIdx] || 0;
-          const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-          
-          optionsList.appendChild(el("button", {
-            class: "poll-option-btn",
-            onclick: () => {
-              msg.userVotes = msg.userVotes || {};
-              msg.votes = msg.votes || {};
-              const prevVote = msg.userVotes[me.username];
-              if (prevVote !== undefined) {
-                msg.votes[prevVote] = Math.max(0, (msg.votes[prevVote] || 1) - 1);
-              }
-              msg.userVotes[me.username] = optIdx;
-              msg.votes[optIdx] = (msg.votes[optIdx] || 0) + 1;
-              saveGroups(groups);
-              renderView();
-            }
-          }, [
+      } else if (m.kind === "poll") {
+        content = pollNode(m);
+      }
+      return el("div", { class: "chat-msg" + (isMine ? " mine" : "") }, [
+        el("div", { class: "chat-meta" }, [(isMine ? "You" : "@" + ((m.sender && m.sender.username) || "?")) + " · " + timeAgo(m.created_at)]),
+        content,
+      ]);
+    }
+
+    function pollNode(m) {
+      const mv = votes.filter(v => v.message_id === m.id);
+      const total = mv.length;
+      const myVote = (mv.find(v => v.user_id === me.id) || {}).option;
+      return el("div", { class: "poll-card" }, [
+        el("div", { style: "font-weight:600;font-size:14px;margin-bottom:4px;" }, ["📊 " + m.body]),
+        el("div", { style: "margin-top:8px;" }, (m.poll_options || []).map((opt, i) => {
+          const n = mv.filter(v => v.option === i).length;
+          const pct = total ? Math.round(n * 100 / total) : 0;
+          return el("button", { type: "button", class: "poll-option-btn", "aria-pressed": myVote === i ? "true" : "false",
+            style: myVote === i ? "border-color:var(--accent);" : null,
+            onclick: async () => {
+              try {
+                await api.setGroupVote(m.id, myVote === i ? null : i);
+                votes = await api.groupPollVotes(messages.filter(x => x.kind === "poll").map(x => x.id));
+                paintChat(false);
+              } catch (err) { MedLink.reportError(err); }
+            } }, [
             el("div", { class: "poll-bar", style: "width:" + pct + "%;" }),
             el("div", { class: "poll-option-content" }, [
-              el("span", { style: "font-weight:500;" }, [opt]),
-              el("span", { class: "muted", style: "font-size:12px;" }, [count + " (" + pct + "%)"])
-            ])
-          ]));
-        });
+              el("span", { style: "font-weight:500;" }, [(myVote === i ? "✓ " : "") + opt]),
+              el("span", { class: "muted", style: "font-size:12px;" }, [n + " (" + pct + "%)"]),
+            ]),
+          ]);
+        })),
+        el("div", { class: "faint", style: "font-size:11px;margin-top:8px;" }, [plural(total, "vote") + (myVote != null ? " · tap your pick again to undo" : "")]),
+      ]);
+    }
 
-        contentNode = el("div", { class: "poll-card" }, [
-          el("div", { style: "font-weight:600;font-size:14px;margin-bottom:4px;" }, ["📊 " + msg.question]),
-          optionsList,
-          el("div", { class: "faint", style: "font-size:11px;margin-top:8px;" }, [totalVotes + " total vote" + (totalVotes === 1 ? "" : "s")])
-        ]);
-      }
+    async function send(m) {
+      const row = await api.sendGroupMessage(g.id, m);
+      messages.push(row);
+      paintChat(true);
+    }
 
-      chatMsgs.appendChild(el("div", { class: "chat-msg" + (isMine ? " mine" : "") }, [
-        el("div", { class: "chat-meta" }, ["@" + msg.sender + " · " + (msg.time || "")]),
-        contentNode
-      ]));
-    });
-    // Scroll to bottom
-    setTimeout(() => chatMsgs.scrollTop = chatMsgs.scrollHeight, 10);
-
-    const chatInput = el("input", {
-      type: "text",
-      placeholder: "Write a message...",
-      style: "flex:1;min-width:0;padding:10px 14px;border:1px solid var(--border);border-radius:10px;"
-    });
+    const chatInput = el("input", { type: "text", maxlength: "2000", placeholder: "Write a message...", "aria-label": "Write a message",
+      style: "flex:1;min-width:0;padding:10px 14px;border:1px solid var(--border);border-radius:10px;" });
+    const sendBtn = el("button", { type: "submit", class: "btn btn-primary" }, ["Send"]);
 
     const menuDropdown = el("div", { class: "chat-menu-dropdown" }, [
-      el("button", {
-        type: "button",
-        onclick: () => {
-          menuDropdown.classList.remove("show");
-          const url = prompt("Enter image URL (e.g. https://images.unsplash.com/...):");
-          if (!url) return;
-          g.messages = g.messages || [];
-          g.messages.push({ sender: me.username, type: "image", url, text: "Shared an image", time: "Just now" });
-          saveGroups(groups);
-          renderView();
-        }
-      }, ["📷 Share Image"]),
-      el("button", {
-        type: "button",
-        onclick: () => {
-          menuDropdown.classList.remove("show");
-          openPollModal(g);
-        }
-      }, ["📊 Create Poll"])
+      el("button", { type: "button", onclick: async () => {
+        menuDropdown.classList.remove("show");
+        const url = (prompt("Paste an image link (it must start with https://):") || "").trim();
+        if (!url) return;
+        if (!/^https:\/\/\S+$/.test(url)) { MedLink.toast("Image links must start with https://", "error"); return; }
+        try { await send({ kind: "image", imageUrl: url, body: "" }); } catch (err) { MedLink.reportError(err); }
+      } }, ["📷 Share Image"]),
+      el("button", { type: "button", onclick: () => { menuDropdown.classList.remove("show"); openPollModal(send); } }, ["📊 Create Poll"]),
     ]);
-
-    const plusBtn = el("button", {
-      type: "button",
-      class: "btn btn-primary",
+    const plusBtn = el("button", { type: "button", class: "btn btn-primary", title: "Add an image or poll", "aria-label": "Add an image or poll",
       style: "padding:8px 14px;font-size:18px;font-weight:700;line-height:1;border-radius:999px;cursor:pointer;background:var(--accent, #1A56F0);color:#fff;box-shadow:0 2px 8px rgba(26,86,240,0.25);",
-      title: "Add attachment or poll",
-      onclick: (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        menuDropdown.classList.toggle("show");
-      }
-    }, ["⋮"]);
+      onclick: (e) => { e.preventDefault(); e.stopPropagation(); menuDropdown.classList.toggle("show"); } }, ["⋮"]);
 
-    window.addEventListener("click", () => {
-      menuDropdown.classList.remove("show");
+    const chatForm = el("form", { class: "chat-input-area", style: "display:flex;gap:10px;position:relative;" }, [
+      el("div", { class: "chat-menu-wrapper" }, [plusBtn, menuDropdown]), chatInput, sendBtn,
+    ]);
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = chatInput.value.trim();
+      if (!text) return;
+      sendBtn.disabled = true;
+      try { await send({ kind: "text", body: text }); chatInput.value = ""; } catch (err) { MedLink.reportError(err); }
+      sendBtn.disabled = false;
+      chatInput.focus();
     });
 
-    const chatForm = el("form", {
-      class: "chat-input-area",
-      style: "display:flex;gap:10px;position:relative;",
-      onsubmit: (e) => {
-        e.preventDefault();
-        const text = chatInput.value.trim();
-        if (!text) return;
-        g.messages = g.messages || [];
-        g.messages.push({ sender: me.username, type: "text", text, time: "Just now" });
-        saveGroups(groups);
-        chatInput.value = "";
-        renderView();
-      }
-    }, [
-      el("div", { class: "chat-menu-wrapper" }, [plusBtn, menuDropdown]),
-      chatInput,
-      el("button", { class: "btn btn-primary" }, ["Send"])
-    ]);
+    root.replaceChildren(header, el("div", { class: "chat-container" }, [chatMsgs, chatForm]));
+    paintChat(true);
 
-    const mainChat = el("div", { class: "chat-container" }, [
-      chatMsgs,
-      chatForm
-    ]);
-
-    root.append(header, mainChat);
+    // New messages and votes from other members.
+    refreshTimer = setInterval(async () => {
+      if (document.hidden || groupIdFromHash() !== g.id) return;
+      try {
+        messages = await api.groupMessages(g.id);
+        votes = await api.groupPollVotes(messages.filter(m => m.kind === "poll").map(m => m.id));
+        paintChat(false);
+      } catch (err) { console.warn("[MedLink] group refresh:", err); }
+    }, REFRESH_MS);
   }
 
-  function openPollModal(group) {
-    const questionInput = el("input", { type: "text", placeholder: "e.g. Which topic should we revise next?", required: true, maxlength: 100 });
-    const optionInputs = [
-      el("input", { type: "text", placeholder: "Option A (e.g. Cardiology)", required: true, maxlength: 60 }),
-      el("input", { type: "text", placeholder: "Option B (e.g. Neurology)", required: true, maxlength: 60 }),
-      el("input", { type: "text", placeholder: "Option C (optional)", maxlength: 60 }),
-    ];
+  // ---------------- modals ----------------
+  function openCreateModal() {
+    const nameInput = el("input", { type: "text", placeholder: "e.g. 3rd Year Histology Crushes", required: true, minlength: "2", maxlength: "60" });
+    const descInput = el("textarea", { rows: 2, placeholder: "What will this group focus on?", maxlength: "180" });
+    const submit = el("button", { type: "submit", class: "btn btn-primary" }, ["Create group"]);
+    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
+      el("div", { class: "field" }, [el("label", {}, ["Group name"]), nameInput]),
+      el("div", { class: "field" }, [el("label", {}, ["Short description"]), descInput]),
+      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
+        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]), submit,
+      ]),
+    ]);
+    const close = MedLink.modal("Create a study group", form);
+    nameInput.focus();
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      if (name.length < 2) return;
+      submit.disabled = true;
+      try {
+        const g = await api.createGroup(name, descInput.value.trim());
+        close();
+        MedLink.toast("Study group created — add classmates with + Add.", "success");
+        location.hash = "group=" + encodeURIComponent(g.id);
+      } catch (err) { MedLink.reportError(err); submit.disabled = false; }
+    });
+  }
+
+  function openAddMemberModal(group, members, onAdded) {
+    const userInput = el("input", { type: "text", placeholder: "Their username, without @", required: true, autocomplete: "off", autocapitalize: "none" });
+    const statusMsg = el("div", { class: "field-hint", style: "margin-top:6px;" }, ["Anyone on MedLink, by their @username."]);
+    const submit = el("button", { type: "submit", class: "btn btn-primary" }, ["Add student"]);
+    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
+      el("div", { class: "field" }, [el("label", {}, ["Student's username"]), userInput, statusMsg]),
+      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
+        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]), submit,
+      ]),
+    ]);
+    const close = MedLink.modal("Add a student to " + group.name, form);
+    userInput.focus();
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = userInput.value.trim().toLowerCase().replace(/^@/, "");
+      if (!username) return;
+      if (members.some(m => m.profile && m.profile.username === username)) { statusMsg.textContent = "@" + username + " is already in this group."; return; }
+      submit.disabled = true;
+      statusMsg.textContent = "Looking up @" + username + "…";
+      try {
+        const found = await api.profileByUsername(username);
+        if (!found) { statusMsg.textContent = "No student called @" + username + " — check the spelling."; submit.disabled = false; return; }
+        await api.addGroupMember(group.id, found.id);
+        onAdded({ user_id: found.id, role: "member", profile: found });
+        close();
+        MedLink.toast("Added @" + found.username + " to " + group.name + ".", "success");
+      } catch (err) {
+        statusMsg.textContent = "Couldn't add them: " + MedLink.errorMessage(err);
+        submit.disabled = false;
+      }
+    });
+  }
+
+  function openPollModal(send) {
+    const questionInput = el("input", { type: "text", placeholder: "e.g. Which topic should we revise next?", required: true, maxlength: "100" });
+    const optionInputs = ["Option A (e.g. Cardiology)", "Option B (e.g. Neurology)", "Option C (optional)", "Option D (optional)"].map((ph, i) =>
+      el("input", { type: "text", placeholder: ph, required: i < 2, maxlength: "60" }));
+    const submit = el("button", { type: "submit", class: "btn btn-primary" }, ["Create poll"]);
     const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
       el("div", { class: "field" }, [el("label", {}, ["Poll question"]), questionInput]),
       el("div", { class: "field" }, [el("label", {}, ["Options"]), el("div", { style: "display:grid;gap:8px;" }, optionInputs)]),
       el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
-        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]),
-        el("button", { type: "submit", class: "btn btn-primary" }, ["Create poll"]),
+        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]), submit,
       ]),
     ]);
     const close = MedLink.modal("Create a poll", form);
     questionInput.focus();
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const question = questionInput.value.trim();
       const options = optionInputs.map(i => i.value.trim()).filter(Boolean);
-      if (!question || options.length < 2) {
-        MedLink.toast("Add a question and at least 2 options.", "error");
-        return;
-      }
-      group.messages = group.messages || [];
-      group.messages.push({ sender: me.username, type: "poll", question, options, votes: {}, userVotes: {}, time: "Just now" });
-      saveGroups(groups);
-      close();
-      renderView();
+      if (!question || options.length < 2) { MedLink.toast("Add a question and at least 2 options.", "error"); return; }
+      submit.disabled = true;
+      try { await send({ kind: "poll", body: question, options }); close(); }
+      catch (err) { MedLink.reportError(err); submit.disabled = false; }
     });
   }
 
-  function renderGroupCard_old(g) {
-    // keeping old for reference or fallback
+  // ---------------- move groups saved on this device ----------------
+  function localGroupsToMove() {
+    try {
+      const list = JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]");
+      // Skip the two starter groups nobody touched.
+      return (Array.isArray(list) ? list : []).filter(g => g && g.name &&
+        !(/^g_(friends|uni)_/.test(String(g.id)) && (g.members || []).length <= 1 && (g.messages || []).length <= 1));
+    } catch (e) { return []; }
   }
+  function forgetLocalGroups() { try { localStorage.removeItem(LOCAL_KEY); } catch (e) { /* private mode */ } }
 
-  function openCreateModal() {
-    const nameInput = el("input", { type: "text", placeholder: "e.g. 3rd Year Histology Crushes", required: true, maxlength: 60 });
-    const descInput = el("textarea", { rows: 2, placeholder: "What will this group focus on?", maxlength: 180 });
-
-    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
-      el("div", { class: "field" }, [
-        el("label", {}, ["Group Name"]),
-        nameInput
+  function localMoveBanner() {
+    const local = localGroupsToMove();
+    if (!local.length) { forgetLocalGroups(); return null; }
+    const moveBtn = el("button", { type: "button", class: "btn btn-primary btn-sm" }, ["Move them online"]);
+    const banner = el("div", { class: "card pad", style: "margin-bottom:18px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;" }, [
+      el("div", { style: "font-size:13.5px;line-height:1.5;max-width:620px;" }, [
+        el("b", {}, [plural(local.length, "study group") + " saved only on this device. "]),
+        "Move them online so the classmates you added can see them. Names and members move; old chat messages stay behind.",
       ]),
-      el("div", { class: "field" }, [
-        el("label", {}, ["Short Description"]),
-        descInput
+      el("div", { class: "row-gap" }, [
+        el("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: () => {
+          if (confirm("Discard the groups saved on this device?")) { forgetLocalGroups(); banner.remove(); }
+        } }, ["Discard"]),
+        moveBtn,
       ]),
-      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
-        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]),
-        el("button", { type: "submit", class: "btn btn-primary" }, ["Create group"])
-      ])
     ]);
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const name = nameInput.value.trim();
-      if (!name) return;
-
-      const newGroup = {
-        id: "g_" + Date.now(),
-        name,
-        type: "custom",
-        typeLabel: "Study Group",
-        description: descInput.value.trim() || "Custom study group",
-        creator: me.username,
-        members: [{ username: me.username, name: me.full_name, color: me.color }],
-        messages: [{ sender: me.username, text: "Group created! Add friends by username above.", time: "Just now" }],
-        createdAt: new Date().toISOString()
-      };
-
-      groups.unshift(newGroup);
-      saveGroups(groups);
-      close();
-      renderView();
-      MedLink.toast("Study group created!", "success");
-    });
-
-    const close = MedLink.modal("Create a Study Group", form);
-  }
-
-  function openAddMemberModal(group) {
-    const userInput = el("input", {
-      type: "text",
-      placeholder: "Enter student username without @",
-      required: true,
-      autocomplete: "off",
-      autocapitalize: "none"
-    });
-    const statusMsg = el("div", { class: "field-hint", style: "margin-top:6px;" }, ["Search any classmate on MedLink by their @username."]);
-
-    const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
-      el("div", { class: "field" }, [
-        el("label", {}, ["Student's Username"]),
-        userInput,
-        statusMsg
-      ]),
-      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:16px;" }, [
-        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]),
-        el("button", { type: "submit", class: "btn btn-primary" }, ["Add student"])
-      ])
-    ]);
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const targetUser = userInput.value.trim().toLowerCase().replace(/^@/, "");
-      if (!targetUser) return;
-
-      if (group.members.some(m => m.username.toLowerCase() === targetUser)) {
-        MedLink.toast("@" + targetUser + " is already in this group.", "error");
-        return;
-      }
-
-      statusMsg.textContent = "Checking username @" + targetUser + "…";
-
+    moveBtn.addEventListener("click", async () => {
+      moveBtn.disabled = true;
+      moveBtn.textContent = "Moving…";
+      let missing = 0;
       try {
-        const found = await api.profileByUsername(targetUser);
-        if (!found) {
-          statusMsg.textContent = "Student @" + targetUser + " not found. Double check the spelling.";
-          MedLink.toast("Student @" + targetUser + " not found.", "error");
-          return;
+        for (const lg of local) {
+          const raw = String(lg.name).trim();
+          const name = (raw.length >= 2 ? raw : raw + " group").slice(0, 60);
+          const g = await api.createGroup(name, String(lg.description || "").slice(0, 180));
+          for (const m of lg.members || []) {
+            if (!m || !m.username || m.username === me.username) continue;
+            const found = await api.profileByUsername(String(m.username).toLowerCase()).catch(() => null);
+            if (found) await api.addGroupMember(g.id, found.id).catch(() => { missing += 1; });
+            else missing += 1;
+          }
+          // Drop each group from this device as soon as it's online, so a retry can't duplicate it.
+          try {
+            const rest = JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]").filter(x => x && x.id !== lg.id);
+            localStorage.setItem(LOCAL_KEY, JSON.stringify(rest));
+          } catch (e) { /* private mode */ }
         }
-
-        group.members.push({
-          username: found.username,
-          name: found.full_name,
-          color: found.color
-        });
-        saveGroups(groups);
-        close();
-        renderView();
-        MedLink.toast("Added @" + found.username + " to the group!", "success");
+        forgetLocalGroups();
+        MedLink.toast("Your groups are online now." + (missing ? " " + plural(missing, "member") + " couldn't be found." : ""), "success");
+        route();
       } catch (err) {
-        statusMsg.textContent = "Could not check username. Please try again.";
         MedLink.reportError(err);
+        moveBtn.disabled = false;
+        moveBtn.textContent = "Move them online";
       }
     });
-
-    const close = MedLink.modal("Add Student to " + group.name, form);
+    return banner;
   }
 
-  renderView();
+  route();
 });
 </script>
 </body>
