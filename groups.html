@@ -44,6 +44,17 @@
   border-top: 1px solid var(--border, #E4E7EC);
   background: var(--surface, #FFFFFF);
 }
+.chat-container {
+  background: var(--surface-2, #F5F7FA);
+}
+.chat-messages {
+  background: #FAFBFF;
+}
+[data-theme="dark"] .chat-messages { background: var(--surface-2); }
+.chat-menu-wrapper .btn-primary {
+  color: #FFFFFF !important;
+  background: var(--accent, #1A56F0) !important;
+}
 .group-tag {
   display: inline-block;
   padding: 3px 8px;
@@ -95,18 +106,24 @@
   margin-bottom: 12px;
 }
 .chat-msg {
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: var(--surface-2, #F5F7FA);
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: var(--surface, #FFFFFF);
   color: var(--text, #0B1533);
   max-width: 80%;
   font-size: 13.5px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid var(--border, #E4E7EC);
 }
 .chat-msg.mine {
   align-self: flex-end;
-  background: var(--surface-2, #F5F7FA);
+  background: var(--surface, #FFFFFF);
   color: var(--text, #0B1533);
-  border: 1px solid var(--border, #E4E7EC);
+  border: 1px solid var(--accent, #1A56F0);
+  border-radius: 18px 18px 6px 18px;
+}
+.chat-msg:not(.mine) {
+  border-radius: 18px 18px 18px 6px;
 }
 .chat-meta {
   font-size: 11px;
@@ -119,9 +136,10 @@
 .poll-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 18px;
+  padding: 14px;
   margin-top: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 .poll-option-btn {
   display: block;
@@ -129,12 +147,16 @@
   text-align: left;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 6px;
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
   position: relative;
   overflow: hidden;
   cursor: pointer;
+  transition: border-radius 0.2s, box-shadow 0.2s;
+}
+.poll-option-btn:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 .poll-bar {
   position: absolute;
@@ -161,7 +183,7 @@
   margin-bottom: 8px;
   background: var(--surface, #FFFFFF);
   border: 1px solid var(--border, #E4E7EC);
-  border-radius: 10px;
+  border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
   display: none;
   flex-direction: column;
@@ -501,7 +523,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
     const plusBtn = el("button", {
       type: "button",
       class: "btn btn-primary",
-      style: "padding:8px 14px;font-size:18px;font-weight:700;line-height:1;border-radius:10px;cursor:pointer;background:var(--accent);color:#fff;",
+      style: "padding:8px 14px;font-size:18px;font-weight:700;line-height:1;border-radius:999px;cursor:pointer;background:var(--accent, #1A56F0);color:#fff;box-shadow:0 2px 8px rgba(26,86,240,0.25);",
       title: "Add attachment or poll",
       onclick: (e) => {
         e.preventDefault();
