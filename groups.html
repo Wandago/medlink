@@ -478,8 +478,9 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
 
     const plusBtn = el("button", {
       type: "button",
-      class: "btn btn-ghost",
-      style: "padding:8px 12px;font-size:20px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;height:100%;",
+      class: "btn btn-primary",
+      style: "padding:8px 14px;font-size:18px;font-weight:700;line-height:1;border-radius:10px;cursor:pointer;background:var(--primary);color:#fff;",
+      title: "Add attachment or poll",
       onclick: (e) => {
         e.preventDefault();
         e.stopPropagation();
