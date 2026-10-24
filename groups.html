@@ -42,7 +42,17 @@
 .chat-input-area {
   padding: 14px 16px;
   border-top: 1px solid var(--border, #E4E7EC);
-  background: var(--card-bg, #FFFFFF);
+  background: #FFFFFF;
+}
+.chat-container {
+  background: var(--bg-soft, #F5F7FA);
+}
+.chat-messages {
+  background: #FAFBFF;
+}
+.chat-menu-wrapper .btn-primary {
+  color: #FFFFFF !important;
+  background: var(--accent, #1A56F0) !important;
 }
 .group-tag {
   display: inline-block;
@@ -95,18 +105,20 @@
   margin-bottom: 12px;
 }
 .chat-msg {
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 10px;
-  background: var(--bg-soft, #F5F7FA);
+  background: #FFFFFF;
   color: var(--text, #101828);
   max-width: 80%;
   font-size: 13.5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid var(--border, #E4E7EC);
 }
 .chat-msg.mine {
   align-self: flex-end;
-  background: var(--bg-soft, #F5F7FA);
+  background: #FFFFFF;
   color: var(--text, #101828);
-  border: 1px solid var(--border, #E4E7EC);
+  border: 1px solid var(--accent, #1A56F0);
 }
 .chat-meta {
   font-size: 11px;
