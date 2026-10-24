@@ -285,66 +285,63 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       return;
     }
 
-    const header = el("div", { class: "group-view-header" }, [
-      el("button", { 
-        class: "btn btn-ghost btn-sm", 
-        style: "display:flex;align-items:center;gap:6px;font-weight:600;",
-        onclick: () => { 
-          activeGroupId = null; 
-          history.pushState("", document.title, window.location.pathname + window.location.search);
-          renderView(); 
-        } 
-      }, [
-        el("span", {}, ["←"]),
-        el("span", {}, ["Back to Study Groups"])
+    const header = el("div", { 
+      class: "group-view-header", 
+      style: "display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:20px;" 
+    }, [
+      el("div", { style: "display:flex;align-items:center;gap:12px;" }, [
+        el("button", { 
+          class: "btn btn-ghost btn-sm", 
+          style: "display:flex;align-items:center;gap:6px;font-weight:600;",
+          onclick: () => { 
+            activeGroupId = null; 
+            history.pushState("", document.title, window.location.pathname + window.location.search);
+            renderView(); 
+          } 
+        }, [
+          el("span", {}, ["←"]),
+          el("span", {}, ["Back"])
+        ]),
+        el("div", {}, [
+          el("h1", { class: "disp", style: "font-size:22px;margin:0;" }, [g.name]),
+          el("p", { class: "muted", style: "font-size:13px;margin:2px 0 0;" }, [g.description || ""])
+        ])
       ]),
-      el("div", {}, [
-        el("h1", { class: "disp", style: "font-size:22px;margin:0;" }, [g.name]),
-        el("span", { class: "muted", style: "font-size:13px;" }, [g.typeLabel || g.type])
-      ])
-    ]);
-
-    // Right Sidebar (Members)
-    const membersList = el("div", { class: "members-list" });
-    g.members.forEach(m => {
-      const isMe = m.username === me.username;
-      membersList.appendChild(el("div", { class: "member-chip" }, [
-        el("span", {
-          style: "display:inline-block;width:16px;height:16px;border-radius:50%;background:" + safeColor(m.color) + ";text-align:center;line-height:16px;color:#fff;font-size:9px;font-weight:700;"
-        }, [initials(m.name || m.username)]),
-        el("span", {}, ["@" + m.username]),
-        !isMe ? el("button", {
-          type: "button",
-          class: "remove-member",
-          onclick: (e) => {
-            e.stopPropagation();
-            if (confirm("Remove @" + m.username + "?")) {
-              g.members = g.members.filter(x => x.username !== m.username);
-              saveGroups(groups);
-              renderView();
-            }
-          }
-        }, ["×"]) : null
-      ]));
-    });
-
-    const sidebar = el("div", { class: "card pad group-sidebar" }, [
-      el("div", { style: "display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;" }, [
-        el("h4", { style: "margin:0;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;" }, ["Members (" + g.members.length + ")"]),
+      // Top Right Compact Members Box
+      el("div", { 
+        class: "card", 
+        style: "padding:8px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:10px;" 
+      }, [
+        el("div", { style: "display:flex;align-items:center;gap:6px;" }, [
+          el("span", { style: "font-size:12px;font-weight:600;color:var(--muted);" }, ["Members:"]),
+          el("div", { style: "display:flex;align-items:center;gap:4px;max-width:240px;overflow-x:auto;padding-bottom:2px;" }, 
+            g.members.map(m => {
+              const isMe = m.username === me.username;
+              return el("span", {
+                title: "@" + m.username + (isMe ? " (You)" : ""),
+                style: "display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:" + safeColor(m.color) + ";color:#fff;font-size:10px;font-weight:700;cursor:pointer;position:relative;",
+                onclick: () => {
+                  if (!isMe && confirm("Remove @" + m.username + " from group?")) {
+                    g.members = g.members.filter(x => x.username !== m.username);
+                    saveGroups(groups);
+                    renderView();
+                  }
+                }
+              }, [initials(m.name || m.username)]);
+            })
+          )
+        ]),
         el("button", {
           class: "btn btn-primary btn-sm",
-          style: "padding:2px 8px;font-size:11px;",
+          style: "padding:4px 8px;font-size:11px;border-radius:6px;",
           onclick: () => openAddMemberModal(g)
-        }, ["+ Add"])
-      ]),
-      membersList,
-      el("div", { style: "margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;" }, [
-        el("span", { class: "muted", style: "font-size:11px;" }, [g.creator === me.username ? "You created this" : "Member"]),
+        }, ["+ Add"]),
         el("button", {
           class: "btn btn-ghost btn-sm",
-          style: "color:var(--error);padding:2px 6px;font-size:11px;",
+          style: "padding:4px 6px;font-size:11px;color:var(--error);",
+          title: "Delete group",
           onclick: () => {
-            if (confirm("Delete this group?")) {
+            if (confirm("Delete this group and all its messages?")) {
               groups = groups.filter(x => x.id !== g.id);
               saveGroups(groups);
               activeGroupId = null;
@@ -352,7 +349,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
               renderView();
             }
           }
-        }, ["Delete"])
+        }, ["🗑"])
       ])
     ]);
 
@@ -476,15 +473,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       chatForm
     ]);
 
-    const content = el("div", { class: "group-layout" }, [
-      el("div", {}, [
-        el("p", { class: "muted", style: "margin-bottom:16px;" }, [g.description]),
-        mainChat
-      ]),
-      sidebar
-    ]);
-
-    root.append(header, content);
+    root.append(header, mainChat);
   }
 
   function renderGroupCard_old(g) {
