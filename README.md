@@ -164,6 +164,18 @@ community has an **invite link** (`join.html?c=…`) with WhatsApp / Telegram / 
 new students are walked through sign-up and land inside the community. Each share is tagged
 (`utm_source=whatsapp` etc.) so **Admin → Traffic** shows which channels bring people in.
 
+Posts can carry a **poll** (⋮ → Create Poll in a community composer). Anyone signed in can vote once and
+change or undo their vote; everyone sees the totals, but who picked what stays private (`post_poll_votes`,
+read through `poll_results()`).
+
+### Study groups
+Private groups (`groups.html`) for close friends, a unit or a campus. The creator is the owner; any member can
+add classmates by @username, the owner can remove members or delete the group, and members can leave. Chat
+messages, shared images and polls are visible only to members — enforced by row-level security on
+`study_groups`, `study_group_members`, `study_group_messages` and `study_group_poll_votes`. The open chat
+refreshes every few seconds. Groups made before this were saved only in the browser; the page offers to move
+them online (names and members move, old messages don't).
+
 ### What's tracked
 `app.js` records page views, clicks on anything marked `data-track`, links to other sites, key actions
 (sign-up, sign-in/out, uploads, downloads, views, saves, likes, comments, posts, follows, joins, searches,

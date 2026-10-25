@@ -586,6 +586,8 @@
   var AUTHOR = "author:profiles!author_id(id,username,full_name,university_id,university_name,country,course_id,year,color)";
   var RES_SELECT = "*," + AUTHOR + ",saved_resources(count)";
   var POST_SELECT = "*," + AUTHOR + ",post_likes(count),post_comments(count),community:communities(id,name)";
+  var GROUP_SENDER = "sender:profiles!sender_id(id,username,full_name,color)";
+  var GROUP_MEMBER = "profile:profiles!user_id(id,username,full_name,color)";
   var BUCKET = "resources";
   var MEDIA_BUCKET = "site-media";
 
@@ -765,6 +767,22 @@
     deleteComment: async function (id) {
       must(await sb().from("post_comments").delete().eq("id", id));
     },
+    // Community polls: totals per option plus your own pick, keyed by post id.
+    pollResults: async function (postIds) {
+      var out = {};
+      if (!postIds.length) return out;
+      (must(await sb().rpc("poll_results", { p_post_ids: postIds })) || []).forEach(function (r) {
+        var p = out[r.post_id] = out[r.post_id] || { counts: {}, mine: null };
+        p.counts[r.option] = Number(r.votes);
+        if (r.mine) p.mine = r.option;
+      });
+      return out;
+    },
+    setPollVote: async function (postId, option) {
+      if (option == null) must(await sb().from("post_poll_votes").delete().eq("post_id", postId).eq("user_id", myId()));
+      else must(await sb().from("post_poll_votes").upsert({ post_id: postId, user_id: myId(), option: option }, { onConflict: "post_id,user_id" }));
+      track("poll_vote", { post_id: postId });
+    },
 
     // ---- communities ----
     communities: async function () {
@@ -810,6 +828,54 @@
       var res = await sb().from("messages").select("id", { count: "exact", head: true }).eq("recipient_id", myId()).is("read_at", null);
       must(res);
       return res.count || 0;
+    },
+
+    // ---- study groups (only members can see a group; enforced by RLS) ----
+    myGroups: async function () {
+      return must(await sb().from("study_groups").select("*,study_group_members(count),study_group_messages(count)")
+        .order("last_activity_at", { ascending: false }));
+    },
+    createGroup: async function (name, description) {
+      var g = must(await sb().rpc("create_study_group", { p_name: name, p_description: description || "" }));
+      track("group_create");
+      return g;
+    },
+    deleteGroup: async function (id) {
+      must(await sb().from("study_groups").delete().eq("id", id));
+      track("group_delete");
+    },
+    groupMembers: async function (groupId) {
+      return must(await sb().from("study_group_members").select("user_id,role,created_at," + GROUP_MEMBER)
+        .eq("group_id", groupId).order("created_at"));
+    },
+    addGroupMember: async function (groupId, userId) {
+      must(await sb().from("study_group_members").insert({ group_id: groupId, user_id: userId, role: "member", added_by: myId() }));
+      track("group_add_member");
+    },
+    removeGroupMember: async function (groupId, userId) {
+      must(await sb().from("study_group_members").delete().eq("group_id", groupId).eq("user_id", userId));
+      track(userId === myId() ? "group_leave" : "group_remove_member");
+    },
+    groupMessages: async function (groupId) {
+      var rows = must(await sb().from("study_group_messages").select("*," + GROUP_SENDER)
+        .eq("group_id", groupId).order("created_at", { ascending: false }).limit(200));
+      return rows.reverse();
+    },
+    sendGroupMessage: async function (groupId, m) {
+      var row = must(await sb().from("study_group_messages").insert({
+        group_id: groupId, sender_id: myId(), kind: m.kind || "text", body: m.body || "",
+        image_url: m.imageUrl || null, poll_options: m.options || null,
+      }).select("*," + GROUP_SENDER).single());
+      track("group_message", { kind: m.kind || "text" });
+      return row;
+    },
+    groupPollVotes: async function (messageIds) {
+      if (!messageIds.length) return [];
+      return must(await sb().from("study_group_poll_votes").select("message_id,user_id,option").in("message_id", messageIds));
+    },
+    setGroupVote: async function (messageId, option) {
+      if (option == null) must(await sb().from("study_group_poll_votes").delete().eq("message_id", messageId).eq("user_id", myId()));
+      else must(await sb().from("study_group_poll_votes").upsert({ message_id: messageId, user_id: myId(), option: option }, { onConflict: "message_id,user_id" }));
     },
 
     // ---- search ----
@@ -1367,19 +1433,89 @@
         ]),
       ]),
       el("div", { class: "post-meta" }, [metaLine(author) + " · " + timeAgo(post.created_at) + " ", where]),
-      el("div", { class: "post-body" }, [post.body]),
+      postBodyNode(post, opts.polls && opts.polls[post.id]),
       actions,
       thread,
     ]);
     return card;
   }
 
-  // Post list with one likes lookup for the whole batch.
+  // Post text, with the extras the community composer's ⋮ menu inserts:
+  // a "[POLL: question | option | option]" line (votable) and image links on their own line.
+  var POLL_RE = /^\[POLL:\s*([^|\]]+?)\s*((?:\|\s*[^|\]]+?\s*){2,})\]$/;
+  var IMAGE_RE = /^https:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?$/i;
+  function hasPoll(post) { return /\[POLL:/.test(post.body || ""); }
+  function postBodyNode(post, pollResult) {
+    var box = el("div", { class: "post-body" });
+    var text = [], pollShown = false;
+    var flush = function () { if (text.length) { box.appendChild(document.createTextNode(text.join("\n"))); text = []; } };
+    String(post.body || "").split("\n").forEach(function (line) {
+      var t = line.trim(), m = pollShown ? null : POLL_RE.exec(t);
+      if (m) {
+        flush();
+        pollShown = true;  // one vote per post, so only the first poll is live
+        var options = m[2].split("|").map(function (o) { return o.trim(); }).filter(Boolean).slice(0, 6);
+        box.appendChild(postPollNode(post.id, m[1], options, pollResult));
+      } else if (IMAGE_RE.test(t)) {
+        flush();
+        box.appendChild(el("a", { href: t, target: "_blank", rel: "noopener noreferrer", class: "post-image" }, [
+          el("img", { src: t, alt: "Shared image", loading: "lazy", referrerpolicy: "no-referrer" }),
+        ]));
+      } else text.push(line);
+    });
+    flush();
+    return box;
+  }
+  function postPollNode(postId, question, options, result) {
+    result = result || { counts: {}, mine: null };
+    var box = el("div", { class: "post-poll" });
+    var busy = false;
+    var paint = function () {
+      var total = options.reduce(function (t, o, i) { return t + (result.counts[i] || 0); }, 0);
+      box.replaceChildren(
+        el("div", { class: "post-poll-q" }, ["📊 " + question]),
+        el("div", { class: "post-poll-options" }, options.map(function (o, i) {
+          var n = result.counts[i] || 0, pct = total ? Math.round(n * 100 / total) : 0, mine = result.mine === i;
+          return el("button", { type: "button", class: "post-poll-opt" + (mine ? " mine" : ""), "aria-pressed": mine ? "true" : "false",
+            onclick: function () { vote(i); } }, [
+            el("span", { class: "post-poll-bar", style: "width:" + pct + "%" }),
+            el("span", { class: "post-poll-label" }, [(mine ? "✓ " : "") + o]),
+            el("span", { class: "post-poll-count" }, [total ? pct + "%" : ""]),
+          ]);
+        })),
+        el("div", { class: "faint post-poll-note" }, [
+          plural(total, "vote") + (result.mine == null ? " · tap an option to vote" : " · tap your pick again to undo"),
+        ]),
+      );
+    };
+    var vote = async function (i) {
+      if (busy) return;
+      busy = true;
+      var before = { counts: Object.assign({}, result.counts), mine: result.mine };
+      var next = result.mine === i ? null : i;
+      if (result.mine != null) result.counts[result.mine] = Math.max(0, (result.counts[result.mine] || 0) - 1);
+      if (next != null) result.counts[next] = (result.counts[next] || 0) + 1;
+      result.mine = next;
+      paint();
+      try { await api.setPollVote(postId, next); }
+      catch (err) { result = before; paint(); reportError(err); }
+      busy = false;
+    };
+    paint();
+    return box;
+  }
+
+  // Post list with one likes lookup (and one poll lookup) for the whole batch.
   async function renderPosts(container, posts, emptyText) {
     container.replaceChildren();
     if (!posts.length) { container.appendChild(emptyState(emptyText || "No posts yet.")); return; }
-    var liked = await api.likedIds(posts.map(function (p) { return p.id; }));
-    posts.forEach(function (p) { container.appendChild(feedPostNode(p, { liked: liked })); });
+    var found = await Promise.all([
+      api.likedIds(posts.map(function (p) { return p.id; })),
+      // Polls still show (without totals) if the votes table hasn't been created yet.
+      api.pollResults(posts.filter(hasPoll).map(function (p) { return p.id; }))
+        .catch(function (err) { console.warn("[MedLink] poll results:", err); return {}; }),
+    ]);
+    posts.forEach(function (p) { container.appendChild(feedPostNode(p, { liked: found[0], polls: found[1] })); });
   }
 
   function composerNode(opts) {
