@@ -20,7 +20,7 @@
   <div class="page-head">
     <div>
       <h1>Exam bank</h1>
-      <p>Practise with exam-style questions, open past papers, and search Kenyan university repositories.</p>
+      <p>Practise questions, open shared past papers, and upload papers for other students.</p>
     </div>
     <div class="pill-tabs" id="tabs"></div>
   </div>
@@ -49,9 +49,11 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
   // ---------- practice sets ----------
   const practice = qs("#tab-practice");
   practice.appendChild(MedLink.loadingState());
-  const [sets, attempts, papers, sources] = await Promise.all([
+  const [sets, attempts, papers, sources, uploadedPaperResources] = await Promise.all([
     api.examSets().catch(() => []), api.myAttempts().catch(() => []), api.examPapers().catch(() => []), api.examSources().catch(() => []),
+    api.resources({ type: "Past Paper", limit: 300 }).catch(() => []),
   ]);
+  let uploadedPapers = uploadedPaperResources;
   const best = {};
   attempts.forEach(a => { const pct = a.score / a.total; if (!(a.set_id in best) || pct > best[a.set_id]) best[a.set_id] = pct; });
   const subjects = Array.from(new Set(sets.map(s => s.subject).filter(Boolean))).sort();
@@ -101,15 +103,86 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
 
   // ---------- past papers ----------
   const papersBox = qs("#tab-papers");
-  papersBox.replaceChildren(papers.length ? el("div", { class: "card pad" }, papers.map(p => el("div", { class: "paper-row" }, [
-    el("span", { class: "thumb", style: "background:" + subjectColor(p.unit || p.title) }, ["📄"]),
-    el("div", { class: "who" }, [el("b", {}, [p.title]), el("span", {}, [[p.unit, uniAbbr(p.university_id), p.year].filter(Boolean).join(" · ") || "Past paper"])]),
-    el("a", { class: "btn btn-soft btn-sm", href: p.url, target: "_blank", rel: "noopener", onclick: () => MedLink.track("paper_open", { id: p.id, title: p.title }) }, ["Open ↗"]),
-  ]))) : el("div", {}, [
-    MedLink.emptyState("No past papers linked yet. Students also share papers in the Study Library under “Past Paper”.",
-      el("a", { class: "btn btn-ghost btn-sm", href: "study.html" }, ["Open Study Library"])),
-    ...(staffNote ? [staffNote] : []),
-  ]));
+  const paperList = el("div");
+  const paperTitle = el("input", { id: "paper-upload-title", type: "text", maxlength: "140", required: true, placeholder: "e.g. Anatomy II — End of Semester Exam", "aria-label": "Past paper title" });
+  const paperUnit = el("input", { id: "paper-upload-unit", type: "text", maxlength: "120", required: true, value: me.current_units[0] || "General", placeholder: "e.g. Human Anatomy", "aria-label": "Unit or subject" });
+  const paperYear = el("input", { id: "paper-upload-year", type: "number", min: "1900", max: String(new Date().getFullYear() + 1), placeholder: String(new Date().getFullYear()), "aria-label": "Exam year" });
+  const paperFile = el("input", { id: "paper-upload-file", type: "file", accept: "application/pdf,.pdf", required: true, "aria-label": "PDF past paper" });
+  const paperSubmit = el("button", { class: "btn btn-primary", type: "submit" }, ["Upload past paper"]);
+  const adminPaperLink = role ? el("a", { class: "btn btn-ghost btn-sm", href: "admin.html#exams" }, ["Admin tools"]) : null;
+  const paperUploadForm = el("form", { class: "card pad form-stack", style: "margin-bottom:16px" }, [
+    el("div", { class: "section-heading", style: "margin-bottom:4px;flex-wrap:wrap" }, [
+      el("div", {}, [
+        el("h2", { style: "font-size:17px;margin:0 0 4px" }, ["Share a past paper"]),
+        el("p", { class: "muted", style: "font-size:13px;margin:0" }, ["Upload a PDF exam so other students can find it here."]),
+      ]),
+      adminPaperLink,
+    ]),
+    el("div", { class: "grid grid-fill-220" }, [
+      el("div", { class: "field" }, [el("label", { for: "paper-upload-title" }, ["Paper title"]), paperTitle]),
+      el("div", { class: "field" }, [el("label", { for: "paper-upload-unit" }, ["Unit or subject"]), paperUnit]),
+      el("div", { class: "field" }, [el("label", { for: "paper-upload-year" }, ["Year (optional)"]), paperYear]),
+    ]),
+    el("div", { class: "field" }, [el("label", { for: "paper-upload-file" }, ["PDF file · up to 20 MB"]), paperFile]),
+    el("div", { class: "row-gap", style: "justify-content:flex-end" }, [paperSubmit]),
+  ]);
+  const renderPapers = () => {
+    const rows = [
+      ...papers.map(p => ({ ...p, uploaded: false })),
+      ...uploadedPapers.map(p => ({ ...p, uploaded: true, url: api.fileUrl(p.file_path) })),
+    ].sort((a, b) => +new Date(b.created_at || 0) - +new Date(a.created_at || 0));
+    if (!rows.length) {
+      paperList.replaceChildren(MedLink.emptyState("No past papers have been shared yet. Upload the first one above."));
+      return;
+    }
+    paperList.replaceChildren(el("div", { class: "card pad" }, rows.map(p => {
+      const details = p.uploaded
+        ? [p.unit, p.year, p.author_id === me.id ? "Your upload" : "Student upload"].filter(Boolean).join(" · ")
+        : [[p.unit, uniAbbr(p.university_id), p.year].filter(Boolean).join(" · ") || "Past paper"];
+      return el("div", { class: "paper-row" }, [
+        el("span", { class: "thumb", style: "background:" + subjectColor(p.unit || p.title) }, ["📄"]),
+        el("div", { class: "who" }, [el("b", {}, [p.title]), el("span", {}, [details])]),
+        el("a", { class: "btn btn-soft btn-sm", href: p.url, target: "_blank", rel: "noopener", onclick: () => MedLink.track("paper_open", { id: p.id, title: p.title }) }, ["Open ↗"]),
+      ]);
+    })));
+  };
+  paperUploadForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const file = paperFile.files && paperFile.files[0];
+    if (!file || (!/^application\/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name))) {
+      MedLink.toast("Choose a PDF past paper to upload.", "error");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      MedLink.toast("The PDF must be 20 MB or smaller.", "error");
+      return;
+    }
+    paperSubmit.disabled = true;
+    try {
+      await api.uploadResource({
+        title: paperTitle.value.trim(),
+        unit: paperUnit.value.trim(),
+        type: "Past Paper",
+        description: "Shared from the Exam Bank.",
+        file,
+      });
+      paperUploadForm.reset();
+      paperUnit.value = me.current_units[0] || "General";
+      MedLink.toast("Past paper uploaded.", "success");
+      try {
+        uploadedPapers = await api.resources({ type: "Past Paper", limit: 300 });
+        renderPapers();
+      } catch (refreshError) {
+        MedLink.reportError(refreshError);
+      }
+    } catch (err) {
+      MedLink.reportError(err);
+    } finally {
+      paperSubmit.disabled = false;
+    }
+  });
+  papersBox.replaceChildren(paperUploadForm, paperList);
+  renderPapers();
 
   // ---------- find papers online ----------
   const online = qs("#tab-online");
@@ -130,7 +203,7 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
         el("a", { class: "btn btn-ghost btn-sm", href: src.home_url, target: "_blank", rel: "noopener" }, ["Visit"]),
       ]))),
       el("p", { class: "faint", style: "font-size:12.5px;line-height:1.5;margin:14px 0 0" }, [
-        "These are university repositories and past-paper sites run by others — each university decides what's public, and some papers need your student login. Found a good one? Share it in the Study Library.",
+        "These are university repositories and past-paper sites run by others — each university decides what's public, and some papers need your student login. Download a paper you can share? Upload the PDF in the Past papers tab.",
       ]),
     ]),
   );
