@@ -1177,9 +1177,10 @@
       ["dashboard", "dashboard.html", "Home"],
       ["study", "study.html", "Study"],
       ["exams", "exams.html", "Exams"],
-      ["communities", "communities.html", "Groups"],
       ["messages", "messages.html", "Messages"],
     ];
+    var primaryMobilePages = new Set(bottom.map(function (item) { return item[0]; }));
+    var moreItems = menu.concat(general).filter(function (item) { return !primaryMobilePages.has(item[0]); });
 
     var searchInput = el("input", { type: "text", name: "q", placeholder: "Search notes, @students, communities…", "aria-label": "Search", value: active === "search" ? (param("q") || "") : null });
     var searchForm = el("form", { class: "topbar-search", action: "search.html", method: "get", html: ICON_SEARCH }, [searchInput]);
@@ -1215,13 +1216,49 @@
           ]),
         ]),
       ]));
-    var bottomNav = el("nav", { class: "bottom-nav", "aria-label": "Main" }, bottom.map(function (item) {
-      var a = el("a", { href: item[1], class: item[0] === active ? "active" : "" }, [
-        el("span", { class: "bn-icon", html: icon(ICONS[item[0]], 21) }), item[2],
+    var morePanelId = "mobile-more-menu";
+    var moreButton = el("button", {
+      type: "button",
+      class: "mobile-more-toggle" + (moreItems.some(function (item) { return item[0] === active; }) ? " active" : ""),
+      "aria-label": "More sections",
+      "aria-expanded": "false",
+      "aria-controls": morePanelId,
+    }, [
+      el("span", { class: "bn-icon", html: '<svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>' }),
+      "More",
+    ]);
+    var morePanel = el("div", { class: "mobile-more-menu", id: morePanelId, hidden: true, "aria-label": "More sections" }, moreItems.map(function (item) {
+      return el("a", {
+        href: item[1],
+        class: "mobile-more-item" + (item[0] === active ? " active" : ""),
+        "aria-current": item[0] === active ? "page" : null,
+      }, [
+        el("span", { class: "more-icon", html: icon(ICONS[item[0]], 19) }),
+        el("span", {}, [item[2]]),
       ]);
-      if (item[0] === "messages") badgeSlots.push(a);
-      return a;
     }));
+    var bottomNav = el("nav", { class: "bottom-nav", "aria-label": "Main" }, [
+      morePanel,
+      ...bottom.map(function (item) {
+        var a = el("a", { href: item[1], class: item[0] === active ? "active" : "", "aria-current": item[0] === active ? "page" : null }, [
+          el("span", { class: "bn-icon", html: icon(ICONS[item[0]], 21) }), item[2],
+        ]);
+        if (item[0] === "messages") badgeSlots.push(a);
+        return a;
+      }),
+      moreButton,
+    ]);
+    function closeMoreMenu() {
+      morePanel.hidden = true;
+      moreButton.setAttribute("aria-expanded", "false");
+    }
+    moreButton.addEventListener("click", function () {
+      var open = morePanel.hidden;
+      morePanel.hidden = !open;
+      moreButton.setAttribute("aria-expanded", String(open));
+    });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeMoreMenu(); });
+    document.addEventListener("click", function (e) { if (!bottomNav.contains(e.target)) closeMoreMenu(); });
 
     var page = qs("#page");
     page.classList.add("main-content");
