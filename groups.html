@@ -569,6 +569,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       }));
       addChoice.disabled = choices.length >= 10;
       addChoice.textContent = choices.length >= 10 ? "Maximum 10 choices" : "＋ Add a choice";
+      choiceCount.textContent = choices.length + " of 10";
       if (focusIndex != null) {
         const focus = qs('[data-choice-index="' + focusIndex + '"]', choicesWrap);
         if (focus) focus.focus();
@@ -599,9 +600,6 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
         el("button", { type: "submit", class: "btn btn-primary" }, ["Post poll"]),
       ]),
     ]);
-    const updateCount = () => { choiceCount.textContent = choices.length + " of 10"; };
-    const originalPaintChoices = paintChoices;
-    paintChoices = function (focusIndex) { originalPaintChoices(focusIndex); updateCount(); };
     paintChoices();
     form.addEventListener("submit", event => {
       event.preventDefault();
