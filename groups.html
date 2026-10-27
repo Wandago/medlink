@@ -92,6 +92,38 @@
 .chat-input-area { background:color-mix(in srgb,var(--surface) 94%,var(--surface-2)); }
 .chat-input-area > input { box-shadow:inset 0 1px 2px rgba(10,30,70,.025); }
 .chat-input-area > .btn { box-shadow:0 2px 7px rgba(10,30,70,.08); }
+
+.group-back { flex:0 0 auto; border-color:var(--border)!important; background:var(--surface-2)!important; color:var(--text-2)!important; }
+.group-back:hover { border-color:var(--border-strong)!important; color:var(--accent)!important; }
+.chat-image-wrap { display:grid;gap:6px; }
+.chat-image-preview { display:block;max-width:min(100%,520px);max-height:340px;object-fit:contain;border-radius:12px;border:1px solid var(--border); }
+.chat-image-caption { font-size:11px;color:var(--text-3);overflow-wrap:anywhere; }
+.chat-msg.poll-message { max-width:min(88%,680px);padding:8px;border:0;background:transparent!important;box-shadow:none; }
+.poll-card { width:min(100%,540px);padding:16px;border:1px solid var(--border);border-radius:17px;background:var(--surface);box-shadow:0 5px 18px rgba(13,35,82,.06); }
+.poll-card-label { margin-bottom:6px;color:var(--accent);font-size:9px;font-weight:800;letter-spacing:.12em; }
+.poll-question { margin-bottom:12px;color:var(--text);font-size:14px;font-weight:700;line-height:1.45; }
+.poll-options { display:flex;flex-direction:column;gap:8px; }
+.poll-option-btn { display:block;width:100%;min-height:42px;margin:0;padding:10px 12px;text-align:left;border:1px solid var(--border)!important;border-radius:12px!important;background:var(--surface-2)!important;color:var(--text);position:relative;overflow:hidden;cursor:pointer; }
+.poll-option-btn:hover { border-color:color-mix(in srgb,var(--accent) 42%,var(--border))!important;background:color-mix(in srgb,var(--accent-soft) 35%,var(--surface))!important; }
+.poll-option-btn.selected { border-color:color-mix(in srgb,var(--accent) 52%,var(--border))!important;background:color-mix(in srgb,var(--accent-soft) 56%,var(--surface))!important; }
+.poll-option-btn .poll-bar { position:absolute;inset:0 auto 0 0;z-index:0;border-radius:inherit;background:color-mix(in srgb,var(--accent) 9%,transparent);transition:width .25s ease; }
+.poll-option-content { position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:10px; }
+.poll-option-label { font-size:12px;font-weight:600; }
+.poll-option-result { flex:0 0 auto;color:var(--text-3);font-size:10px;font-weight:650; }
+.poll-card-foot { margin-top:10px;color:var(--text-3);font-size:10px; }
+.poll-builder { gap:14px; }
+.poll-builder-heading { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }
+.poll-builder-options { display:grid;gap:8px; }
+.poll-choice-row { display:flex;gap:8px;align-items:center; }
+.poll-choice-row input { flex:1;min-width:0; }
+.poll-remove-choice { width:38px;height:38px;padding:0;border-radius:11px!important;font-size:19px; }
+.poll-add-choice { align-self:flex-start;margin-top:9px; }
+.poll-builder .field-hint { font-size:11px; }
+@media(max-width:560px) {
+  .poll-card { padding:13px; }
+  .chat-msg.poll-message { max-width:96%; }
+  .group-back { padding:8px 10px; }
+}
 </style>
 </head>
 <body>
@@ -271,7 +303,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
     }, [
       el("div", { style: "display:flex;align-items:center;gap:12px;" }, [
         el("button", { 
-          class: "btn btn-ghost btn-sm", 
+          class: "btn btn-ghost btn-sm group-back", 
           style: "display:flex;align-items:center;gap:6px;font-weight:600;",
           onclick: () => { 
             activeGroupId = null; 
@@ -340,8 +372,9 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       
       let contentNode = el("div", {}, [msg.text]);
       if (msg.type === "image") {
-        contentNode = el("div", {}, [
-          el("img", { src: msg.url, style: "max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;" })
+        contentNode = el("div", { class: "chat-image-wrap" }, [
+          el("img", { src: msg.url, alt: msg.text || "Shared image", loading: "lazy", class: "chat-image-preview" }),
+          msg.text && msg.text !== "Shared an image" ? el("span", { class: "chat-image-caption" }, [msg.text]) : null,
         ]);
       } else if (msg.type === "poll") {
         const pollOptions = Array.isArray(msg.options) ? msg.options : [];
@@ -382,7 +415,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
         ]);
       }
 
-      chatMsgs.appendChild(el("div", { class: "chat-msg" + (isMine ? " mine" : "") }, [
+      chatMsgs.appendChild(el("div", { class: "chat-msg" + (isMine ? " mine" : "") + (msg.type === "poll" ? " poll-message" : "") }, [
         el("div", { class: "chat-meta" }, ["@" + msg.sender + " · " + (msg.time || "")]),
         contentNode
       ]));
@@ -513,6 +546,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
     });
     let choices = ["", ""];
     const choicesWrap = el("div", { class: "poll-builder-options" });
+    const choiceCount = el("span", { class: "faint" }, ["2 of 10"]);
     const hint = el("div", { class: "field-hint" }, ["Add 2 to 10 choices. Students can change their vote."]);
     const addChoice = el("button", { type: "button", class: "btn btn-ghost btn-sm poll-add-choice" }, ["＋ Add a choice"]);
     const error = el("div", { class: "field-error hidden", role: "alert" }, ["Enter a question and at least two choices."]);
@@ -553,7 +587,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       el("div", { class: "field" }, [
         el("div", { class: "poll-builder-heading" }, [
           el("label", {}, ["Choices"]),
-          el("span", { class: "faint" }, [() => choices.length + " of 10"]),
+          choiceCount,
         ]),
         choicesWrap,
         addChoice,
@@ -565,9 +599,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
         el("button", { type: "submit", class: "btn btn-primary" }, ["Post poll"]),
       ]),
     ]);
-    // Keep the choice count live without replacing input nodes.
-    const countLabel = qs(".poll-builder-heading .faint", form);
-    function updateCount() { countLabel.textContent = choices.length + " of 10"; }
+    const updateCount = () => { choiceCount.textContent = choices.length + " of 10"; };
     const originalPaintChoices = paintChoices;
     paintChoices = function (focusIndex) { originalPaintChoices(focusIndex); updateCount(); };
     paintChoices();
