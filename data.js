@@ -7,6 +7,7 @@
 // Kenyan medical & health-sciences schools, with which programmes each offers.
 // Students elsewhere pick from the worldwide list in data/universities/.
 const UNIVERSITIES = [
+  { id: "kmtc",    name: "Kenya Medical Training College",                    abbreviation: "KMTC",    location: "Nationwide", type: "Public" },
   { id: "uon",     name: "University of Nairobi",                             abbreviation: "UoN",     location: "Nairobi",  type: "Public"  },
   { id: "moi",     name: "Moi University",                                    abbreviation: "Moi",     location: "Eldoret",  type: "Public"  },
   { id: "ku",      name: "Kenyatta University",                               abbreviation: "KU",      location: "Nairobi",  type: "Public"  },
@@ -21,7 +22,6 @@ const UNIVERSITIES = [
   { id: "kemu",    name: "Kenya Methodist University",                        abbreviation: "KeMU",    location: "Meru",     type: "Private" },
   { id: "uzima",   name: "Uzima University",                                  abbreviation: "Uzima",   location: "Kisumu",   type: "Private" },
   { id: "aku",     name: "Aga Khan University (Nairobi)",                     abbreviation: "AKU",     location: "Nairobi",  type: "Private" },
-  { id: "kmtc",    name: "Kenya Medical Training College",                    abbreviation: "KMTC",    location: "Nationwide", type: "Public" },
   { id: "usiu",    name: "United States International University",            abbreviation: "USIU-A",  location: "Nairobi",  type: "Private" },
   { id: "strathmore", name: "Strathmore University",                          abbreviation: "SU",      location: "Nairobi",  type: "Private" },
   { id: "daystar", name: "Daystar University",                                abbreviation: "Daystar", location: "Nairobi",  type: "Private" },
