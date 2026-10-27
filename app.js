@@ -1262,10 +1262,19 @@
   function resourceCardNode(r) {
     var author = r.author;
     var ts = typeStyle(r.type);
+    var ext = fileExt(r.file_name);
+    var previewUrl = r.file_path ? api.fileUrl(r.file_path) : "";
+    var preview = "";
+    if (previewUrl && ext === "PDF") {
+      preview = el("iframe", { class: "rc-document-preview", src: previewUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH", title: "Preview of " + r.title, loading: "lazy", tabindex: "-1" });
+    } else if (previewUrl && /^(PNG|JPG|JPEG|WEBP|GIF)$/.test(ext)) {
+      preview = el("img", { class: "rc-image-preview", src: previewUrl, alt: "Preview of " + r.title, loading: "lazy" });
+    }
     return el("a", { class: "card resource-card", href: "resource.html?id=" + encodeURIComponent(r.id), style: "--tc:" + ts.color + ";--tc-soft:" + ts.soft }, [
       el("div", { class: "rc-cover", "aria-hidden": "true" }, [
+        preview || el("span", { class: "rc-doc-mark" }, ["▤"]),
         el("span", { class: "rc-type" }, [r.type]),
-        el("span", { class: "rc-ext" }, [fileExt(r.file_name)]),
+        el("span", { class: "rc-ext" }, [ext]),
       ]),
       el("div", { class: "title" }, [r.title]),
       el("div", { class: "meta" }, [r.unit + (author && uniLabel(author) ? " · " + uniLabel(author) : "")]),
