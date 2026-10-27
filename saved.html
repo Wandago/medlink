@@ -8,17 +8,48 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#FFFFFF">
-<title>Saved — MedLink KE</title>
+<title>My Library — MedLink KE</title>
 <script src="theme.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
+<style>
+  .my-library-intro { margin: 0 0 26px; color: var(--muted, #667085); font-size: 14px; line-height: 1.55; }
+  .saved-section { margin-top: 28px; }
+  .saved-section-head { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .saved-section-title { margin:0; font-size:19px; }
+  .saved-section-copy { margin:4px 0 0; color:var(--muted, #667085); font-size:13px; line-height:1.5; }
+  .saved-count { flex:0 0 auto; border-radius:999px; padding:5px 10px; background:var(--surface-2, #F2F4F7); color:var(--muted, #667085); font-size:12px; font-weight:600; }
+  @media (max-width:520px) { .saved-section-head { align-items:flex-start; } }
+</style>
 </head>
 <body>
 <main id="page" hidden>
 <div class="fade-in">
-  <h1 class="disp" style="font-size:24px;margin:0 0 20px;">Saved</h1>
-  <div class="grid grid-fill-230" id="grid"></div>
+  <h1 class="disp" style="font-size:24px;margin:0 0 6px;">My Library</h1>
+  <p class="my-library-intro">Your personal collection of resources saved from across MedLink.</p>
+
+  <section class="saved-section" aria-labelledby="papersTitle">
+    <div class="saved-section-head">
+      <div>
+        <h2 class="disp saved-section-title" id="papersTitle">Past papers</h2>
+        <p class="saved-section-copy">Past papers you’ve saved for revision.</p>
+      </div>
+      <span class="saved-count" id="papersCount">0 papers</span>
+    </div>
+    <div class="grid grid-fill-230" id="papersGrid"></div>
+  </section>
+
+  <section class="saved-section" aria-labelledby="notesTitle">
+    <div class="saved-section-head">
+      <div>
+        <h2 class="disp saved-section-title" id="notesTitle">Notes</h2>
+        <p class="saved-section-copy">Notes, summaries, slides, MCQs and other study resources you’ve saved.</p>
+      </div>
+      <span class="saved-count" id="notesCount">0 resources</span>
+    </div>
+    <div class="grid grid-fill-230" id="notesGrid"></div>
+  </section>
 </div>
 </main>
 
@@ -27,12 +58,22 @@
 <script src="app.js"></script>
 <script>
 MedLink.run({ page: "saved" }, async ({ api }) => {
-  const grid = qs("#grid");
-  grid.appendChild(MedLink.loadingState());
-  const list = await api.savedResources();
-  grid.replaceChildren(...(list.length ? list.map(MedLink.resourceCardNode)
-    : [MedLink.emptyState("Nothing saved yet. Tap 🔖 Save on any resource to keep it here.",
-        el("a", { href: "study.html", class: "btn btn-ghost btn-sm" }, ["Browse the library"]))]));
+  const papersGrid = qs("#papersGrid");
+  const notesGrid = qs("#notesGrid");
+  papersGrid.appendChild(MedLink.loadingState());
+  notesGrid.appendChild(MedLink.loadingState());
+
+  const saved = await api.savedResources();
+  const papers = saved.filter(resource => resource.type === "Past Paper");
+  const notes = saved.filter(resource => resource.type !== "Past Paper");
+
+  qs("#papersCount").textContent = `${papers.length} paper${papers.length === 1 ? "" : "s"}`;
+  qs("#notesCount").textContent = `${notes.length} resource${notes.length === 1 ? "" : "s"}`;
+
+  papersGrid.replaceChildren(...(papers.length ? papers.map(MedLink.resourceCardNode)
+    : [MedLink.emptyState("No saved past papers yet. Save a past paper from the Study Library or Exam Bank to keep it here.")]));
+  notesGrid.replaceChildren(...(notes.length ? notes.map(MedLink.resourceCardNode)
+    : [MedLink.emptyState("No saved notes yet. Save notes or other study resources to keep them here.")]));
 });
 </script>
 </body>
