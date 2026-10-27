@@ -122,6 +122,9 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
       if (!f) return MedLink.toast("Choose a file to upload.", "error");
       if (f.size > MAX_BYTES) return MedLink.toast("That file is over 20 MB.", "error");
       if (title.value.trim().length < 3) return MedLink.toast("Give it a title (at least 3 characters).", "error");
+      if (type.value === "Past Paper" && (
+        institution.value.trim().length < 2 || course.value.trim().length < 2 || !academicLevel.value.trim()
+      )) return MedLink.toast("Enter the university or institution, course, and relevant year or level.", "error");
       submit.disabled = true; submit.textContent = "Uploading…";
       try {
         const row = await api.uploadResource({
