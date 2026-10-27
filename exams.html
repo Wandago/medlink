@@ -105,11 +105,81 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
   const papersBox = qs("#tab-papers");
   const paperList = el("div");
   const paperTitle = el("input", { id: "paper-upload-title", type: "text", maxlength: "140", minlength: "3", required: true, placeholder: "e.g. Anatomy II — End of Semester Exam", "aria-label": "Past paper title" });
-  const paperInstitution = el("input", { id: "paper-upload-institution", type: "text", maxlength: "120", minlength: "2", required: true, placeholder: "e.g. University of Nairobi", "aria-label": "University or institution" });
+  const OTHER_UNIVERSITY = "__other";
+  const isCuratedUniversity = id => UNIVERSITIES.some(u => u.id === id);
+  let paperUniversityId = isCuratedUniversity(me.university_id) ? me.university_id
+    : (me.university_name ? "" : (UNIVERSITIES[0] && UNIVERSITIES[0].id) || "");
+  let otherUniversityName = paperUniversityId ? "" : (me.university_name || "");
+  const paperUniversity = el("select", { id: "paper-upload-university", required: true, "aria-label": "University or institution" });
+  const paperUniversityOther = el("input", { id: "paper-upload-university-other", type: "text", maxlength: "120", minlength: "3", placeholder: "Type your institution's full name", "aria-label": "Other university or institution" });
   const paperUnit = el("input", { id: "paper-upload-unit", type: "text", maxlength: "120", minlength: "1", required: true, placeholder: "e.g. Human Anatomy", "aria-label": "Unit or subject" });
-  const paperCourse = el("input", { id: "paper-upload-course", type: "text", maxlength: "120", minlength: "2", required: true, placeholder: "e.g. MBChB, BSc Nursing", "aria-label": "Course or programme" });
+  const paperCourse = el("select", { id: "paper-upload-course", required: true, "aria-label": "Course or programme" });
   const paperLevel = el("input", { id: "paper-upload-level", type: "text", maxlength: "60", minlength: "1", required: true, placeholder: "e.g. Year 2, Clinical years, Level 300", "aria-label": "Relevant year or level" });
   const paperFile = el("input", { id: "paper-upload-file", type: "file", accept: "application/pdf,.pdf", required: true, "aria-label": "PDF past paper" });
+
+  const courseChoicesForUniversity = universityId => {
+    if (!universityId) return COURSES;
+    const isKMTC = universityId === "kmtc";
+    return COURSES.filter(c => {
+      const belongs = universityOffersCourse(universityId, c.id);
+      return isKMTC ? (belongs || COURSE_CATEGORIES.KMTC.includes(c.id)) : belongs;
+    });
+  };
+  const renderPaperUniversity = () => {
+    paperUniversity.replaceChildren(
+      ...UNIVERSITIES.map(u => el("option", { value: u.id }, [`${u.name} (${u.abbreviation})`])),
+      el("option", { value: OTHER_UNIVERSITY }, ["My institution isn't listed…"]),
+    );
+    const isOther = !isCuratedUniversity(paperUniversityId);
+    paperUniversity.value = isOther ? OTHER_UNIVERSITY : paperUniversityId;
+    paperUniversityOther.hidden = !isOther;
+    paperUniversityOther.required = isOther;
+    paperUniversityOther.value = isOther ? otherUniversityName : "";
+  };
+  const renderPaperCourses = requestedCourseId => {
+    const universityId = isCuratedUniversity(paperUniversityId) ? paperUniversityId : "";
+    const courses = courseChoicesForUniversity(universityId);
+    const placeholder = el("option", { value: "", disabled: true }, ["Select your course or program…"]);
+    const selectedCourseId = courses.some(c => c.id === requestedCourseId) ? requestedCourseId : "";
+    if (universityId === "kmtc") {
+      const diploma = el("optgroup", { label: "——— DIPLOMA COURSES ———" });
+      const higherDiploma = el("optgroup", { label: "——— HIGHER DIPLOMA COURSES ———" });
+      const general = el("optgroup", { label: "——— GENERAL COURSES ———" });
+      courses.forEach(c => {
+        const option = el("option", { value: c.id }, [c.name]);
+        if (KMTC_DIPLOMA.includes(c.id)) diploma.appendChild(option);
+        else if (KMTC_HIGHER_DIPLOMA.includes(c.id)) higherDiploma.appendChild(option);
+        else general.appendChild(option);
+      });
+      paperCourse.replaceChildren(
+        placeholder,
+        ...(diploma.children.length ? [diploma] : []),
+        ...(higherDiploma.children.length ? [higherDiploma] : []),
+        ...(general.children.length ? [general] : []),
+      );
+    } else {
+      paperCourse.replaceChildren(placeholder, ...courses.map(c => el("option", { value: c.id }, [c.name])));
+    }
+    paperCourse.value = selectedCourseId;
+  };
+  renderPaperUniversity();
+  renderPaperCourses(me.course_id || "");
+  paperUniversity.addEventListener("change", () => {
+    const wasOther = paperUniversity.value === OTHER_UNIVERSITY;
+    if (paperUniversity.value === OTHER_UNIVERSITY) {
+      paperUniversityId = "";
+      otherUniversityName = wasOther ? paperUniversityOther.value : "";
+    } else {
+      paperUniversityId = paperUniversity.value;
+      otherUniversityName = "";
+    }
+    renderPaperUniversity();
+    renderPaperCourses("");
+    if (paperUniversity.value === OTHER_UNIVERSITY) paperUniversityOther.focus();
+  });
+  paperUniversityOther.addEventListener("input", () => {
+    otherUniversityName = paperUniversityOther.value.replace(/\\s+/g, " ").trimStart().slice(0, 120);
+  });
   const paperSubmit = el("button", { class: "btn btn-primary", type: "submit" }, ["Upload past paper"]);
   const adminPaperLink = role ? el("a", { class: "btn btn-ghost btn-sm", href: "admin.html#exams" }, ["Admin tools"]) : null;
   const paperUploadForm = el("form", { class: "card pad form-stack", style: "margin-bottom:16px" }, [
@@ -122,7 +192,12 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
     ]),
     el("div", { class: "grid grid-fill-220" }, [
       el("div", { class: "field" }, [el("label", { for: "paper-upload-title" }, ["Paper title *"]), paperTitle]),
-      el("div", { class: "field" }, [el("label", { for: "paper-upload-institution" }, ["University / institution *"]), paperInstitution]),
+      el("div", { class: "field" }, [
+        el("label", { for: "paper-upload-university" }, ["University / institution *"]),
+        paperUniversity,
+        el("label", { for: "paper-upload-university-other" }, ["If not listed, enter institution name"]),
+        paperUniversityOther,
+      ]),
       el("div", { class: "field" }, [el("label", { for: "paper-upload-unit" }, ["Unit *"]), paperUnit]),
       el("div", { class: "field" }, [el("label", { for: "paper-upload-course" }, ["Course *"]), paperCourse]),
       el("div", { class: "field" }, [el("label", { for: "paper-upload-level" }, ["Year / level *"]), paperLevel]),
@@ -152,8 +227,12 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
   };
   paperUploadForm.addEventListener("submit", async event => {
     event.preventDefault();
-    if (paperInstitution.value.trim().length < 2 || !paperUnit.value.trim() || paperCourse.value.trim().length < 2 || !paperLevel.value.trim()) {
-      MedLink.toast("Enter the university or institution, unit, course, and relevant year or level.", "error");
+    const institutionName = paperUniversity.value === OTHER_UNIVERSITY
+      ? paperUniversityOther.value.trim()
+      : (UNIVERSITIES.find(u => u.id === paperUniversity.value) || {}).name || "";
+    const selectedCourse = COURSES.find(c => c.id === paperCourse.value);
+    if (!institutionName || !paperUnit.value.trim() || !selectedCourse || !paperLevel.value.trim()) {
+      MedLink.toast("Choose the university and course, and enter the unit and relevant year or level.", "error");
       return;
     }
     const file = paperFile.files && paperFile.files[0];
@@ -169,9 +248,9 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
     try {
       await api.uploadResource({
         title: paperTitle.value.trim(),
-        institution: paperInstitution.value.trim(),
+        institution: institutionName,
         unit: paperUnit.value.trim(),
-        course: paperCourse.value.trim(),
+        course: selectedCourse.name,
         academic_level: paperLevel.value.trim(),
         type: "Past Paper",
         description: "Shared from the Exam Bank.",
