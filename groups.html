@@ -124,6 +124,32 @@
   .chat-msg.poll-message { max-width:96%; }
   .group-back { padding:8px 10px; }
 }
+
+/* Explicit popover visibility for the three-dot chat actions */
+.chat-menu-wrapper { z-index:20; }
+.chat-menu-dropdown[hidden] { display:none!important; }
+.chat-menu-dropdown:not([hidden]) {
+  display:flex!important;
+  position:absolute;
+  bottom:calc(100% + 10px);
+  left:0;
+  z-index:1001;
+  min-width:190px;
+  padding:6px;
+  gap:3px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface);
+  box-shadow:0 14px 34px rgba(13,35,82,.16);
+}
+.chat-menu-dropdown button {
+  min-height:42px;
+  border-radius:10px;
+  color:var(--text);
+  white-space:nowrap;
+}
+.chat-menu-dropdown button:hover { background:var(--surface-2); }
+.chat-attach-btn[aria-expanded="true"] { background:var(--accent-strong); }
 </style>
 </head>
 <body>
@@ -189,7 +215,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
 
   document.addEventListener("click", event => {
     if (event.target.closest && event.target.closest(".chat-menu-wrapper")) return;
-    qsa(".chat-menu-dropdown.show").forEach(menu => menu.classList.remove("show"));
+    qsa(".chat-menu-dropdown:not([hidden])").forEach(menu => { menu.hidden = true; const trigger = qs(".chat-attach-btn", menu.parentElement); if (trigger) trigger.setAttribute("aria-expanded", "false"); });
   });
 
   // Handle direct hash navigation if user refreshes inside a group page
@@ -479,16 +505,16 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       reader.readAsDataURL(file);
     });
 
-    const menuDropdown = el("div", { class: "chat-menu-dropdown", role: "menu" }, [
+    const menuDropdown = el("div", { class: "chat-menu-dropdown", role: "menu", hidden: true }, [
       el("button", {
         type: "button",
         role: "menuitem",
-        onclick: () => { menuDropdown.classList.remove("show"); imagePicker.click(); }
+        onclick: () => { menuDropdown.hidden = true; plusBtn.setAttribute("aria-expanded", "false"); imagePicker.click(); }
       }, ["▧  Share image"]),
       el("button", {
         type: "button",
         role: "menuitem",
-        onclick: () => { menuDropdown.classList.remove("show"); openPollModal(g); }
+        onclick: () => { menuDropdown.hidden = true; plusBtn.setAttribute("aria-expanded", "false"); openPollModal(g); }
       }, ["▤  Create poll"]),
     ]);
 
@@ -502,7 +528,8 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       onclick: event => {
         event.preventDefault();
         event.stopPropagation();
-        const isOpen = menuDropdown.classList.toggle("show");
+        const isOpen = menuDropdown.hidden;
+        menuDropdown.hidden = !isOpen;
         plusBtn.setAttribute("aria-expanded", String(isOpen));
       }
     }, ["⋮"]);
