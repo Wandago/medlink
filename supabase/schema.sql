@@ -280,6 +280,9 @@ create table if not exists public.resources (
   unit        text not null check (char_length(unit) between 1 and 120),
   type        text not null check (type in ('Notes', 'Summary', 'Past Paper', 'MCQ', 'Practical Guide', 'Slides', 'Other')),
   description text not null default '' check (char_length(description) <= 1000),
+  institution text not null default '' check (char_length(institution) <= 120),
+  course      text not null default '' check (char_length(course) <= 120),
+  academic_level text not null default '' check (char_length(academic_level) <= 60),
   file_path   text not null,
   file_name   text not null,
   file_type   text not null default '',
@@ -287,6 +290,19 @@ create table if not exists public.resources (
   views       integer not null default 0,
   created_at  timestamptz not null default now()
 );
+alter table public.resources add column if not exists institution text not null default '';
+alter table public.resources add column if not exists course text not null default '';
+alter table public.resources add column if not exists academic_level text not null default '';
+alter table public.resources drop constraint if exists resources_past_paper_metadata_check;
+alter table public.resources add constraint resources_past_paper_metadata_check
+  check (
+    type <> 'Past Paper' or (
+      char_length(trim(institution)) between 2 and 120
+      and char_length(trim(unit)) between 1 and 120
+      and char_length(trim(course)) between 2 and 120
+      and char_length(trim(academic_level)) between 1 and 60
+    )
+  ) not valid;
 create index if not exists resources_created_idx on public.resources (created_at desc);
 create index if not exists resources_unit_idx    on public.resources (unit);
 alter table public.resources enable row level security;
