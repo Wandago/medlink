@@ -181,7 +181,7 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
     if (paperUniversity.value === OTHER_UNIVERSITY) paperUniversityOther.focus();
   });
   paperUniversityOther.addEventListener("input", () => {
-    otherUniversityName = paperUniversityOther.value.replace(/\\s+/g, " ").trimStart().slice(0, 120);
+    otherUniversityName = paperUniversityOther.value.replace(/\s+/g, " ").trimStart().slice(0, 120);
   });
   const paperSubmit = el("button", { class: "btn btn-primary", type: "submit" }, ["Upload past paper"]);
   const adminPaperLink = role ? el("a", { class: "btn btn-ghost btn-sm", href: "admin.html#exams" }, ["Admin tools"]) : null;
