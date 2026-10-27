@@ -83,13 +83,15 @@
         <div class="field-hint" id="uni-context"></div>
         <div class="field-error hidden" id="err-university">Choose your institution, or type its full name.</div>
       </div>
-      <div class="field">
+      <div class="field" id="f-course">
         <label for="in-course">Course / Program <span class="req">*</span></label>
         <select id="in-course"></select>
+        <div class="field-error hidden" id="err-course">Please select your course or program.</div>
       </div>
-      <div class="field" style="margin-bottom:0;">
+      <div class="field" id="f-year" style="margin-bottom:0;">
         <label for="in-year">Year of Study <span class="req">*</span></label>
         <select id="in-year"></select>
+        <div class="field-error hidden" id="err-year">Please select your year of study.</div>
       </div>
     </div>
 
@@ -168,7 +170,7 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
     name: cu.fullName || [cu.firstName, cu.lastName].filter(Boolean).join(" ") || "",
     username: (cu.username || emailLocal || "").toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 20),
     photoColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
-    country: guessCountry(), universityId: "", universityName: "", courseId: "mbchb", year: "Year 1",
+    country: guessCountry(), universityId: "", universityName: "", courseId: "", year: "",
     units: [], interests: [],
   };
   const touched = {};
@@ -217,13 +219,15 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
   function renderCourseOptions() {
     const uni = isCurated(data.universityId) ? data.universityId : "";
     const list = coursesForUniversity(uni);
-    const valid = list.some(c => c.id === data.courseId);
-    if (!valid && list.length) data.courseId = list[0].id;
+    
+    // If no course selected yet, insert a placeholder option
+    const courseOptions = [];
+    if (!data.courseId) {
+      courseOptions.push(el("option", { value: "", disabled: true, selected: true }, ["Select your course or program…"]));
+    }
 
     if (uni === "kmtc") {
-      // Group KMTC courses into Diploma and Higher Diploma optgroups
-      courseSelect.replaceChildren();
-      
+      courseSelect.replaceChildren(...courseOptions);
       const dipGroup = el("optgroup", { label: "——— DIPLOMA COURSES ———" });
       const hdGroup = el("optgroup", { label: "——— HIGHER DIPLOMA COURSES ———" });
       const otherGroup = el("optgroup", { label: "——— GENERAL COURSES ———" });
@@ -243,14 +247,36 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
       if (hdGroup.children.length) courseSelect.appendChild(hdGroup);
       if (otherGroup.children.length) courseSelect.appendChild(otherGroup);
     } else {
-      courseSelect.replaceChildren(...list.map(c => el("option", { value: c.id }, [c.name])));
+      courseSelect.replaceChildren(
+        ...courseOptions,
+        ...list.map(c => el("option", { value: c.id }, [c.name]))
+      );
     }
-    courseSelect.value = data.courseId;
+    courseSelect.value = data.courseId || "";
+  }
+  
+  function renderYearOptions() {
+    const valid = data.courseId ? yearsForCourse(data.courseId) : [];
+    const yearOptions = [];
+    if (!data.year) {
+      yearOptions.push(el("option", { value: "", disabled: true, selected: true }, ["Select year of study…"]));
+    }
+    yearSelect.replaceChildren(
+      ...yearOptions,
+      ...valid.map(y => el("option", { value: y }, [y]))
+    );
+    yearSelect.value = data.year || "";
   }
   function validateUniversity() {
-    const ok = isCurated(data.universityId) || data.universityName.trim().length >= 3;
-    qs("#err-university").classList.toggle("hidden", ok);
-    return ok;
+    const uniOk = isCurated(data.universityId) || data.universityName.trim().length >= 3;
+    qs("#err-university").classList.toggle("hidden", uniOk);
+    const courseOk = !!data.courseId;
+    qs("#err-course").classList.toggle("hidden", courseOk);
+    qs("#f-course").classList.toggle("error", !courseOk);
+    const yearOk = !!data.year;
+    qs("#err-year").classList.toggle("hidden", yearOk);
+    qs("#f-year").classList.toggle("error", !yearOk);
+    return uniOk && courseOk && yearOk;
   }
   uniSelect.addEventListener("change", () => {
     if (uniSelect.value === OTHER) { data.universityId = ""; data.universityName = ""; }
@@ -265,12 +291,7 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
     data.universityId = data.universityName.trim() ? universitySlug(data.country, data.universityName.trim()) : "";
     qs("#err-university").classList.add("hidden");
   });
-  function renderYearOptions() {
-    const valid = yearsForCourse(data.courseId);
-    yearSelect.replaceChildren(...valid.map(y => el("option", { value: y }, [y])));
-    if (!valid.includes(data.year)) data.year = valid[0];
-    yearSelect.value = data.year;
-  }
+
   courseSelect.addEventListener("change", () => {
     data.courseId = courseSelect.value;
     renderYearOptions();
