@@ -152,6 +152,10 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
   };
   paperUploadForm.addEventListener("submit", async event => {
     event.preventDefault();
+    if (paperInstitution.value.trim().length < 2 || !paperUnit.value.trim() || paperCourse.value.trim().length < 2 || !paperLevel.value.trim()) {
+      MedLink.toast("Enter the university or institution, unit, course, and relevant year or level.", "error");
+      return;
+    }
     const file = paperFile.files && paperFile.files[0];
     if (!file || (!/^application\/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name))) {
       MedLink.toast("Choose a PDF past paper to upload.", "error");
