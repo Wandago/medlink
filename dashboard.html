@@ -8,30 +8,61 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <title>Dashboard — MedLink KE</title>
-<link rel="stylesheet" href="admin.css">
+<script src="theme.js"></script>
+<link rel="stylesheet" href="styles.css">
+<style>
+.dashboard-page { max-width:1320px; margin:0 auto; }
+.dashboard-grid { display:grid; grid-template-columns:minmax(0,1fr) 310px; align-items:start; gap:22px; }
+.main-column { min-width:0; }
+.dashboard-grid .rail { min-width:0; }
+.dashboard-section { margin-top:26px; }
+.dashboard-empty { padding:20px; text-align:center; color:var(--text-3); font-size:13px; }
+.profile-mini-top { display:flex;align-items:center;gap:12px;margin-bottom:14px; }
+.profile-mini-name { font-weight:750;font-size:14px; }
+.profile-mini-meta { margin-top:3px;color:var(--text-3);font-size:11.5px;line-height:1.45; }
+.profile-mini-foot { display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:12px;border-top:1px solid var(--border); }
+.profile-mini-points { color:var(--text-2);font-size:12px; }
+.streak-card { background:linear-gradient(145deg,var(--surface),color-mix(in srgb,var(--orange-soft) 42%,var(--surface))); }
+.streak-card-top { display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px; }
+.streak-card-label { display:flex;align-items:center;gap:10px; }
+.streak-card-icon { width:40px;height:40px;display:grid;place-items:center;border-radius:13px;background:var(--orange-soft);font-size:21px; }
+.streak-card-count { font-size:15px;font-weight:800; }
+.streak-card-sub { margin-top:3px;color:var(--text-3);font-size:11px; }
+.streak-time { display:flex;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:11px;background:var(--surface);font-size:11.5px; }
+.streak-time strong { color:var(--text); }
+.upcoming-row { display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border); }
+.upcoming-row:last-child { border-bottom:0;padding-bottom:0; }
+.upcoming-date { flex:0 0 42px;text-align:center;border-radius:10px;background:var(--accent-soft);color:var(--accent-on-soft);padding:6px 4px;font-size:10px;font-weight:800; }
+.upcoming-title { min-width:0;font-size:12px;font-weight:700;line-height:1.4; }
+.upcoming-unit { margin-top:3px;color:var(--text-3);font-size:10.5px; }
+.community-mini { display:flex;align-items:center;gap:10px;min-width:0;padding:5px 0; }
+.community-mini-mark { width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;border-radius:11px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:800; }
+.community-mini-name { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:650; }
+.activity-mini { display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--border); }
+.activity-mini:last-child { border-bottom:0; }
+.activity-dot { width:7px;height:7px;flex:0 0 7px;margin-top:5px;border-radius:50%;background:var(--accent); }
+.activity-copy { min-width:0;font-size:11.5px;line-height:1.45; }
+.activity-copy small { display:block;margin-top:3px;color:var(--text-3);font-size:10.5px; }
+@media (max-width:1050px) {
+  .dashboard-grid { grid-template-columns:minmax(0,1fr) 280px;gap:16px; }
+}
+@media (max-width:850px) {
+  .dashboard-grid { grid-template-columns:1fr; }
+  .dashboard-grid .rail { position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px; }
+  .dashboard-grid .rail > * { margin:0!important; }
+}
+@media (max-width:560px) {
+  .dashboard-grid .rail { grid-template-columns:1fr; }
+  .hero-text { padding:22px!important; }
+}
+</style>
 </head>
 <body>
 
-<header class="topbar">
-  <div class="topbar-inner">
-    <div class="topbar-left">
-      <a href="dashboard.html" class="brand" aria-label="MedLink KE home">
-        <span class="brand-badge">⚡</span>
-        <span class="brand-name">MedLink KE</span>
-      </a>
-      <span class="topbar-divider"></span>
-      <nav class="topbar-nav" aria-label="Quick links">
-        <a href="dashboard.html" class="active">Dashboard</a>
-        <a href="study.html">Study Library</a>
-        <a href="exams.html">Exam Bank</a>
-        <a href="communities.html">Communities</a>
-      </nav>
-    </div>
-    <div class="topbar-right" id="topbarRight"></div>
-  </div>
-</header>
 
-<main class="page-container">
+
+<main id="page" hidden>
+<div class="dashboard-page">
 <div class="dashboard-grid">
   <div class="main-column">
     <div class="hero-carousel" id="hero">
@@ -66,6 +97,7 @@
     </div>
   </aside>
 </div>
+</div>
 </main>
 
 <script src="config.js"></script>
@@ -75,192 +107,282 @@
 MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
   const hour = new Date().getHours();
   const hello = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const first = me.full_name.split(" ")[0];
+  const first = (me.full_name || "student").split(" ")[0];
 
-  // ---- hero carousel ----
+  // Personalized home carousel
   const slides = [
-    { kicker: new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }),
-      title: `${hello}, ${first}`, text: `${courseName(me.course_id)} · ${me.year} · ${uniFull(me)}`,
+    {
+      kicker: new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }),
+      title: `${hello}, ${first}`,
+      text: [courseName(me.course_id), me.year, uniFull(me)].filter(Boolean).join(" · "),
       photo: MedLink.siteImageUrl("dashboard-banner"),
-      actions: [el("a", { class: "btn btn-white", href: "study.html" }, ["Open library"]), el("a", { class: "btn btn-ghost-white", href: "exams.html" }, ["Practice questions"])] },
-    { kicker: "Earn 20 MedPoints", title: "Share your notes, help your class.",
-      text: "Upload summaries, slides or past papers for your units — they stay in the library for the year below you.",
+      actions: [
+        el("a", { class: "btn btn-white", href: "study.html" }, ["Open library"]),
+        el("a", { class: "btn btn-ghost-white", href: "exams.html" }, ["Practice questions"]),
+      ],
+    },
+    {
+      kicker: "Share what you know",
+      title: "Help your class learn together.",
+      text: "Upload summaries, slides or past papers for your units so classmates can find them in the library.",
       photo: MedLink.siteImageUrl("hero-main"),
-      actions: [el("a", { class: "btn btn-lime", href: "study.html?upload=1", "data-track": "dash_upload" }, ["↑ Upload notes"])] },
-    { kicker: "Exam bank", title: "Practise with real exam-style MCQs.",
-      text: "Questions with explanations, grouped by subject. Your best scores are saved.",
+      actions: [el("a", { class: "btn btn-lime", href: "study.html?upload=1", "data-track": "dash_upload" }, ["↑ Upload notes"])],
+    },
+    {
+      kicker: "Exam bank",
+      title: "Practise with exam-style questions.",
+      text: "Work through questions by subject and keep track of your best scores.",
       photo: MedLink.siteImageUrl("feature-exams"),
-      actions: [el("a", { class: "btn btn-white", href: "exams.html", "data-track": "dash_practice" }, ["Start practising"])] },
+      actions: [el("a", { class: "btn btn-white", href: "exams.html", "data-track": "dash_practice" }, ["Start practising"])],
+    },
   ];
   const hero = qs("#hero"), dots = qs("#heroDots");
   let current = 0, timer = null;
-  slides.forEach((sl, i) => {
-    const photo = el("div", { class: "hero-photo" });
-    if (sl.photo) photo.style.backgroundImage = MedLink.cssUrl(sl.photo);
-    hero.appendChild(el("div", { class: "hero-slide" + (i === 0 ? " on" : "") }, [
-      el("div", { class: "hero-text" }, [el("div", { class: "kicker" }, [sl.kicker]), el("h2", {}, [sl.title]), el("p", {}, [sl.text]), el("div", { class: "hero-actions" }, sl.actions)]),
+  slides.forEach((slide, index) => {
+    const photo = el("div", { class: "hero-photo", "aria-hidden": "true" });
+    if (slide.photo) photo.style.backgroundImage = MedLink.cssUrl(slide.photo);
+    hero.appendChild(el("div", { class: "hero-slide" + (index === 0 ? " on" : "") }, [
+      el("div", { class: "hero-text" }, [
+        el("div", { class: "kicker" }, [slide.kicker]),
+        el("h2", {}, [slide.title]),
+        el("p", {}, [slide.text]),
+        el("div", { class: "hero-actions" }, slide.actions),
+      ]),
       photo,
     ]));
-    dots.appendChild(el("button", { type: "button", class: i === 0 ? "on" : null, "aria-label": "Slide " + (i + 1), onclick: () => { show(i); restart(); } }));
+    dots.appendChild(el("button", {
+      type: "button",
+      class: index === 0 ? "on" : null,
+      "aria-label": "Show dashboard slide " + (index + 1),
+      "aria-pressed": String(index === 0),
+      onclick: () => { show(index); restart(); },
+    }));
   });
-  function show(i) {
-    current = (i + slides.length) % slides.length;
-    hero.querySelectorAll(".hero-slide").forEach((el, idx) => el.classList.toggle("on", idx === current));
-    dots.querySelectorAll("button").forEach((el, idx) => el.classList.toggle("on", idx === current));
+  function show(index) {
+    current = (index + slides.length) % slides.length;
+    hero.querySelectorAll(".hero-slide").forEach((node, i) => node.classList.toggle("on", i === current));
+    dots.querySelectorAll("button").forEach((node, i) => {
+      node.classList.toggle("on", i === current);
+      node.setAttribute("aria-pressed", String(i === current));
+    });
   }
-  function restart() { clearInterval(timer); timer = setInterval(() => show(current + 1), 7000); }
-  hero.addEventListener("mouseenter", () => clearInterval(timer));
-  hero.addEventListener("mouseleave", restart);
-  restart();
-
-  // ---- streak and time spent tracking logic ----
-  const STORAGE_STREAK = "medlink_streak_" + me.id;
-  const STORAGE_TIME = "medlink_time_" + me.id;
-
-  let todayKey = new Date().toISOString().split("T")[0];
-  let timeData = {};
-  try { timeData = JSON.parse(localStorage.getItem(STORAGE_TIME) || "{}"); } catch(e){}
-  if (!timeData[todayKey]) timeData[todayKey] = 0;
-
-  // Increment active time every 10 seconds
-  setInterval(() => {
-    timeData[todayKey] = (timeData[todayKey] || 0) + 10;
-    try { localStorage.setItem(STORAGE_TIME, JSON.stringify(timeData)); } catch(e){}
-    updateStreakBanner();
-  }, 10000);
-
-  function getStreak() {
-    try {
-      const data = JSON.parse(localStorage.getItem(STORAGE_STREAK) || '{"count":1,"history":[]}');
-      const today = new Date().toISOString().split("T")[0];
-      if (!data.history.includes(today)) {
-        data.history.push(today);
-        data.count = data.history.length;
-        localStorage.setItem(STORAGE_STREAK, JSON.stringify(data));
-      }
-      return data;
-    } catch(e) {
-      return { count: 1, history: [todayKey] };
+  function restart() {
+    clearInterval(timer);
+    if (!document.hidden && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      timer = setInterval(() => show(current + 1), 8000);
     }
   }
+  hero.addEventListener("mouseenter", () => clearInterval(timer));
+  hero.addEventListener("focusin", () => clearInterval(timer));
+  hero.addEventListener("mouseleave", restart);
+  hero.addEventListener("focusout", restart);
+  document.addEventListener("visibilitychange", restart);
+  restart();
 
-  function formatDuration(sec) {
-    const hrs = Math.floor(sec / 3600);
-    const mins = Math.floor((sec % 3600) / 60);
-    if (hrs > 0) return `${hrs}hr ${mins}min`;
-    if (mins > 0) return `${mins} min`;
-    return `${sec} sec`;
+  // Track visible time and consecutive active days; hidden tabs don't add study time.
+  const STORAGE_STREAK = "medlink_streak_" + me.id;
+  const STORAGE_TIME = "medlink_time_" + me.id;
+  const dateKey = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+  const shiftDate = (key, amount) => {
+    const parts = key.split("-").map(Number);
+    const date = new Date(parts[0], parts[1] - 1, parts[2] + amount, 12);
+    return dateKey(date);
+  };
+  let todayKey = dateKey(new Date());
+  let timeData = {};
+  let streakData = { history: [] };
+  try { timeData = JSON.parse(localStorage.getItem(STORAGE_TIME) || "{}"); } catch (e) {}
+  try { streakData = JSON.parse(localStorage.getItem(STORAGE_STREAK) || '{"history":[]}'); } catch (e) {}
+  if (!streakData || !Array.isArray(streakData.history)) streakData = { history: [] };
+  if (!Number.isFinite(Number(timeData[todayKey]))) timeData[todayKey] = 0;
+
+  function streakCount() {
+    const active = new Set(streakData.history);
+    let day = active.has(todayKey) ? todayKey : shiftDate(todayKey, -1);
+    let total = 0;
+    while (active.has(day) && total < 3660) { total++; day = shiftDate(day, -1); }
+    return total;
   }
-
+  function recordActiveDay() {
+    if ((timeData[todayKey] || 0) < 60 || streakData.history.includes(todayKey)) return;
+    streakData.history.push(todayKey);
+    streakData.history = Array.from(new Set(streakData.history)).sort().slice(-3660);
+    try { localStorage.setItem(STORAGE_STREAK, JSON.stringify(streakData)); } catch (e) {}
+  }
+  function formatDuration(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours) return hours + " hr " + minutes + " min";
+    if (minutes) return minutes + " min";
+    return seconds + " sec";
+  }
   function updateStreakBanner() {
-    const streak = getStreak();
-    const activeSec = timeData[todayKey] || 0;
-    const host = qs("#streakHost");
-    if (!host) return;
-    host.innerHTML = "";
-    host.appendChild(el("div", { class: "rail-card streak-prominent-card", style: "background: linear-gradient(135deg, rgba(255,122,26,0.12) 0%, rgba(255,79,154,0.12) 100%); border: 1px solid rgba(255,122,26,0.3); padding: 16px; border-radius: 12px; position: relative;" }, [
-      el("div", { style: "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;" }, [
-        el("div", { style: "display: flex; align-items: center; gap: 8px;" }, [
-          el("span", { style: "font-size: 24px; animation: pulse 2s infinite;" }, ["🔥"]),
+    const activeSeconds = Number(timeData[todayKey] || 0);
+    qs("#streakHost").replaceChildren(el("div", { class: "rail-card streak-card" }, [
+      el("div", { class: "streak-card-top" }, [
+        el("div", { class: "streak-card-label" }, [
+          el("span", { class: "streak-card-icon", "aria-hidden": "true" }, ["🔥"]),
           el("div", {}, [
-            el("div", { style: "font-weight: 800; font-size: 16px; color: var(--text-color);" }, [streak.count + " Day Streak"]),
-            el("div", { style: "font-size: 11px; color: var(--muted-color);" }, ["Active study consistency"])
-          ])
+            el("div", { class: "streak-card-count" }, [streakCount() + " day streak"]),
+            el("div", { class: "streak-card-sub" }, [activeSeconds >= 60 ? "Today's study time is counting." : "Study for a minute to record today."]),
+          ]),
         ]),
         el("button", {
-          class: "btn btn-icon btn-sm",
-          title: "Study Calendar",
-          onclick: () => openCalendarModal()
-        }, [el("span", {}, ["📅"])])
+          type: "button", class: "icon-btn", title: "Study planner", "aria-label": "Open study planner",
+          onclick: () => { location.href = "planner.html"; },
+        }, ["▦"]),
       ]),
-      el("div", { style: "background: var(--card-bg, #fff); padding: 8px 12px; border-radius: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color);" }, [
-        el("span", { style: "color: var(--muted-color);" }, ["Time on MedLink today:"]),
-        el("span", { style: "font-weight: 700; color: var(--primary, #FF7A1A);" }, [formatDuration(activeSec)])
-      ])
+      el("div", { class: "streak-time" }, [
+        el("span", { class: "faint" }, ["Active time today"]),
+        el("strong", {}, [formatDuration(activeSeconds)]),
+      ]),
     ]));
   }
   updateStreakBanner();
 
-  function openCalendarModal() {
-    const streak = getStreak();
-    const modal = el("div", { class: "modal-backdrop", onclick: (e) => { if (e.target === modal) modal.remove(); } }, [
-      el("div", { class: "modal-card", style: "max-width: 400px; padding: 24px;" }, [
-        el("div", { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;" }, [
-          el("h3", {}, ["📅 Study Calendar & Streaks"]),
-          el("button", { class: "btn btn-ghost btn-sm", onclick: () => modal.remove() }, ["✕"])
-        ]),
-        el("p", { style: "font-size: 13px; color: var(--muted-color); margin-bottom: 16px;" }, [
-          `You have maintained a streak of ${streak.count} active study days on MedLink KE. Keep up the brilliant work!`
-        ]),
-        el("div", { style: "text-align: right;" }, [
-          el("button", { class: "btn btn-primary btn-sm", onclick: () => modal.remove() }, ["Close"])
-        ])
-      ])
-    ]);
-    document.body.appendChild(modal);
-  }
-
-  // ---- units grid ----
-  const units = data.units || [];
-  const resGrid = qs("#resGrid");
-  units.slice(0, 6).forEach(u => {
-    resGrid.appendChild(el("a", { class: "unit-card", href: `study.html?unit=${u.id}` }, [
-      el("div", { class: "unit-code" }, [u.code]),
-      el("div", { class: "unit-name" }, [u.name]),
-      el("div", { class: "unit-meta" }, [el("span", {}, [u.year || "Year 1"]), el("span", {}, ["Notes & past papers ›"])])
-    ]));
-  });
-
-  // ---- community feed / composer ----
-  const composer = qs("#composer");
-  composer.appendChild(el("div", { class: "composer-box" }, [
-    el("textarea", { placeholder: "Ask a medical question or share a clinical insight with your peers...", rows: 2, id: "feedInput" }),
-    el("div", { class: "composer-foot" }, [
-      el("span", { style: "font-size: 12px; color: var(--muted-color);" }, ["Visible to your university & course peers"]),
-      el("button", {
-        class: "btn btn-primary btn-sm",
-        onclick: async () => {
-          const body = qs("#feedInput").value.trim();
-          if (!body) return MedLink.toast("Please write something first.", "error");
-          try {
-            await api.createPost({ body });
-            qs("#feedInput").value = "";
-            MedLink.toast("Posted successfully!");
-            loadFeed();
-          } catch(err) { MedLink.toast(err.message, "error"); }
-        }
-      }, ["Post"])
-    ])
-  ]));
-
-  async function loadFeed() {
-    const list = qs("#feedList");
-    list.innerHTML = `<div style="padding:20px; text-align:center; color:var(--muted-color);">Loading discussions...</div>`;
-    try {
-      const posts = await api.listPosts();
-      list.innerHTML = "";
-      if (!posts.length) {
-        list.innerHTML = `<div style="padding:24px; text-align:center; color:var(--muted-color);">No discussions yet. Start the conversation above!</div>`;
-        return;
-      }
-      posts.forEach(p => {
-        list.appendChild(el("div", { class: "feed-item" }, [
-          el("div", { class: "feed-head" }, [
-            el("strong", {}, [p.author_name || "Medical Student"]),
-            el("span", { style: "font-size: 11px; color: var(--muted-color);" }, [new Date(p.created_at).toLocaleDateString()])
-          ]),
-          el("div", { class: "feed-body" }, [p.body]),
-          el("div", { class: "feed-foot" }, [
-            el("button", { class: "btn btn-ghost btn-xs", onclick: () => MedLink.toast("Liked!") }, ["❤️ " + (p.likes_count || 0)]),
-            el("a", { class: "btn btn-ghost btn-xs", href: `communities.html?post=${p.id}` }, ["💬 Reply"])
-          ])
-        ]));
-      });
-    } catch(e) {
-      list.innerHTML = `<div style="padding:20px; text-align:center; color:var(--muted-color);">Could not load discussions right now.</div>`;
+  setInterval(() => {
+    const newDay = dateKey(new Date());
+    if (newDay !== todayKey) {
+      todayKey = newDay;
+      if (!Number.isFinite(Number(timeData[todayKey]))) timeData[todayKey] = 0;
     }
+    if (document.visibilityState === "visible") {
+      timeData[todayKey] = Number(timeData[todayKey] || 0) + 10;
+      try { localStorage.setItem(STORAGE_TIME, JSON.stringify(timeData)); } catch (e) {}
+      recordActiveDay();
+      updateStreakBanner();
+    }
+  }, 10000);
+
+  // Upcoming items are only shown when the student has saved planner events.
+  const upcomingSection = qs("#upcomingSection");
+  let savedEvents = [];
+  try { savedEvents = JSON.parse(localStorage.getItem("medlink_planner_events_" + me.id) || "[]"); } catch (e) {}
+  const upcoming = savedEvents.filter(event => event.date >= todayKey).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
+  if (upcoming.length) {
+    upcomingSection.appendChild(el("div", { class: "rail-card" }, [
+      el("div", { class: "rail-head" }, [el("h3", {}, ["Coming up"]), el("a", { href: "planner.html" }, ["Planner"])]),
+      ...upcoming.map(event => {
+        const date = new Date(event.date + "T12:00:00");
+        return el("a", { class: "upcoming-row", href: "planner.html" }, [
+          el("span", { class: "upcoming-date" }, [date.toLocaleDateString(undefined, { day: "numeric", month: "short" })]),
+          el("span", {}, [
+            el("span", { class: "upcoming-title" }, [event.title]),
+            el("span", { class: "upcoming-unit" }, [event.unit || "Study plan"]),
+          ]),
+        ]);
+      }),
+    ]));
   }
-  loadFeed();
+
+  // The signed-in student's units, not a stale global catalogue property.
+  const units = Array.isArray(me.current_units) ? me.current_units : [];
+  const resGrid = qs("#resGrid");
+  if (units.length) {
+    units.slice(0, 6).forEach((unit, index) => {
+      resGrid.appendChild(el("a", { class: "card unit-card", href: "study.html?unit=" + encodeURIComponent(unit) }, [
+        el("div", { class: "unit-code" }, ["UNIT " + String(index + 1).padStart(2, "0")]),
+        el("div", { class: "unit-name" }, [unit]),
+        el("div", { class: "unit-meta" }, [
+          el("span", {}, [me.year || courseName(me.course_id)]),
+          el("span", {}, ["Notes & papers ›"]),
+        ]),
+      ]));
+    });
+  } else {
+    resGrid.appendChild(MedLink.emptyState("Choose your current units to see their resources here.",
+      el("a", { class: "btn btn-ghost btn-sm", href: "settings.html" }, ["Set my units"])));
+  }
+
+  // Personal profile card
+  const meCard = qs("#meCard");
+  const profileUrl = me.username ? "profile.html?u=" + encodeURIComponent(me.username) : "settings.html";
+  meCard.replaceChildren(
+    el("div", { class: "profile-mini-top" }, [
+      MedLink.avatarNode(me, "", false),
+      el("div", { style: "min-width:0" }, [
+        el("div", { class: "profile-mini-name" }, [me.full_name]),
+        el("div", { class: "profile-mini-meta" }, [MedLink.metaLine(me)]),
+      ]),
+    ]),
+    el("div", { class: "profile-mini-foot" }, [
+      el("span", { class: "profile-mini-points" }, ["MedPoints · "]),
+      el("strong", { id: "dashPoints" }, ["…"]),
+      el("a", { href: profileUrl, class: "btn btn-ghost btn-sm" }, ["View profile"]),
+    ]),
+  );
+  api.medPoints(me.id).then(points => { const out = qs("#dashPoints"); if (out) out.textContent = points.toLocaleString(); })
+    .catch(() => { const out = qs("#dashPoints"); if (out) out.textContent = "—"; });
+
+  // Communities joined by this student.
+  const communitiesHost = qs("#communitiesMini");
+  communitiesHost.appendChild(MedLink.loadingState());
+  try {
+    const [joinedIds, allCommunities] = await Promise.all([api.myCommunityIds(me.id), api.communities()]);
+    const joined = allCommunities.filter(community => joinedIds.has(community.id)).slice(0, 4);
+    communitiesHost.replaceChildren(...(joined.length ? joined.map(community => el("a", {
+      href: "communities.html?c=" + encodeURIComponent(community.id),
+      class: "community-mini",
+    }, [
+      el("span", { class: "community-mini-mark" }, [community.name.slice(0, 1)]),
+      el("span", { class: "community-mini-name" }, [community.name]),
+    ])) : [MedLink.emptyState("You haven't joined a community yet.",
+      el("a", { href: "communities.html", class: "btn btn-ghost btn-sm" }, ["Explore communities"]))]));
+  } catch (err) {
+    communitiesHost.replaceChildren(MedLink.emptyState("Communities are unavailable right now."));
+  }
+
+  // Recent activity is personal: the student's own notes and discussions.
+  const activityHost = qs("#activity");
+  activityHost.appendChild(MedLink.loadingState());
+  try {
+    const [posts, resources] = await Promise.all([
+      api.posts({ authorId: me.id, limit: 5 }),
+      api.resources({ authorId: me.id, limit: 5 }),
+    ]);
+    const recent = [
+      ...posts.map(post => ({
+        date: post.created_at,
+        title: "You shared a discussion",
+        href: post.community ? "communities.html?c=" + encodeURIComponent(post.community.id) : "communities.html",
+      })),
+      ...resources.map(resource => ({
+        date: resource.created_at,
+        title: "You shared " + resource.type.toLowerCase(),
+        href: "resource.html?id=" + encodeURIComponent(resource.id),
+      })),
+    ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+    activityHost.replaceChildren(...(recent.length ? recent.map(item => el("a", {
+      class: "activity-mini", href: item.href,
+    }, [
+      el("span", { class: "activity-dot", "aria-hidden": "true" }),
+      el("span", { class: "activity-copy" }, [
+        item.title,
+        el("small", {}, [timeAgo(item.date)]),
+      ]),
+    ])) : [MedLink.emptyState("Your recent posts and uploads will appear here.")]));
+  } catch (err) {
+    activityHost.replaceChildren(MedLink.emptyState("Recent activity is unavailable right now."));
+  }
+
+  // Shared post composer and discussion renderer.
+  const composer = qs("#composer");
+  const feedList = qs("#feedList");
+  composer.appendChild(MedLink.composerNode({
+    placeholder: "Ask a medical question or share a clinical insight with your peers…",
+    onPosted: post => {
+      const empty = qs(".empty-state", feedList);
+      if (empty) empty.remove();
+      feedList.prepend(MedLink.feedPostNode(post, { liked: new Set() }));
+    },
+  }));
+  feedList.appendChild(MedLink.loadingState());
+  try {
+    const posts = await api.posts({ limit: 8 });
+    await MedLink.renderPosts(feedList, posts, "No discussions yet. Start the conversation.");
+  } catch (err) {
+    feedList.replaceChildren(MedLink.emptyState("Discussions couldn't load. Please try again later."));
+  }
 });
 </script>
 </body>
