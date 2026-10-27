@@ -105,7 +105,10 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
   const papersBox = qs("#tab-papers");
   const paperList = el("div");
   const paperTitle = el("input", { id: "paper-upload-title", type: "text", maxlength: "140", minlength: "3", required: true, placeholder: "e.g. Anatomy II — End of Semester Exam", "aria-label": "Past paper title" });
-  const paperUnit = el("input", { id: "paper-upload-unit", type: "text", maxlength: "120", required: true, value: me.current_units[0] || "General", placeholder: "e.g. Human Anatomy", "aria-label": "Unit or subject" });
+  const paperInstitution = el("input", { id: "paper-upload-institution", type: "text", maxlength: "120", minlength: "2", required: true, placeholder: "e.g. University of Nairobi", "aria-label": "University or institution" });
+  const paperUnit = el("input", { id: "paper-upload-unit", type: "text", maxlength: "120", minlength: "1", required: true, placeholder: "e.g. Human Anatomy", "aria-label": "Unit or subject" });
+  const paperCourse = el("input", { id: "paper-upload-course", type: "text", maxlength: "120", minlength: "2", required: true, placeholder: "e.g. MBChB, BSc Nursing", "aria-label": "Course or programme" });
+  const paperLevel = el("input", { id: "paper-upload-level", type: "text", maxlength: "60", minlength: "1", required: true, placeholder: "e.g. Year 2, Clinical years, Level 300", "aria-label": "Relevant year or level" });
   const paperFile = el("input", { id: "paper-upload-file", type: "file", accept: "application/pdf,.pdf", required: true, "aria-label": "PDF past paper" });
   const paperSubmit = el("button", { class: "btn btn-primary", type: "submit" }, ["Upload past paper"]);
   const adminPaperLink = role ? el("a", { class: "btn btn-ghost btn-sm", href: "admin.html#exams" }, ["Admin tools"]) : null;
@@ -118,8 +121,11 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
       adminPaperLink,
     ]),
     el("div", { class: "grid grid-fill-220" }, [
-      el("div", { class: "field" }, [el("label", { for: "paper-upload-title" }, ["Paper title"]), paperTitle]),
-      el("div", { class: "field" }, [el("label", { for: "paper-upload-unit" }, ["Unit or subject"]), paperUnit]),
+      el("div", { class: "field" }, [el("label", { for: "paper-upload-title" }, ["Paper title *"]), paperTitle]),
+      el("div", { class: "field" }, [el("label", { for: "paper-upload-institution" }, ["University / institution *"]), paperInstitution]),
+      el("div", { class: "field" }, [el("label", { for: "paper-upload-unit" }, ["Unit *"]), paperUnit]),
+      el("div", { class: "field" }, [el("label", { for: "paper-upload-course" }, ["Course *"]), paperCourse]),
+      el("div", { class: "field" }, [el("label", { for: "paper-upload-level" }, ["Year / level *"]), paperLevel]),
     ]),
     el("div", { class: "field" }, [el("label", { for: "paper-upload-file" }, ["PDF file · up to 20 MB"]), paperFile]),
     el("div", { class: "row-gap", style: "justify-content:flex-end" }, [paperSubmit]),
@@ -135,7 +141,7 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
     }
     paperList.replaceChildren(el("div", { class: "card pad" }, rows.map(p => {
       const details = p.uploaded
-        ? [p.unit, p.year, p.author_id === me.id ? "Your upload" : "Student upload"].filter(Boolean).join(" · ")
+        ? [p.institution, p.course, p.unit, p.academic_level, p.author_id === me.id ? "Your upload" : "Student upload"].filter(Boolean).join(" · ")
         : [[p.unit, uniAbbr(p.university_id), p.year].filter(Boolean).join(" · ") || "Past paper"];
       return el("div", { class: "paper-row" }, [
         el("span", { class: "thumb", style: "background:" + subjectColor(p.unit || p.title) }, ["📄"]),
@@ -159,14 +165,16 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
     try {
       await api.uploadResource({
         title: paperTitle.value.trim(),
+        institution: paperInstitution.value.trim(),
         unit: paperUnit.value.trim(),
+        course: paperCourse.value.trim(),
+        academic_level: paperLevel.value.trim(),
         type: "Past Paper",
         description: "Shared from the Exam Bank.",
         file,
       });
       paperUploadForm.reset();
-      paperUnit.value = me.current_units[0] || "General";
-      MedLink.toast("Past paper uploaded.", "success");
+          MedLink.toast("Past paper uploaded.", "success");
       try {
         uploadedPapers = await api.resources({ type: "Past Paper", limit: 300 });
         renderPapers();
