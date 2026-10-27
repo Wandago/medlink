@@ -148,11 +148,17 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
   function saveGroups(groups) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
-    } catch (e) {}
+      return true;
+    } catch (e) { return false; }
   }
 
   let groups = loadGroups();
   let activeGroupId = null;
+
+  document.addEventListener("click", event => {
+    if (event.target.closest && event.target.closest(".chat-menu-wrapper")) return;
+    qsa(".chat-menu-dropdown.show").forEach(menu => menu.classList.remove("show"));
+  });
 
   // Handle direct hash navigation if user refreshes inside a group page
   function checkHash() {
@@ -274,7 +280,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
           } 
         }, [
           el("span", {}, ["←"]),
-          el("span", {}, ["Back"])
+          el("span", {}, ["All study groups"])
         ]),
         el("div", {}, [
           el("h1", { class: "disp", style: "font-size:22px;margin:0;" }, [g.name]),
@@ -338,40 +344,41 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
           el("img", { src: msg.url, style: "max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;" })
         ]);
       } else if (msg.type === "poll") {
-        const totalVotes = Object.values(msg.votes || {}).reduce((a, b) => a + b, 0);
-        const optionsList = el("div", { style: "margin-top:8px;" });
-        
-        msg.options.forEach((opt, optIdx) => {
-          const count = (msg.votes || {})[optIdx] || 0;
-          const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-          
+        const pollOptions = Array.isArray(msg.options) ? msg.options : [];
+        msg.votes = msg.votes || {};
+        msg.userVotes = msg.userVotes || {};
+        const totalVotes = Object.values(msg.votes).reduce((total, value) => total + Number(value || 0), 0);
+        const selected = msg.userVotes[me.username];
+        const optionsList = el("div", { class: "poll-options" });
+        pollOptions.forEach((option, optionIndex) => {
+          const count = Number(msg.votes[optionIndex] || 0);
+          const pct = totalVotes ? Math.round(count / totalVotes * 100) : 0;
+          const isSelected = selected === optionIndex;
           optionsList.appendChild(el("button", {
-            class: "poll-option-btn",
+            type: "button",
+            class: "poll-option-btn" + (isSelected ? " selected" : ""),
+            "aria-pressed": String(isSelected),
             onclick: () => {
-              msg.userVotes = msg.userVotes || {};
-              msg.votes = msg.votes || {};
-              const prevVote = msg.userVotes[me.username];
-              if (prevVote !== undefined) {
-                msg.votes[prevVote] = Math.max(0, (msg.votes[prevVote] || 1) - 1);
-              }
-              msg.userVotes[me.username] = optIdx;
-              msg.votes[optIdx] = (msg.votes[optIdx] || 0) + 1;
+              const previous = msg.userVotes[me.username];
+              if (previous !== undefined) msg.votes[previous] = Math.max(0, Number(msg.votes[previous] || 0) - 1);
+              msg.userVotes[me.username] = optionIndex;
+              msg.votes[optionIndex] = Number(msg.votes[optionIndex] || 0) + 1;
               saveGroups(groups);
               renderView();
             }
           }, [
-            el("div", { class: "poll-bar", style: "width:" + pct + "%;" }),
-            el("div", { class: "poll-option-content" }, [
-              el("span", { style: "font-weight:500;" }, [opt]),
-              el("span", { class: "muted", style: "font-size:12px;" }, [count + " (" + pct + "%)"])
-            ])
+            el("span", { class: "poll-bar", style: "width:" + pct + "%" }),
+            el("span", { class: "poll-option-content" }, [
+              el("span", { class: "poll-option-label" }, [option]),
+              el("span", { class: "poll-option-result" }, [count + " · " + pct + "%"]),
+            ]),
           ]));
         });
-
         contentNode = el("div", { class: "poll-card" }, [
-          el("div", { style: "font-weight:600;font-size:14px;margin-bottom:4px;" }, ["📊 " + msg.question]),
+          el("div", { class: "poll-card-label" }, ["STUDY GROUP POLL"]),
+          el("div", { class: "poll-question" }, [msg.question || "Poll"]),
           optionsList,
-          el("div", { class: "faint", style: "font-size:11px;margin-top:8px;" }, [totalVotes + " total vote" + (totalVotes === 1 ? "" : "s")])
+          el("div", { class: "poll-card-foot" }, [totalVotes + (totalVotes === 1 ? " vote" : " votes") + " · Tap a choice to vote"]),
         ]);
       }
 
@@ -389,43 +396,84 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
       style: "flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:10px;"
     });
 
-    const menuDropdown = el("div", { class: "chat-menu-dropdown" }, [
-      el("button", {
-        type: "button",
-        onclick: () => {
-          menuDropdown.classList.remove("show");
-          const url = prompt("Enter image URL (e.g. https://images.unsplash.com/...):");
-          if (!url) return;
+    const imagePicker = el("input", { type: "file", accept: "image/*", hidden: true, "aria-label": "Choose an image to share" });
+    imagePicker.addEventListener("change", () => {
+      const file = imagePicker.files && imagePicker.files[0];
+      imagePicker.value = "";
+      if (!file) return;
+      if (!/^image\//i.test(file.type)) {
+        MedLink.toast("Choose an image file.", "error");
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        MedLink.toast("Choose an image smaller than 8 MB.", "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onerror = () => MedLink.toast("The image could not be read. Try another file.", "error");
+      reader.onload = () => {
+        const image = new Image();
+        image.onerror = () => MedLink.toast("The image could not be opened.", "error");
+        image.onload = () => {
+          const scale = Math.min(1, 1400 / Math.max(image.naturalWidth, image.naturalHeight));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+          const context = canvas.getContext("2d");
+          if (!context) {
+            MedLink.toast("This image cannot be prepared for sharing.", "error");
+            return;
+          }
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/jpeg", .78);
           g.messages = g.messages || [];
-          g.messages.push({ sender: me.username, type: "image", url, text: "Shared an image", time: "Just now" });
-          saveGroups(groups);
+          g.messages.push({
+            sender: me.username,
+            type: "image",
+            url: dataUrl,
+            text: file.name || "Shared an image",
+            time: "Just now",
+          });
+          if (!saveGroups(groups)) {
+            g.messages.pop();
+            MedLink.toast("There isn't enough browser storage to save this image.", "error");
+            return;
+          }
           renderView();
-        }
-      }, ["📷 Share Image"]),
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    const menuDropdown = el("div", { class: "chat-menu-dropdown", role: "menu" }, [
       el("button", {
         type: "button",
-        onclick: () => {
-          menuDropdown.classList.remove("show");
-          openPollModal(g);
-        }
-      }, ["📊 Create Poll"])
+        role: "menuitem",
+        onclick: () => { menuDropdown.classList.remove("show"); imagePicker.click(); }
+      }, ["▧  Share image"]),
+      el("button", {
+        type: "button",
+        role: "menuitem",
+        onclick: () => { menuDropdown.classList.remove("show"); openPollModal(g); }
+      }, ["▤  Create poll"]),
     ]);
 
     const plusBtn = el("button", {
       type: "button",
-      class: "btn btn-primary",
-      style: "padding:8px 14px;font-size:18px;font-weight:700;line-height:1;border-radius:999px;cursor:pointer;background:var(--btn-primary-bg, #1A56F0);color:var(--text-on-accent, #fff);box-shadow:0 2px 8px rgba(26,86,240,0.25);",
-      title: "Add attachment or poll",
-      onclick: (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        menuDropdown.classList.toggle("show");
+      class: "btn btn-primary chat-attach-btn",
+      "aria-haspopup": "menu",
+      "aria-expanded": "false",
+      "aria-label": "Open chat attachments and poll menu",
+      title: "Share an image or create a poll",
+      onclick: event => {
+        event.preventDefault();
+        event.stopPropagation();
+        const isOpen = menuDropdown.classList.toggle("show");
+        plusBtn.setAttribute("aria-expanded", String(isOpen));
       }
     }, ["⋮"]);
-
-    window.addEventListener("click", () => {
-      menuDropdown.classList.remove("show");
-    });
+    const menuWrap = el("div", { class: "chat-menu-wrapper" }, [plusBtn, menuDropdown, imagePicker]);
 
     const chatForm = el("form", {
       class: "chat-input-area",
@@ -440,7 +488,7 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
         renderView();
       }
     }, [
-      el("div", { class: "chat-menu-wrapper" }, [plusBtn, menuDropdown]),
+      menuWrap,
       chatInput,
       el("button", { class: "btn btn-primary" }, ["Send"])
     ]);
@@ -455,6 +503,104 @@ MedLink.run({ page: "groups" }, async ({ api, me }) => {
 
   function renderGroupCard_old(g) {
     // keeping old for reference or fallback
+  }
+
+  function openPollModal(group) {
+    const questionInput = el("input", {
+      type: "text", maxlength: "180", required: true,
+      placeholder: "e.g. Which topic should we revise next?",
+      "aria-label": "Poll question",
+    });
+    let choices = ["", ""];
+    const choicesWrap = el("div", { class: "poll-builder-options" });
+    const hint = el("div", { class: "field-hint" }, ["Add 2 to 10 choices. Students can change their vote."]);
+    const addChoice = el("button", { type: "button", class: "btn btn-ghost btn-sm poll-add-choice" }, ["＋ Add a choice"]);
+    const error = el("div", { class: "field-error hidden", role: "alert" }, ["Enter a question and at least two choices."]);
+    function paintChoices(focusIndex) {
+      choicesWrap.replaceChildren(...choices.map((value, index) => {
+        const input = el("input", {
+          type: "text", maxlength: "100", required: true, value,
+          placeholder: "Choice " + (index + 1),
+          "aria-label": "Choice " + (index + 1),
+          "data-choice-index": String(index),
+        });
+        input.addEventListener("input", () => { choices[index] = input.value; error.classList.add("hidden"); });
+        const remove = el("button", {
+          type: "button", class: "btn btn-ghost btn-sm poll-remove-choice",
+          "aria-label": "Remove choice " + (index + 1),
+          disabled: choices.length <= 2,
+          onclick: () => { choices.splice(index, 1); paintChoices(); },
+        }, ["×"]);
+        return el("div", { class: "poll-choice-row" }, [input, remove]);
+      }));
+      addChoice.disabled = choices.length >= 10;
+      addChoice.textContent = choices.length >= 10 ? "Maximum 10 choices" : "＋ Add a choice";
+      if (focusIndex != null) {
+        const focus = qs('[data-choice-index="' + focusIndex + '"]', choicesWrap);
+        if (focus) focus.focus();
+      }
+    }
+    addChoice.addEventListener("click", () => {
+      if (choices.length >= 10) return;
+      choices.push("");
+      paintChoices(choices.length - 1);
+    });
+    const form = el("form", { class: "form-stack poll-builder" }, [
+      el("div", { class: "field" }, [
+        el("label", {}, ["Question"]),
+        questionInput,
+      ]),
+      el("div", { class: "field" }, [
+        el("div", { class: "poll-builder-heading" }, [
+          el("label", {}, ["Choices"]),
+          el("span", { class: "faint" }, [() => choices.length + " of 10"]),
+        ]),
+        choicesWrap,
+        addChoice,
+        hint,
+        error,
+      ]),
+      el("div", { class: "row-gap", style: "justify-content:flex-end;margin-top:8px" }, [
+        el("button", { type: "button", class: "btn btn-ghost", onclick: () => close() }, ["Cancel"]),
+        el("button", { type: "submit", class: "btn btn-primary" }, ["Post poll"]),
+      ]),
+    ]);
+    // Keep the choice count live without replacing input nodes.
+    const countLabel = qs(".poll-builder-heading .faint", form);
+    function updateCount() { countLabel.textContent = choices.length + " of 10"; }
+    const originalPaintChoices = paintChoices;
+    paintChoices = function (focusIndex) { originalPaintChoices(focusIndex); updateCount(); };
+    paintChoices();
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const question = questionInput.value.trim();
+      const options = choices.map(choice => choice.trim()).filter(Boolean);
+      if (!question || options.length < 2 || options.length !== choices.length) {
+        error.classList.remove("hidden");
+        const firstEmpty = choices.findIndex(choice => !choice.trim());
+        if (firstEmpty >= 0) qs('[data-choice-index="' + firstEmpty + '"]', choicesWrap).focus();
+        else questionInput.focus();
+        return;
+      }
+      group.messages = group.messages || [];
+      group.messages.push({
+        sender: me.username,
+        type: "poll",
+        question,
+        options,
+        votes: {},
+        userVotes: {},
+        time: "Just now",
+      });
+      if (!saveGroups(groups)) {
+        group.messages.pop();
+        MedLink.toast("There isn't enough browser storage to save this poll.", "error");
+        return;
+      }
+      close();
+      renderView();
+    });
+    const close = MedLink.modal("Create a poll", form);
   }
 
   function openCreateModal() {
