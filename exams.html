@@ -112,6 +112,10 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
   let otherUniversityName = paperUniversityId ? "" : (me.university_name || "");
   const paperUniversity = el("select", { id: "paper-upload-university", required: true, "aria-label": "University or institution" });
   const paperUniversityOther = el("input", { id: "paper-upload-university-other", type: "text", maxlength: "120", minlength: "3", placeholder: "Type your institution's full name", "aria-label": "Other university or institution" });
+  const paperUniversityOtherField = el("div", { class: "field", hidden: true }, [
+    el("label", { for: "paper-upload-university-other" }, ["Institution name *"]),
+    paperUniversityOther,
+  ]);
   const paperUnit = el("input", { id: "paper-upload-unit", type: "text", maxlength: "120", minlength: "1", required: true, placeholder: "e.g. Human Anatomy", "aria-label": "Unit or subject" });
   const paperCourse = el("select", { id: "paper-upload-course", required: true, "aria-label": "Course or programme" });
   const paperLevel = el("input", { id: "paper-upload-level", type: "text", maxlength: "60", minlength: "1", required: true, placeholder: "e.g. Year 2, Clinical years, Level 300", "aria-label": "Relevant year or level" });
@@ -132,7 +136,7 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
     );
     const isOther = !isCuratedUniversity(paperUniversityId);
     paperUniversity.value = isOther ? OTHER_UNIVERSITY : paperUniversityId;
-    paperUniversityOther.hidden = !isOther;
+    paperUniversityOtherField.hidden = !isOther;
     paperUniversityOther.required = isOther;
     paperUniversityOther.value = isOther ? otherUniversityName : "";
   };
@@ -165,10 +169,9 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
   renderPaperUniversity();
   renderPaperCourses(me.course_id || "");
   paperUniversity.addEventListener("change", () => {
-    const wasOther = paperUniversity.value === OTHER_UNIVERSITY;
     if (paperUniversity.value === OTHER_UNIVERSITY) {
       paperUniversityId = "";
-      otherUniversityName = wasOther ? paperUniversityOther.value : "";
+      otherUniversityName = paperUniversityOther.value;
     } else {
       paperUniversityId = paperUniversity.value;
       otherUniversityName = "";
@@ -195,8 +198,7 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
       el("div", { class: "field" }, [
         el("label", { for: "paper-upload-university" }, ["University / institution *"]),
         paperUniversity,
-        el("label", { for: "paper-upload-university-other" }, ["If not listed, enter institution name"]),
-        paperUniversityOther,
+        paperUniversityOtherField,
       ]),
       el("div", { class: "field" }, [el("label", { for: "paper-upload-unit" }, ["Unit *"]), paperUnit]),
       el("div", { class: "field" }, [el("label", { for: "paper-upload-course" }, ["Course *"]), paperCourse]),
