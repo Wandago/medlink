@@ -1135,7 +1135,7 @@
       item("planner.html", "Study planner & calendar", "planner"),
       item("groups.html", "Study groups", "groups"),
       item("settings.html", "Settings", "settings"),
-      item("saved.html", "Saved", "saved"),
+      item("saved.html", "My Library", "saved"),
       ctx.role ? item("admin.html", "Admin dashboard", "admin") : null,
       el("div", { class: "me-sep" }),
       el("button", { type: "button", class: "me-item me-signout", role: "menuitem", onclick: function () { signOut(); } }, [
@@ -1169,7 +1169,7 @@
       ["units", "units.html", "My units"],
       ["discover", "discover.html", "Discover"],
       ["news", "news.html", "Medical news"],
-      ["saved", "saved.html", "Saved"],
+      ["saved", "saved.html", "My Library"],
       ["settings", "settings.html", "Settings"],
     ];
     if (isStaff) general.push(["admin", "admin.html", "Admin"]);
