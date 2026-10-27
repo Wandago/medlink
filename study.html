@@ -89,15 +89,32 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
     ]);
     if (unitFilter.value && unitFilter.value !== "__mine") unit.value = unitFilter.value;
     const type = el("select", { required: true }, RESOURCE_TYPES.map(t => el("option", { value: t }, [t])));
-    const desc = el("textarea", { rows: "3", maxlength: "1000", placeholder: "What's covered? Which lecturer / year? (optional)" });
+    const institution = el("input", { type: "text", maxlength: "120", minlength: "2", placeholder: "e.g. University of Nairobi" });
+    const course = el("input", { type: "text", maxlength: "120", minlength: "2", placeholder: "e.g. MBChB, BSc Nursing" });
+    const academicLevel = el("input", { type: "text", maxlength: "60", minlength: "1", placeholder: "e.g. Year 2, Clinical years, Level 300" });
+    const paperDetails = el("div", { class: "grid grid-fill-220", hidden: true }, [
+      field("University / institution *", institution),
+      field("Course *", course),
+      field("Year / level *", academicLevel),
+    ]);
+    const syncPaperFields = () => {
+      const isPastPaper = type.value === "Past Paper";
+      paperDetails.hidden = !isPastPaper;
+      institution.required = isPastPaper;
+      course.required = isPastPaper;
+      academicLevel.required = isPastPaper;
+    };
+    type.addEventListener("change", syncPaperFields);
+    const desc = el("textarea", { rows: "3", maxlength: "1000", placeholder: "What's covered? (optional)" });
     const file = el("input", { type: "file", accept: ACCEPT, required: true });
     const hint = el("div", { class: "field-hint" }, ["PDF, Word, PowerPoint, images or text · up to 20 MB. Only share your own or open-access material."]);
     const submit = el("button", { class: "btn btn-primary btn-block", type: "submit" }, ["Upload"]);
     const field = (label, input, extra) => el("div", { class: "field" }, [el("label", {}, [label]), input, extra || null]);
     const form = el("form", { class: "upload-form" }, [
       field("Title *", title), field("Unit *", unit), field("Type *", type),
-      field("Description", desc), field("File *", file, hint), submit,
+      paperDetails, field("Description", desc), field("File *", file, hint), submit,
     ]);
+    syncPaperFields();
     const close = MedLink.modal("Upload a resource", form, { sticky: true });
     form.addEventListener("submit", async e => {
       e.preventDefault();
@@ -107,7 +124,12 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
       if (title.value.trim().length < 3) return MedLink.toast("Give it a title (at least 3 characters).", "error");
       submit.disabled = true; submit.textContent = "Uploading…";
       try {
-        const row = await api.uploadResource({ file: f, title: title.value.trim(), unit: unit.value, type: type.value, description: desc.value.trim() });
+        const row = await api.uploadResource({
+          file: f, title: title.value.trim(), unit: unit.value, type: type.value, description: desc.value.trim(),
+          institution: type.value === "Past Paper" ? institution.value.trim() : "",
+          course: type.value === "Past Paper" ? course.value.trim() : "",
+          academic_level: type.value === "Past Paper" ? academicLevel.value.trim() : "",
+        });
         close();
         MedLink.toast("Uploaded — thanks for sharing! +20 MedPoints", "success");
         MedLink.go("resource.html?id=" + encodeURIComponent(row.id));
