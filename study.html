@@ -89,6 +89,7 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
     ]);
     if (unitFilter.value && unitFilter.value !== "__mine") unit.value = unitFilter.value;
     const type = el("select", { required: true }, RESOURCE_TYPES.map(t => el("option", { value: t }, [t])));
+    const field = (label, input, extra) => el("div", { class: "field" }, [el("label", {}, [label]), input, extra || null]);
     const institution = el("input", { type: "text", maxlength: "120", minlength: "2", placeholder: "e.g. University of Nairobi" });
     const course = el("input", { type: "text", maxlength: "120", minlength: "2", placeholder: "e.g. MBChB, BSc Nursing" });
     const academicLevel = el("input", { type: "text", maxlength: "60", minlength: "1", placeholder: "e.g. Year 2, Clinical years, Level 300" });
@@ -109,7 +110,6 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
     const file = el("input", { type: "file", accept: ACCEPT, required: true });
     const hint = el("div", { class: "field-hint" }, ["PDF, Word, PowerPoint, images or text · up to 20 MB. Only share your own or open-access material."]);
     const submit = el("button", { class: "btn btn-primary btn-block", type: "submit" }, ["Upload"]);
-    const field = (label, input, extra) => el("div", { class: "field" }, [el("label", {}, [label]), input, extra || null]);
     const form = el("form", { class: "upload-form" }, [
       field("Title *", title), field("Unit *", unit), field("Type *", type),
       paperDetails, field("Description", desc), field("File *", file, hint), submit,
