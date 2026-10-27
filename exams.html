@@ -104,9 +104,8 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
   // ---------- past papers ----------
   const papersBox = qs("#tab-papers");
   const paperList = el("div");
-  const paperTitle = el("input", { id: "paper-upload-title", type: "text", maxlength: "140", required: true, placeholder: "e.g. Anatomy II — End of Semester Exam", "aria-label": "Past paper title" });
+  const paperTitle = el("input", { id: "paper-upload-title", type: "text", maxlength: "140", minlength: "3", required: true, placeholder: "e.g. Anatomy II — End of Semester Exam", "aria-label": "Past paper title" });
   const paperUnit = el("input", { id: "paper-upload-unit", type: "text", maxlength: "120", required: true, value: me.current_units[0] || "General", placeholder: "e.g. Human Anatomy", "aria-label": "Unit or subject" });
-  const paperYear = el("input", { id: "paper-upload-year", type: "number", min: "1900", max: String(new Date().getFullYear() + 1), placeholder: String(new Date().getFullYear()), "aria-label": "Exam year" });
   const paperFile = el("input", { id: "paper-upload-file", type: "file", accept: "application/pdf,.pdf", required: true, "aria-label": "PDF past paper" });
   const paperSubmit = el("button", { class: "btn btn-primary", type: "submit" }, ["Upload past paper"]);
   const adminPaperLink = role ? el("a", { class: "btn btn-ghost btn-sm", href: "admin.html#exams" }, ["Admin tools"]) : null;
@@ -121,7 +120,6 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
     el("div", { class: "grid grid-fill-220" }, [
       el("div", { class: "field" }, [el("label", { for: "paper-upload-title" }, ["Paper title"]), paperTitle]),
       el("div", { class: "field" }, [el("label", { for: "paper-upload-unit" }, ["Unit or subject"]), paperUnit]),
-      el("div", { class: "field" }, [el("label", { for: "paper-upload-year" }, ["Year (optional)"]), paperYear]),
     ]),
     el("div", { class: "field" }, [el("label", { for: "paper-upload-file" }, ["PDF file · up to 20 MB"]), paperFile]),
     el("div", { class: "row-gap", style: "justify-content:flex-end" }, [paperSubmit]),
