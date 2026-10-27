@@ -442,11 +442,12 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
 
   function openAddEventModal() {
     const titleInput = el("input", { type: "text", placeholder: "e.g. Biochemistry CAT 2", required: true, maxlength: 80 });
-    const unitList = unitOptions();
-    const unitSelect = el("select", {}, [
-      el("option", { value: "" }, ["— Choose the unit you're planning —"]),
-      ...unitList.map(u => el("option", { value: u }, [u]))
-    ]);
+    const unitInput = el("input", {
+      type: "text", maxlength: "120", minlength: "2", required: true,
+      placeholder: "Type the unit name, e.g. Human Anatomy",
+      "aria-label": "Unit being planned",
+      autocomplete: "off",
+    });
     const typeSelect = el("select", {}, [
       el("option", { value: "exam" }, ["Exam"]),
       el("option", { value: "cat" }, ["CAT / Test"]),
@@ -468,9 +469,9 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
     const form = el("form", { class: "form-stack", style: "margin-top:14px;" }, [
       el("div", { class: "field" }, [
         el("label", {}, ["Unit being planned ", el("span", { class: "req" }, ["*"])]),
-        unitSelect,
-        el("div", { class: "field-hint" }, ["Used to group your revision and match notes for this event."]),
-        el("div", { class: "field-error hidden" }, ["Pick the unit this event belongs to."])
+        unitInput,
+        el("div", { class: "field-hint" }, ["Type the unit name as it appears in your course."]),
+        el("div", { class: "field-error hidden" }, ["Enter the unit being planned."])
       ]),
       el("div", { class: "field" }, [
         el("label", {}, ["Event / Exam Title ", el("span", { class: "req" }, ["*"])]),
@@ -503,8 +504,8 @@ MedLink.run({ page: "planner" }, async ({ api, me }) => {
       e.preventDefault();
       const title = titleInput.value.trim();
       const date = dateInput.value;
-      const unit = unitSelect.value;
-      if (!unit) { unitSelect.parentElement.querySelector(".field-error").classList.remove("hidden"); unitSelect.focus(); return; }
+      const unit = unitInput.value.trim();
+      if (!unit) { unitInput.parentElement.querySelector(".field-error").classList.remove("hidden"); unitInput.focus(); return; }
       if (!title || !date) return;
 
       const topics = topicsInput.value.split("\n").map(s => s.trim()).filter(Boolean).map(label => ({ label, done: false }));
