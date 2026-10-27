@@ -14,12 +14,28 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
 <style>
-.exam-papers-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 20px; align-items: start; }
-.exam-papers-upload { position: sticky; top: calc(var(--header-h) + 18px); }
-@media (max-width: 900px) {
-  .exam-papers-layout { grid-template-columns: 1fr; }
-  .exam-papers-upload { position: static; }
-}
+.exam-papers-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(290px,340px); gap:22px; align-items:start; }
+.exam-papers-upload { position:sticky; top:calc(var(--header-h) + 18px); }
+.paper-library-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin:4px 0 16px; }
+.paper-library-title { font-size:20px; margin:0 0 4px; }
+.paper-library-subtitle { color:var(--text-2); font-size:13px; margin:0; }
+.paper-card { min-width:0; overflow:hidden; padding:0; border:1px solid var(--border); border-radius:20px; background:var(--surface); box-shadow:var(--shadow-sm); transition:transform var(--ease),box-shadow var(--ease),border-color var(--ease); }
+.paper-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); border-color:var(--border-strong); }
+.paper-preview { height:174px; position:relative; overflow:hidden; background:linear-gradient(145deg,var(--accent-soft),var(--surface-2)); border-bottom:1px solid var(--border); }
+.paper-preview iframe { position:absolute; inset:0; width:100%; height:230%; border:0; transform:scale(.78); transform-origin:top left; width:128%; pointer-events:none; background:white; }
+.paper-preview::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg,transparent 52%,var(--surface) 100%); pointer-events:none; }
+.paper-preview-fallback { height:100%; display:grid; place-items:center; color:var(--accent); }
+.paper-doc-icon { width:68px; height:82px; display:grid; place-items:center; position:relative; border-radius:12px 12px 18px 12px; background:var(--surface); box-shadow:0 10px 26px rgba(26,86,240,.14); font-size:34px; }
+.paper-doc-icon::after { content:"PDF"; position:absolute; bottom:8px; right:-8px; background:var(--accent); color:white; border-radius:6px; padding:3px 6px; font-size:9px; font-weight:800; letter-spacing:.08em; }
+.paper-card-body { padding:14px 16px 16px; }
+.paper-card-topline { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.paper-chip { display:inline-flex; align-items:center; gap:5px; border-radius:999px; background:var(--accent-soft); color:var(--accent-on-soft); padding:5px 9px; font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.paper-card-title { margin:0 0 8px; font-size:15px; line-height:1.4; }
+.paper-card-meta { min-height:38px; color:var(--text-2); font-size:11.5px; line-height:1.6; }
+.paper-card-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
+.paper-card-footer .btn { padding:8px 12px; font-size:12px; }
+@media (max-width:900px) { .exam-papers-layout { grid-template-columns:1fr; } .exam-papers-upload { position:static; } }
+@media (max-width:560px) { .paper-preview { height:150px; } .paper-library-head { align-items:flex-start; flex-direction:column; } }
 </style>
 </head>
 <body>
@@ -220,30 +236,51 @@ MedLink.run({ page: "exams" }, async ({ api, me, role }) => {
       ...papers.map(p => ({ ...p, uploaded: false })),
       ...uploadedPapers.map(p => ({ ...p, uploaded: true, url: api.fileUrl(p.file_path) })),
     ].sort((a, b) => +new Date(b.created_at || 0) - +new Date(a.created_at || 0));
-    const heading = el("div", { class: "section-heading", style: "margin-bottom:12px" }, [
-      el("h2", { style: "font-size:18px" }, ["Past papers"]),
+    const heading = el("div", { class: "paper-library-head" }, [
+      el("div", {}, [
+        el("h2", { class: "disp paper-library-title" }, ["Past papers"]),
+        el("p", { class: "paper-library-subtitle" }, ["Browse and preview papers shared by students."]),
+      ]),
       el("span", { class: "faint", style: "font-size:12.5px" }, [rows.length + (rows.length === 1 ? " paper" : " papers")]),
     ]);
     if (!rows.length) {
-      paperList.replaceChildren(el("div", { class: "card pad" }, [
-        heading,
+      paperList.replaceChildren(heading, el("div", { class: "card pad" }, [
         MedLink.emptyState("No past papers have been shared yet. Upload one from the panel to add it here."),
       ]));
       return;
     }
-    paperList.replaceChildren(el("div", { class: "card pad" }, [
-      heading,
-      ...rows.map(p => {
-        const details = p.uploaded
-          ? [p.institution, p.course, p.unit, p.academic_level, p.author_id === me.id ? "Your upload" : "Student upload"].filter(Boolean).join(" · ")
-          : [[p.unit, uniAbbr(p.university_id), p.year].filter(Boolean).join(" · ") || "Past paper"];
-        return el("div", { class: "paper-row" }, [
-          el("span", { class: "thumb", style: "background:" + subjectColor(p.unit || p.title) }, ["📄"]),
-          el("div", { class: "who" }, [el("b", {}, [p.title]), el("span", {}, [details])]),
-          el("a", { class: "btn btn-soft btn-sm", href: p.url, target: "_blank", rel: "noopener", onclick: () => MedLink.track("paper_open", { id: p.id, title: p.title }) }, ["Open ↗"]),
-        ]);
-      }),
-    ]));
+    const cards = rows.map(p => {
+      const url = p.url || p.file_url || p.pdf_url || p.document_url
+        || (p.file_path ? api.fileUrl(p.file_path) : "");
+      const meta = p.uploaded
+        ? [p.institution, p.course, p.unit, p.academic_level, p.author_id === me.id ? "Your upload" : "Student upload"].filter(Boolean).join(" · ")
+        : [p.institution, p.course, p.unit, p.year].filter(Boolean).join(" · ") || "Past paper";
+      const preview = url
+        ? el("iframe", { src: url + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH", title: "Document preview: " + p.title, loading: "lazy", tabindex: "-1" })
+        : el("div", { class: "paper-preview-fallback", "aria-hidden": "true" }, [
+            el("span", { class: "paper-doc-icon" }, ["📄"]),
+          ]);
+      return el("article", { class: "card paper-card" }, [
+        el("div", { class: "paper-preview" }, [
+          preview,
+          el("span", { class: "paper-chip", style: "position:absolute;top:12px;left:12px;z-index:2" }, ["▤ PDF"]),
+        ]),
+        el("div", { class: "paper-card-body" }, [
+          el("div", { class: "paper-card-topline" }, [
+            el("span", { class: "paper-chip" }, [p.unit || "Past paper"]),
+            el("span", { class: "faint", style: "font-size:11px" }, [p.academic_level || p.year || ""]),
+          ]),
+          el("h3", { class: "paper-card-title" }, [p.title]),
+          el("div", { class: "paper-card-meta" }, [meta]),
+          el("div", { class: "paper-card-footer" }, [
+            el("span", { class: "faint", style: "font-size:11px" }, [p.uploaded ? "Student upload" : "Exam bank"]),
+            url ? el("a", { class: "btn btn-primary btn-sm", href: url, target: "_blank", rel: "noopener", onclick: () => MedLink.track("paper_open", { id: p.id, title: p.title }) }, ["Open paper ↗"])
+              : el("span", { class: "faint", style: "font-size:11px" }, ["Preview unavailable"]),
+          ]),
+        ]),
+      ]);
+    });
+    paperList.replaceChildren(heading, el("div", { class: "grid grid-fill-260" }, cards));
   };
   paperUploadForm.addEventListener("submit", async event => {
     event.preventDefault();
