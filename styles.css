@@ -1108,3 +1108,20 @@ body:has(.messages-shell) {
   .conv-list, .thread-header, .thread-input { background: var(--surface); }
   .bubble.them { background: var(--surface-2); }
 }
+
+
+/* Seamless, WhatsApp-inspired chat doodle wallpaper */
+.thread-body {
+  background-color: color-mix(in srgb, var(--surface-sunken) 28%, var(--surface));
+  background-image:
+    radial-gradient(ellipse at 78% 12%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 24rem),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22220%22%20height%3D%22190%22%20viewBox%3D%220%200%20220%20190%22%20fill%3D%22none%22%20stroke%3D%22%2371819b%22%20stroke-opacity%3D%220.17%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%2030h29a7%207%200%200%201%207%207v14a7%207%200%200%201-7%207H37l-8%207v-7h-9a7%207%200%200%201-7-7V37a7%207%200%200%201%207-7Z%22%2F%3E%3Cpath%20d%3D%22m105%2020%202.8%207.2L115%2030l-7.2%202.8L105%2040l-2.8-7.2L95%2030l7.2-2.8L105%2020Z%22%2F%3E%3Cpath%20d%3D%22M164%2032c-8-9-21%202-13%2010l12%2012%2012-12c8-8-5-19-13-10Z%22%2F%3E%3Ccircle%20cx%3D%2273%22%20cy%3D%22104%22%20r%3D%2213%22%2F%3E%3Cpath%20d%3D%22M73%2097v14m-7-7h14%22%2F%3E%3Cpath%20d%3D%22M127%2080h32a7%207%200%200%201%207%207v14a7%207%200%200%201-7%207h-12l-8%207v-7h-12a7%207%200%200%201-7-7V87a7%207%200%200%201%207-7Z%22%2F%3E%3Cpath%20d%3D%22M24%20132h29v31H24z%22%2F%3E%3Cpath%20d%3D%22M38.5%20132v31m-10-24h7m8%200h7m-22%207h7m8%200h7%22%2F%3E%3Cpath%20d%3D%22m190%2084%202.4%206.6L199%2093l-6.6%202.4L190%20102l-2.4-6.6L181%2093l6.6-2.4L190%2084Z%22%2F%3E%3Cpath%20d%3D%22M105%20142c-6-7-16%201-10%207l9%209%209-9c6-6-4-14-10-7Z%22%2F%3E%3Ccircle%20cx%3D%22185%22%20cy%3D%22150%22%20r%3D%2211%22%2F%3E%3Cpath%20d%3D%22m180%20150%203%203%207-7%22%2F%3E%3C%2Fsvg%3E");
+  background-size: auto, 220px 190px;
+  background-repeat: no-repeat, repeat;
+}
+[data-theme="dark"] .thread-body {
+  background-color: color-mix(in srgb, var(--surface-sunken) 38%, var(--surface));
+  background-image:
+    radial-gradient(ellipse at 78% 12%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 24rem),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22220%22%20height%3D%22190%22%20viewBox%3D%220%200%20220%20190%22%20fill%3D%22none%22%20stroke%3D%22%23a6b9dc%22%20stroke-opacity%3D%220.17%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%2030h29a7%207%200%200%201%207%207v14a7%207%200%200%201-7%207H37l-8%207v-7h-9a7%207%200%200%201-7-7V37a7%207%200%200%201%207-7Z%22%2F%3E%3Cpath%20d%3D%22m105%2020%202.8%207.2L115%2030l-7.2%202.8L105%2040l-2.8-7.2L95%2030l7.2-2.8L105%2020Z%22%2F%3E%3Cpath%20d%3D%22M164%2032c-8-9-21%202-13%2010l12%2012%2012-12c8-8-5-19-13-10Z%22%2F%3E%3Ccircle%20cx%3D%2273%22%20cy%3D%22104%22%20r%3D%2213%22%2F%3E%3Cpath%20d%3D%22M73%2097v14m-7-7h14%22%2F%3E%3Cpath%20d%3D%22M127%2080h32a7%207%200%200%201%207%207v14a7%207%200%200%201-7%207h-12l-8%207v-7h-12a7%207%200%200%201-7-7V87a7%207%200%200%201%207-7Z%22%2F%3E%3Cpath%20d%3D%22M24%20132h29v31H24z%22%2F%3E%3Cpath%20d%3D%22M38.5%20132v31m-10-24h7m8%200h7m-22%207h7m8%200h7%22%2F%3E%3Cpath%20d%3D%22m190%2084%202.4%206.6L199%2093l-6.6%202.4L190%20102l-2.4-6.6L181%2093l6.6-2.4L190%2084Z%22%2F%3E%3Cpath%20d%3D%22M105%20142c-6-7-16%201-10%207l9%209%209-9c6-6-4-14-10-7Z%22%2F%3E%3Ccircle%20cx%3D%22185%22%20cy%3D%22150%22%20r%3D%2211%22%2F%3E%3Cpath%20d%3D%22m180%20150%203%203%207-7%22%2F%3E%3C%2Fsvg%3E");
+}
