@@ -684,6 +684,7 @@
       must(await sb().storage.from(BUCKET).upload(path, f.file, { contentType: f.file.type || "application/octet-stream", upsert: false }));
       var res = await sb().from("resources").insert({
         author_id: myId(), title: f.title, unit: f.unit, type: f.type, description: f.description || "",
+        institution: f.institution || "", course: f.course || "", academic_level: f.academic_level || "",
         file_path: path, file_name: f.file.name.slice(0, 200), file_type: f.file.type || "", file_size: f.file.size,
       }).select("id").single();
       if (res.error) {
