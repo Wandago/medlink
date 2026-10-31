@@ -19,17 +19,24 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  align-items: end;
+  align-items: start;
 }
 .study-filter-grid .field { min-width: 0; margin: 0; }
 .study-filter-grid .filter-select { width: 100%; min-width: 0; }
 .study-filter-grid .field-hint { margin-top: 5px; }
+.study-filter-grid .study-primary-filter { grid-row: 1; }
+.study-filter-grid .study-secondary-filter { grid-row: 2; }
 .study-unit-control { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .study-unit-control input { flex: 1 1 auto; min-width: 0; }
 .study-unit-control .btn { flex: 0 0 auto; white-space: nowrap; }
-.study-result-count { align-self: center; grid-column: 1 / -1; }
+.study-result-count { align-self: center; grid-row: 2; grid-column: 3 / -1; justify-self: end; }
+.study-paper-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 900px) {
   .study-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .study-filter-grid .study-primary-filter,
+  .study-filter-grid .study-secondary-filter { grid-row: auto; }
+  .study-result-count { grid-row: auto; grid-column: 1 / -1; justify-self: start; }
+  .study-paper-fields { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 }
 @media (max-width: 520px) {
   .study-filter-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
@@ -47,20 +54,20 @@
   </div>
   <p class="muted" style="font-size:14px;margin:0 0 20px;" id="libSub"></p>
   <div class="study-filter-grid" style="margin-bottom:20px;">
-    <div class="field">
+    <div class="field study-primary-filter">
       <label for="universityFilter">University / institution</label>
       <select id="universityFilter" class="filter-select" aria-label="Filter by university or institution"></select>
     </div>
-    <div class="field">
+    <div class="field study-primary-filter">
       <label for="courseFilter">Course</label>
       <input id="courseFilter" class="filter-select" type="search" list="courseOptions" autocomplete="off" placeholder="Type to find a course" aria-label="Search by course">
       <datalist id="courseOptions"></datalist>
     </div>
-    <div class="field">
+    <div class="field study-primary-filter">
       <label for="yearFilter">Year of study</label>
       <select id="yearFilter" class="filter-select" aria-label="Filter by year of study"></select>
     </div>
-    <div class="field">
+    <div class="field study-primary-filter">
       <label for="unitFilter">Unit</label>
       <div class="study-unit-control">
         <input id="unitFilter" class="filter-select" type="search" list="unitOptions" autocomplete="off" placeholder="Type a unit keyword" aria-label="Search units">
@@ -69,11 +76,11 @@
       <datalist id="unitOptions"></datalist>
       <div class="field-hint">Type a keyword or choose a suggested unit.</div>
     </div>
-    <div class="field">
+    <div class="field study-secondary-filter">
       <label for="typeFilter">Type</label>
       <select id="typeFilter" class="filter-select" aria-label="Filter by resource type"></select>
     </div>
-    <div class="field">
+    <div class="field study-secondary-filter">
       <label for="sortFilter">Sort</label>
       <select id="sortFilter" class="filter-select" aria-label="Sort resources">
         <option value="created_at">Newest</option>
@@ -245,20 +252,74 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
     if (unitFilter.value && unitFilter.value !== "__mine") unit.value = unitFilter.value;
     const type = el("select", { required: true }, RESOURCE_TYPES.map(t => el("option", { value: t }, [t])));
     const field = (label, input, extra) => el("div", { class: "field" }, [el("label", {}, [label]), input, extra || null]);
-    const institution = el("input", { type: "text", maxlength: "120", minlength: "2", placeholder: "e.g. University of Nairobi" });
-    const course = el("input", { type: "text", maxlength: "120", minlength: "2", placeholder: "e.g. MBChB, BSc Nursing" });
-    const academicLevel = el("input", { type: "text", maxlength: "60", minlength: "1", placeholder: "e.g. Year 2, Clinical years, Level 300" });
-    const paperDetails = el("div", { class: "grid grid-fill-220", hidden: true }, [
+    const institutionOptions = [
+      el("option", { value: "", disabled: true, selected: true }, ["Select university / institution…"]),
+      ...UNIVERSITIES.map(u => el("option", { value: u.id }, [u.name])),
+    ];
+    const profileInstitutionIsListed = UNIVERSITIES.some(u => u.id === me.university_id);
+    const customInstitutionNames = new Set();
+    (resourcesCache || []).forEach(resource => {
+      const name = String(resource.institution || "").trim();
+      if (name && !UNIVERSITIES.some(u => u.name.toLocaleLowerCase() === name.toLocaleLowerCase())) customInstitutionNames.add(name);
+    });
+    if (me.university_name && !profileInstitutionIsListed) {
+      institutionOptions.push(el("option", { value: "__profile" }, [me.university_name]));
+      customInstitutionNames.delete(me.university_name);
+    }
+    customInstitutionNames.forEach(name => institutionOptions.push(el("option", { value: "name:" + name }, [name])));
+    const institution = el("select", { required: true }, institutionOptions);
+    if (profileInstitutionIsListed) institution.value = me.university_id;
+    else if (me.university_name) institution.value = "__profile";
+
+    const course = el("select", { required: true, disabled: true }, [
+      el("option", { value: "", disabled: true, selected: true }, ["Select a course…"]),
+    ]);
+    const academicLevel = el("select", { required: true, disabled: true }, [
+      el("option", { value: "", disabled: true, selected: true }, ["Select year of study…"]),
+    ]);
+    const paperDetails = el("div", { class: "grid study-paper-fields", hidden: true }, [
       field("University / institution *", institution),
       field("Course *", course),
-      field("Year / level *", academicLevel),
+      field("Year of study *", academicLevel),
     ]);
+
+    function coursesForInstitution(universityId) {
+      if (!universityId || universityId === "__profile") return COURSES;
+      const available = COURSES.filter(c => {
+        const offered = universityOffersCourse(universityId, c.id);
+        if (universityId === "kmtc") return offered || COURSE_CATEGORIES.KMTC.includes(c.id);
+        return offered;
+      });
+      return available.length ? available : COURSES;
+    }
+    function renderUploadCourses() {
+      const options = coursesForInstitution(institution.value).map(c => el("option", { value: c.id }, [c.name]));
+      course.replaceChildren(el("option", { value: "", disabled: true }, ["Select a course…"]), ...options);
+      course.value = "";
+      course.disabled = !institution.value;
+      renderUploadYears();
+    }
+    function renderUploadYears() {
+      const options = course.value
+        ? yearsForCourse(course.value).map(y => el("option", { value: y }, [y]))
+        : [];
+      academicLevel.replaceChildren(el("option", { value: "", disabled: true }, ["Select year of study…"]), ...options);
+      academicLevel.value = "";
+      academicLevel.disabled = !course.value;
+    }
+    institution.addEventListener("change", renderUploadCourses);
+    course.addEventListener("change", renderUploadYears);
+    if (institution.value) renderUploadCourses();
+
     const syncPaperFields = () => {
       const isPastPaper = type.value === "Past Paper";
       paperDetails.hidden = !isPastPaper;
       institution.required = isPastPaper;
       course.required = isPastPaper;
       academicLevel.required = isPastPaper;
+      institution.disabled = !isPastPaper;
+      course.disabled = !isPastPaper || !institution.value;
+      academicLevel.disabled = !isPastPaper || !course.value;
     };
     type.addEventListener("change", syncPaperFields);
     const desc = el("textarea", { rows: "3", maxlength: "1000", placeholder: "What's covered? (optional)" });
@@ -277,16 +338,16 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
       if (!f) return MedLink.toast("Choose a file to upload.", "error");
       if (f.size > MAX_BYTES) return MedLink.toast("That file is over 20 MB.", "error");
       if (title.value.trim().length < 3) return MedLink.toast("Give it a title (at least 3 characters).", "error");
-      if (type.value === "Past Paper" && (
-        institution.value.trim().length < 2 || course.value.trim().length < 2 || !academicLevel.value.trim()
-      )) return MedLink.toast("Enter the university or institution, course, and relevant year or level.", "error");
+      if (type.value === "Past Paper" && (!institution.value || !course.value || !academicLevel.value)) {
+        return MedLink.toast("Choose the university or institution, course, and year of study.", "error");
+      }
       submit.disabled = true; submit.textContent = "Uploading…";
       try {
         const row = await api.uploadResource({
           file: f, title: title.value.trim(), unit: unit.value, type: type.value, description: desc.value.trim(),
-          institution: type.value === "Past Paper" ? institution.value.trim() : "",
-          course: type.value === "Past Paper" ? course.value.trim() : "",
-          academic_level: type.value === "Past Paper" ? academicLevel.value.trim() : "",
+          institution: type.value === "Past Paper" ? institution.selectedOptions[0].textContent.trim() : "",
+          course: type.value === "Past Paper" ? course.selectedOptions[0].textContent.trim() : "",
+          academic_level: type.value === "Past Paper" ? academicLevel.value : "",
         });
         close();
         MedLink.toast("Uploaded — thanks for sharing! +20 MedPoints", "success");
