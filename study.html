@@ -257,9 +257,16 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
       ...UNIVERSITIES.map(u => el("option", { value: u.id }, [u.name])),
     ];
     const profileInstitutionIsListed = UNIVERSITIES.some(u => u.id === me.university_id);
+    const customInstitutionNames = new Set();
+    (resourcesCache || []).forEach(resource => {
+      const name = String(resource.institution || "").trim();
+      if (name && !UNIVERSITIES.some(u => u.name.toLocaleLowerCase() === name.toLocaleLowerCase())) customInstitutionNames.add(name);
+    });
     if (me.university_name && !profileInstitutionIsListed) {
       institutionOptions.push(el("option", { value: "__profile" }, [me.university_name]));
+      customInstitutionNames.delete(me.university_name);
     }
+    customInstitutionNames.forEach(name => institutionOptions.push(el("option", { value: "name:" + name }, [name])));
     const institution = el("select", { required: true }, institutionOptions);
     if (profileInstitutionIsListed) institution.value = me.university_id;
     else if (me.university_name) institution.value = "__profile";
