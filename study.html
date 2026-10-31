@@ -13,6 +13,30 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
+
+<style>
+.study-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.study-filter-grid .field { min-width: 0; margin: 0; }
+.study-filter-grid .filter-select { width: 100%; min-width: 0; }
+.study-filter-grid .field-hint { margin-top: 5px; }
+.study-unit-control { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.study-unit-control input { flex: 1 1 auto; min-width: 0; }
+.study-unit-control .btn { flex: 0 0 auto; white-space: nowrap; }
+.study-result-count { align-self: center; grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .study-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .study-filter-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .study-unit-control { align-items: stretch; }
+}
+</style>
+
 </head>
 <body>
 <main id="page" hidden>
@@ -22,14 +46,41 @@
     <button class="btn btn-primary" id="uploadBtn" type="button">↑ Upload Resource</button>
   </div>
   <p class="muted" style="font-size:14px;margin:0 0 20px;" id="libSub"></p>
-  <div class="row-gap" style="margin-bottom:20px;flex-wrap:wrap;">
-    <select id="unitFilter" class="filter-select" aria-label="Filter by unit"></select>
-    <select id="typeFilter" class="filter-select" aria-label="Filter by type"></select>
-    <select id="sortFilter" class="filter-select" aria-label="Sort">
-      <option value="created_at">Newest</option>
-      <option value="views">Most viewed</option>
-    </select>
-    <span class="faint" style="font-size:12.5px;" id="resultCount"></span>
+  <div class="study-filter-grid" style="margin-bottom:20px;">
+    <div class="field">
+      <label for="universityFilter">University / institution</label>
+      <select id="universityFilter" class="filter-select" aria-label="Filter by university or institution"></select>
+    </div>
+    <div class="field">
+      <label for="courseFilter">Course</label>
+      <input id="courseFilter" class="filter-select" type="search" list="courseOptions" autocomplete="off" placeholder="Type to find a course" aria-label="Search by course">
+      <datalist id="courseOptions"></datalist>
+    </div>
+    <div class="field">
+      <label for="yearFilter">Year of study</label>
+      <select id="yearFilter" class="filter-select" aria-label="Filter by year of study"></select>
+    </div>
+    <div class="field">
+      <label for="unitFilter">Unit</label>
+      <div class="study-unit-control">
+        <input id="unitFilter" class="filter-select" type="search" list="unitOptions" autocomplete="off" placeholder="Type a unit keyword" aria-label="Search units">
+        <button id="mineUnitsBtn" class="btn btn-ghost btn-sm" type="button" aria-pressed="false">My units</button>
+      </div>
+      <datalist id="unitOptions"></datalist>
+      <div class="field-hint">Type a keyword or choose a suggested unit.</div>
+    </div>
+    <div class="field">
+      <label for="typeFilter">Type</label>
+      <select id="typeFilter" class="filter-select" aria-label="Filter by resource type"></select>
+    </div>
+    <div class="field">
+      <label for="sortFilter">Sort</label>
+      <select id="sortFilter" class="filter-select" aria-label="Sort resources">
+        <option value="created_at">Newest</option>
+        <option value="views">Most viewed</option>
+      </select>
+    </div>
+    <span class="faint study-result-count" style="font-size:12.5px;" id="resultCount"></span>
   </div>
   <div class="grid grid-fill-230" id="resourceGrid"></div>
 </div>
@@ -46,39 +97,143 @@ MedLink.run({ page: "study" }, async ({ api, me }) => {
 
   qs("#libSub").textContent = `${courseName(me.course_id)} · ${me.year} — notes, past papers and summaries shared by students.`;
 
-  const unitFilter = qs("#unitFilter"), typeFilter = qs("#typeFilter"), sortFilter = qs("#sortFilter");
-  unitFilter.appendChild(el("option", { value: "" }, ["All units"]));
-  unitFilter.appendChild(el("option", { value: "__mine" }, ["My current units"]));
-  const unitGroup = el("optgroup", { label: `${courseName(me.course_id)} · ${me.year}` },
-    yearUnits.map(u => el("option", { value: u }, [u])));
-  unitFilter.appendChild(unitGroup);
+  const universityFilter = qs("#universityFilter"), courseFilter = qs("#courseFilter");
+  const yearFilter = qs("#yearFilter"), unitFilter = qs("#unitFilter");
+  const typeFilter = qs("#typeFilter"), sortFilter = qs("#sortFilter");
+  const mineUnitsBtn = qs("#mineUnitsBtn");
+  const courseOptions = qs("#courseOptions"), unitOptions = qs("#unitOptions");
+  const maxCourseYears = Math.max(...COURSES.map(c => Number(c.years) || 0), 6);
+
+  universityFilter.appendChild(el("option", { value: "" }, ["All universities / institutions"]));
+  UNIVERSITIES.forEach(u => universityFilter.appendChild(el("option", { value: u.id }, [u.name])));
+  if (me.university_name && !UNIVERSITIES.some(u => u.id === me.university_id)) {
+    universityFilter.appendChild(el("option", { value: "name:" + me.university_name }, [me.university_name]));
+  }
+  courseFilter.setAttribute("placeholder", "Type to find a course");
+  COURSES.forEach(c => courseOptions.appendChild(el("option", { value: c.name })));
+  yearFilter.appendChild(el("option", { value: "" }, ["All years"]));
+  for (let year = 1; year <= maxCourseYears; year++) {
+    yearFilter.appendChild(el("option", { value: String(year) }, ["Year " + year]));
+  }
   typeFilter.appendChild(el("option", { value: "" }, ["All types"]));
   RESOURCE_TYPES.forEach(t => typeFilter.appendChild(el("option", { value: t }, [t])));
+  function addDatalistValue(list, value, seen) {
+    const label = String(value || "").trim();
+    const key = label.toLocaleLowerCase();
+    if (!label || seen.has(key)) return;
+    seen.add(key);
+    list.appendChild(el("option", { value: label }));
+  }
+  const courseValueSet = new Set(COURSES.map(c => c.name.toLocaleLowerCase()));
+  const unitValueSet = new Set();
+  yearUnits.concat(me.current_units || []).forEach(u => addDatalistValue(unitOptions, u, unitValueSet));
 
   const wanted = param("unit");
-  if (wanted) {
-    if (!yearUnits.includes(wanted)) unitFilter.appendChild(el("option", { value: wanted }, [wanted]));
-    unitFilter.value = wanted;
-  }
+  if (wanted === "__mine") {
+    mineUnitsBtn.classList.add("active");
+    mineUnitsBtn.setAttribute("aria-pressed", "true");
+  } else if (wanted) unitFilter.value = wanted;
 
   const grid = qs("#resourceGrid");
   let seq = 0;
-  async function render() {
-    const mySeq = ++seq;
-    grid.replaceChildren(MedLink.loadingState());
-    const unit = unitFilter.value;
-    const opts = { type: typeFilter.value || undefined, order: sortFilter.value, limit: 90 };
-    if (unit === "__mine") opts.units = me.current_units.length ? me.current_units : ["__none__"];
-    else if (unit) opts.unit = unit;
-    try {
-      const list = await api.resources(opts);
-      if (mySeq !== seq) return;
-      qs("#resultCount").textContent = `${list.length} resource${list.length === 1 ? "" : "s"}`;
-      grid.replaceChildren(...(list.length ? list.map(MedLink.resourceCardNode)
-        : [MedLink.emptyState("Nothing matches yet — upload the first one.")]));
-    } catch (err) { grid.replaceChildren(); MedLink.reportError(err); }
+  let resourcesCache = [];
+  let loaded = false;
+
+  function populateSuggestions(list) {
+    list.forEach(resource => {
+      const author = resource.author || {};
+      const institution = String(resource.institution || "").trim();
+      const authorInstitution = String(author.university_name || "").trim();
+      [institution, authorInstitution].forEach(name => {
+        if (!name || UNIVERSITIES.some(u => u.name.toLocaleLowerCase() === name.toLocaleLowerCase())) return;
+        const value = "name:" + name;
+        if (!Array.from(universityFilter.options).some(option => option.value === value)) {
+          universityFilter.appendChild(el("option", { value }, [name]));
+        }
+      });
+      const course = String(resource.course || "").trim();
+      addDatalistValue(courseOptions, course, courseValueSet);
+      const authorCourse = courseName(author.course_id);
+      addDatalistValue(courseOptions, authorCourse, courseValueSet);
+      addDatalistValue(unitOptions, resource.unit, unitValueSet);
+    });
   }
-  [unitFilter, typeFilter, sortFilter].forEach(s => s.addEventListener("change", render));
+
+  function filteredResources(list) {
+    const selectedUniversity = universityFilter.value;
+    const selectedCourse = courseFilter.value.trim().toLocaleLowerCase();
+    const selectedYear = yearFilter.value;
+    const unitKeyword = unitFilter.value.trim().toLocaleLowerCase();
+    const onlyMyUnits = mineUnitsBtn.getAttribute("aria-pressed") === "true";
+    return list.filter(resource => {
+      const author = resource.author || {};
+      if (selectedUniversity) {
+        const university = UNIVERSITIES.find(u => u.id === selectedUniversity);
+        const target = selectedUniversity.startsWith("name:")
+          ? selectedUniversity.slice(5).toLocaleLowerCase()
+          : university ? university.name.toLocaleLowerCase() : "";
+        const resourceInstitution = String(resource.institution || "").toLocaleLowerCase();
+        const authorInstitution = String(author.university_name || "").toLocaleLowerCase();
+        const sameId = university && author.university_id === university.id;
+        const nameMatch = target && [resourceInstitution, authorInstitution].some(value => value.includes(target));
+        if (!sameId && !nameMatch) return false;
+      }
+      if (selectedCourse) {
+        const authorCourse = courseName(author.course_id).toLocaleLowerCase();
+        const resourceCourse = String(resource.course || "").toLocaleLowerCase();
+        if (!authorCourse.includes(selectedCourse) && !resourceCourse.includes(selectedCourse)) return false;
+      }
+      if (selectedYear) {
+        const n = Number(selectedYear);
+        const authorYear = Number(String(author.year || "").match(/\d+/)?.[0]);
+        const level = String(resource.academic_level || "").toLocaleLowerCase();
+        const levelMatch = level === String(n) || new RegExp("(?:year|yr|level)\\s*" + n + "\\b").test(level);
+        if (authorYear !== n && !levelMatch) return false;
+      }
+      if (onlyMyUnits && !(me.current_units || []).includes(resource.unit)) return false;
+      if (unitKeyword && !String(resource.unit || "").toLocaleLowerCase().includes(unitKeyword)) return false;
+      if (typeFilter.value && resource.type !== typeFilter.value) return false;
+      return true;
+    });
+  }
+
+  async function render(refresh) {
+    const mySeq = ++seq;
+    if (!loaded || refresh) {
+      grid.replaceChildren(MedLink.loadingState());
+      try {
+        resourcesCache = await api.resources({ order: sortFilter.value, limit: 1000 });
+        if (mySeq !== seq) return;
+        loaded = true;
+        populateSuggestions(resourcesCache);
+      } catch (err) {
+        grid.replaceChildren();
+        MedLink.reportError(err);
+        return;
+      }
+    }
+    if (mySeq !== seq) return;
+    const list = filteredResources(resourcesCache);
+    qs("#resultCount").textContent = `${list.length} resource${list.length === 1 ? "" : "s"}`;
+    grid.replaceChildren(...(list.length ? list.map(MedLink.resourceCardNode)
+      : [MedLink.emptyState("Nothing matches — adjust your criteria or upload the first resource.")]));
+  }
+  [universityFilter, yearFilter, typeFilter].forEach(control => control.addEventListener("change", () => render(control === typeFilter)));
+  [courseFilter, unitFilter].forEach(control => control.addEventListener("input", () => {
+    if (control === unitFilter && unitFilter.value) {
+      mineUnitsBtn.classList.remove("active");
+      mineUnitsBtn.setAttribute("aria-pressed", "false");
+    }
+    render(false);
+  }));
+  mineUnitsBtn.addEventListener("click", () => {
+    const on = mineUnitsBtn.getAttribute("aria-pressed") !== "true";
+    mineUnitsBtn.setAttribute("aria-pressed", String(on));
+    mineUnitsBtn.classList.toggle("active", on);
+    if (on) unitFilter.value = "";
+    render(false);
+  });
+  sortFilter.addEventListener("change", () => render(true));
 
   function openUpload() {
     const title = el("input", { type: "text", maxlength: "140", required: true, placeholder: "e.g. Brachial Plexus — High-Yield Summary" });
