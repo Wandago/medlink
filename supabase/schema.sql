@@ -35,6 +35,10 @@ create table if not exists public.profiles (
   color          text not null default '#A66DF5' check (color ~ '^#[0-9A-Fa-f]{6}$'),
   created_at     timestamptz not null default now()
 );
+alter table public.profiles add column if not exists avatar_url text not null default '';
+alter table public.profiles add column if not exists is_verified boolean not null default false;
+alter table public.profiles add column if not exists verified_by text;
+alter table public.profiles add column if not exists verified_at timestamptz;
 alter table public.profiles enable row level security;
 
 drop policy if exists "profiles: readable by signed-in users" on public.profiles;
@@ -78,8 +82,23 @@ create or replace function public.my_role()
 returns text language sql stable security definer set search_path = public as $$
   select role from public.user_roles where user_id = public.requesting_user_id()
 $$;
+create or replace function public.protect_profile_verification()
+returns trigger language plpgsql security definer set search_path = public as $
+begin
+  if (new.is_verified, new.verified_by, new.verified_at)
+      is distinct from (old.is_verified, old.verified_by, old.verified_at)
+     and coalesce(public.my_role(), '') <> 'super_admin' then
+    raise exception 'Only a super admin can change account verification' using errcode = '42501';
+  end if;
+  return new;
+end $;
+drop trigger if exists profiles_protect_verification on public.profiles;
+create trigger profiles_protect_verification
+  before update on public.profiles
+  for each row execute function public.protect_profile_verification();
+
 create or replace function public.is_staff()
-returns boolean language sql stable security definer set search_path = public as $$
+returns boolean language sql stable security definer set search_path = public as $
   select public.my_role() is not null
 $$;
 create or replace function public.is_admin()
@@ -1046,6 +1065,53 @@ begin
   end if;
 end $$;
 
+create or replace function public.set_user_verified(target text, verified boolean)
+returns void language plpgsql security definer set search_path = public as $
+declare me text := public.requesting_user_id();
+begin
+  if public.my_role() is distinct from 'super_admin' then
+    raise exception 'Only a super admin can change account verification' using errcode = '42501';
+  end if;
+  update public.profiles
+     set is_verified = coalesce(verified, false),
+         verified_by = case when coalesce(verified, false) then me else null end,
+         verified_at = case when coalesce(verified, false) then now() else null end
+   where id = target;
+  if not found then raise exception 'User not found'; end if;
+end $;
+revoke all on function public.set_user_verified(text, boolean) from public, anon;
+grant execute on function public.set_user_verified(text, boolean) to authenticated;
+
+create or replace function public.provision_medlink_account(target text)
+returns void language plpgsql security definer set search_path = public as $
+declare me text := public.requesting_user_id();
+begin
+  if public.my_role() is distinct from 'super_admin' then
+    raise exception 'Only a super admin can provision the MedLinkKE account' using errcode = '42501';
+  end if;
+  if target = me then
+    raise exception 'Choose a separate signed-in account for MedLinkKE' using errcode = '42501';
+  end if;
+  if exists (select 1 from public.profiles where username = 'medlinkke' and id <> target) then
+    raise exception 'The MedLinkKE username is already in use';
+  end if;
+  update public.profiles
+     set username = 'medlinkke',
+         full_name = 'MedLinkKE',
+         avatar_url = '/icon-192.png',
+         is_verified = true,
+         verified_by = me,
+         verified_at = now()
+   where id = target;
+  if not found then raise exception 'Sign up the MedLinkKE Clerk account first'; end if;
+  insert into public.user_roles (user_id, role, granted_by)
+  values (target, 'super_admin', me)
+  on conflict (user_id) do update
+    set role = excluded.role, granted_by = excluded.granted_by, granted_at = now();
+end $;
+revoke all on function public.provision_medlink_account(text) from public, anon;
+grant execute on function public.provision_medlink_account(text) to authenticated;
+
 create or replace function public.set_user_suspended(target text, suspend boolean, reason text default '')
 returns void language plpgsql security definer set search_path = public as $$
 declare
@@ -1824,6 +1890,7 @@ drop function if exists public.admin_users(text, text, integer, integer);
 create function public.admin_users(p_q text default '', p_filter text default '', p_limit integer default 50, p_offset integer default 0)
 returns table (
   id text, username text, full_name text, university_id text, university_name text, country text, course_id text, year text, color text,
+  avatar_url text, is_verified boolean,
   bio text, created_at timestamptz, email text, role text, suspended boolean, suspension_reason text,
   last_seen timestamptz, events bigint, posts bigint, resources bigint, total bigint
 )
@@ -1844,7 +1911,7 @@ language sql stable security definer set search_path = public as $$
            or (p_filter = 'suspended' and s.user_id is not null)
            or (p_filter = r.role))
   )
-  select b.id, b.username, b.full_name, b.university_id, b.university_name, b.country, b.course_id, b.year, b.color, b.bio, b.created_at,
+  select b.id, b.username, b.full_name, b.university_id, b.university_name, b.country, b.course_id, b.year, b.color, b.avatar_url, b.is_verified, b.bio, b.created_at,
          case when public.is_admin() then (select up.email from public.user_private up where up.user_id = b.id) end,
          r.role, s.user_id is not null, s.reason,
          (select max(e.created_at) from public.events e where e.user_id = b.id),

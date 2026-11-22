@@ -581,9 +581,9 @@
   // ---------------------------------------------------------------------
   // Data access — every Supabase query lives here
   // ---------------------------------------------------------------------
-  var PROFILE_COLS = "id,username,full_name,university_id,university_name,country,course_id,year,bio,interests,current_units,color,created_at";
+  var PROFILE_COLS = "id,username,full_name,university_id,university_name,country,course_id,year,bio,interests,current_units,color,avatar_url,is_verified,created_at";
   // "!author_id" names the foreign key: likes/saves/reports also link these tables to profiles.
-  var AUTHOR = "author:profiles!author_id(id,username,full_name,university_id,university_name,country,course_id,year,color)";
+  var AUTHOR = "author:profiles!author_id(id,username,full_name,university_id,university_name,country,course_id,year,color,avatar_url,is_verified)";
   var RES_SELECT = "*," + AUTHOR + ",saved_resources(count)";
   var POST_SELECT = "*," + AUTHOR + ",post_likes(count),post_comments(count),community:communities(id,name)";
   var BUCKET = "resources";
@@ -933,6 +933,14 @@
       must(await sb().rpc("set_user_role", { target: userId, new_role: role || null }));
       track("admin_set_role", { user_id: userId, role: role || "student" });
     },
+    setVerified: async function (userId, verified) {
+      must(await sb().rpc("set_user_verified", { target: userId, verified: !!verified }));
+      track("admin_set_verified", { user_id: userId, verified: !!verified });
+    },
+    provisionOfficialAccount: async function (userId) {
+      must(await sb().rpc("provision_medlink_account", { target: userId }));
+      track("admin_provision_medlink_account", { user_id: userId });
+    },
     setSuspended: async function (userId, on, reason) {
       must(await sb().rpc("set_user_suspended", { target: userId, suspend: !!on, reason: reason || "" }));
       track(on ? "admin_suspend" : "admin_unsuspend", { user_id: userId });
@@ -1083,13 +1091,29 @@
   var ICON_THEME = '<svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
     + '<svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>';
 
+  function verifiedBadgeNode(overlay) {
+    return el("span", {
+      class: "verified-badge" + (overlay ? " avatar-verification" : ""),
+      role: "img",
+      "aria-label": "Verified account",
+      title: "Verified account",
+      html: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="verified-shape" d="M12 1.8 14.7 3l3-.1 1.2 2.8 2.8 1.2-.1 3L23 12l-1.4 2.1.1 3-2.8 1.2-1.2 2.8-3-.1L12 22.2 9.3 21l-3 .1-1.2-2.8-2.8-1.2.1-3L1 12l1.4-2.1-.1-3 2.8-1.2 1.2-2.8 3 .1z"/><path class="verified-check" d="m7.7 12.2 2.8 2.8 5.9-6"/></svg>',
+    });
+  }
+
   function avatarNode(p, size, asLink) {
     var node = el(asLink ? "a" : "div", {
       class: "avatar" + (size ? " " + size : ""),
       style: "background:" + safeColor(p && p.color),
       href: asLink && p ? profileHref(p) : null,
       title: p ? p.full_name : null,
-    }, [initials(p ? p.full_name : "?") || "?"]);
+    });
+    if (p && p.avatar_url) {
+      node.appendChild(el("img", { class: "avatar-image", src: p.avatar_url, alt: "" }));
+    } else {
+      node.appendChild(document.createTextNode(initials(p ? p.full_name : "?") || "?"));
+    }
+    if (p && p.is_verified) node.appendChild(verifiedBadgeNode(true));
     return node;
   }
 
@@ -1614,6 +1638,7 @@
     emptyState: emptyState,
     loadingState: loadingState,
     avatarNode: avatarNode,
+    verifiedBadgeNode: verifiedBadgeNode,
     metaLine: metaLine,
     resourceCardNode: resourceCardNode,
     feedPostNode: feedPostNode,
