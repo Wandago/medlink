@@ -625,10 +625,19 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
           { label: "Last seen", cls: "nowrap", render: u => u.last_seen ? el("span", { title: when(u.last_seen) }, [timeAgo(u.last_seen)]) : "—" },
           { label: "Activity", cls: "nowrap", render: u => el("span", { class: "muted-cell" }, [`${fmt(u.events)} events · ${fmt(u.posts)} posts · ${fmt(u.resources)} uploads`]) },
           { label: "Role", render: roleCell },
+          { label: "Verification", render: u => u.is_verified ? MedLink.verifiedBadge() : el("span", { class: "muted-cell" }, ["Not verified"]) },
           { label: "Status", render: u => u.suspended ? el("span", { class: "badge bad", title: u.suspension_reason || "" }, ["Suspended"]) : el("span", { class: "badge ok" }, ["Active"]) },
           { label: "", render: u => el("div", { class: "a-actions" }, [
             el("button", { type: "button", class: "a-btn", onclick: () => openUser(u) }, ["View"]),
             isAdmin ? el("button", { type: "button", class: "a-btn", onclick: () => editUser(u, load) }, ["Edit"]) : null,
+            isSuper ? el("button", { type: "button", class: "a-btn", onclick: async () => {
+              const next = !u.is_verified;
+              try {
+                await A.setVerified(u.id, next);
+                toast("Verification updated for @" + u.username + ".", "success");
+                await load();
+              } catch (e) { fail(e); }
+            } }, [u.is_verified ? "Remove badge" : "Verify"]) : null,
             canSuspend(u) ? el("button", { type: "button", class: "a-btn danger", onclick: () => toggleSuspend(u, load) }, [u.suspended ? "Unsuspend" : "Suspend"]) : null,
           ]) },
         ], rows, "No students match."));
