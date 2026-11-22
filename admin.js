@@ -613,6 +613,38 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
       return sel;
     };
 
+    const verifiedCell = u => {
+      if (!isSuper) return u.is_verified ? MedLink.verifiedBadgeNode() : el("span", { class: "muted-cell" }, ["—"]);
+      const button = el("button", { type: "button", class: "a-btn " + (u.is_verified ? "active" : "") }, [
+        u.is_verified ? "✓ Verified" : "Verify",
+      ]);
+      button.addEventListener("click", async () => {
+        const next = !u.is_verified;
+        if (!confirm(`${next ? "Verify" : "Remove verification from"} @${u.username}?`)) return;
+        button.disabled = true;
+        try {
+          await A.setVerified(u.id, next);
+          u.is_verified = next;
+          toast(`@${u.username} ${next ? "verified" : "unverified"}.`, "success");
+          load();
+        } catch (e) { button.disabled = false; fail(e); }
+      });
+      return button;
+    };
+
+    const provisionOfficial = u => {
+      if (!isSuper || u.id === me.id || u.username === "medlinkke") return null;
+      return el("button", { type: "button", class: "a-btn", onclick: async () => {
+        const message = `Make @${u.username} the official MedLinkKE account? This sets the MedLink logo, grants Super Admin access, and marks the account verified.`;
+        if (!confirm(message)) return;
+        try {
+          await A.provisionOfficialAccount(u.id);
+          toast("@medlinkke is ready as the official account.", "success");
+          load();
+        } catch (e) { fail(e); }
+      } }, ["Make MedLinkKE"]);
+    };
+
     const load = async () => {
       body.replaceChildren(MedLink.loadingState());
       try {
@@ -625,10 +657,12 @@ MedLink.run({ page: "admin", staff: true }, async ({ api, me, role }) => {
           { label: "Last seen", cls: "nowrap", render: u => u.last_seen ? el("span", { title: when(u.last_seen) }, [timeAgo(u.last_seen)]) : "—" },
           { label: "Activity", cls: "nowrap", render: u => el("span", { class: "muted-cell" }, [`${fmt(u.events)} events · ${fmt(u.posts)} posts · ${fmt(u.resources)} uploads`]) },
           { label: "Role", render: roleCell },
+          { label: "Verified", render: verifiedCell },
           { label: "Status", render: u => u.suspended ? el("span", { class: "badge bad", title: u.suspension_reason || "" }, ["Suspended"]) : el("span", { class: "badge ok" }, ["Active"]) },
           { label: "", render: u => el("div", { class: "a-actions" }, [
             el("button", { type: "button", class: "a-btn", onclick: () => openUser(u) }, ["View"]),
             isAdmin ? el("button", { type: "button", class: "a-btn", onclick: () => editUser(u, load) }, ["Edit"]) : null,
+            provisionOfficial(u),
             canSuspend(u) ? el("button", { type: "button", class: "a-btn danger", onclick: () => toggleSuspend(u, load) }, [u.suspended ? "Unsuspend" : "Suspend"]) : null,
           ]) },
         ], rows, "No students match."));
