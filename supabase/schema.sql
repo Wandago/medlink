@@ -83,7 +83,7 @@ returns text language sql stable security definer set search_path = public as $$
   select role from public.user_roles where user_id = public.requesting_user_id()
 $$;
 create or replace function public.protect_profile_verification()
-returns trigger language plpgsql security definer set search_path = public as $
+returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if tg_op = 'INSERT' then
     if (new.is_verified or new.verified_by is not null or new.verified_at is not null)
@@ -98,22 +98,10 @@ begin
     raise exception 'Only a super admin can change account verification' using errcode = '42501';
   end if;
   return new;
-end $;
+end $$;
 drop trigger if exists profiles_protect_verification on public.profiles;
 create trigger profiles_protect_verification
   before insert or update on public.profiles
-  for each row execute function public.protect_profile_verification();
-begin
-  if (new.is_verified, new.verified_by, new.verified_at)
-      is distinct from (old.is_verified, old.verified_by, old.verified_at)
-     and coalesce(public.my_role(), '') <> 'super_admin' then
-    raise exception 'Only a super admin can change account verification' using errcode = '42501';
-  end if;
-  return new;
-end $;
-drop trigger if exists profiles_protect_verification on public.profiles;
-create trigger profiles_protect_verification
-  before update on public.profiles
   for each row execute function public.protect_profile_verification();
 
 create or replace function public.is_staff()
