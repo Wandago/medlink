@@ -13,6 +13,42 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="styles.css">
+<style>
+#page.compact-units-step { padding-top:16px;padding-bottom:12px; }
+#page.compact-units-step > .card { padding:20px!important; }
+#page.compact-units-step .onboard-top { margin-bottom:12px; }
+#page.compact-units-step .progress-bar { margin-bottom:14px; }
+#page.compact-units-step #stepTitle { margin-bottom:12px!important; }
+#page.compact-units-step .step-nav { margin-top:14px; }
+#page.compact-units-step #units-intro { margin-bottom:4px!important; }
+#page.compact-units-step #units-context { margin-bottom:8px!important; }
+#page.compact-units-step #units-search-field { margin-bottom:8px!important; }
+#page.compact-units-step .unit-choice-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+}
+#page.compact-units-step .unit-choice-grid .chip-toggle {
+  min-width:0;
+  min-height:34px;
+  padding:6px 9px;
+  overflow:hidden;
+  border-width:1px;
+  border-radius:10px;
+  font-size:11px;
+  line-height:1.25;
+  text-align:left;
+  overflow-wrap:anywhere;
+}
+@media (max-width:560px) {
+  #page.compact-units-step { padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); }
+  #page.compact-units-step > .card { padding:16px!important; }
+  #page.compact-units-step .progress-bar { margin-bottom:10px; }
+  #page.compact-units-step #stepTitle { font-size:21px!important;margin-bottom:10px!important; }
+  #page.compact-units-step .unit-choice-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:5px; }
+  #page.compact-units-step .unit-choice-grid .chip-toggle { min-height:32px;padding:5px 7px;font-size:10.5px; }
+}
+</style>
 </head>
 <body>
 <div class="onboard-wrap fade-in" id="page" hidden>
@@ -97,10 +133,10 @@
 
     <!-- Step 3 -->
     <div class="onboard-step" data-step="3">
-      <p class="muted" style="margin:0 0 4px;font-size:13.5px;">Pick the units you're taking this semester — your library and notes will follow them.</p>
-      <p class="faint" style="margin:0 0 12px;font-size:12.5px;" id="units-context"></p>
-      <div class="field" style="margin-bottom:14px;">
-        <input type="text" id="units-search" placeholder="🔍 Search units (e.g. anatomy, pathology, epidemiology)…" autocomplete="off" style="width:100%;">
+      <p class="muted" id="units-intro" style="margin:0 0 4px;font-size:13.5px;">Choose the units you're taking this semester.</p>
+      <p class="faint" style="margin:0 0 8px;font-size:12px;" id="units-context"></p>
+      <div class="field" id="units-search-field" style="margin-bottom:8px;">
+        <input type="search" id="units-search" placeholder="Search current-year units…" autocomplete="off" style="width:100%;">
       </div>
       <div id="units-row"></div>
       <div class="field-error hidden" id="err-units">Please pick at least one unit.</div>
@@ -337,18 +373,6 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
       container.appendChild(row);
     });
   }
-  function allUnitsAlphabetical() {
-    const set = new Set();
-    Object.values(UNIT_CATALOG).forEach(course => {
-      Object.values(course).forEach(yearObj => {
-        Object.values(yearObj).forEach(list => {
-          list.forEach(u => set.add(u));
-        });
-      });
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }
-
   const unitsSearch = qs("#units-search");
   let unitFilterTerm = "";
   if (unitsSearch) {
@@ -359,23 +383,28 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
   }
 
   function renderUnits() {
-    const all = allUnitsAlphabetical();
+    const all = unitsForYear(data.courseId, data.year);
     const filtered = unitFilterTerm
-      ? all.filter(u => u.toLowerCase().includes(unitFilterTerm))
+      ? all.filter(u => u.toLocaleLowerCase().includes(unitFilterTerm))
       : all;
+    const selected = filtered.filter(u => data.units.includes(u));
+    const visible = unitFilterTerm
+      ? filtered.slice(0, 15)
+      : Array.from(new Set(selected.concat(filtered.filter(u => !data.units.includes(u))
+        .slice(0, Math.max(0, 15 - selected.length)))));
     qs("#units-context").textContent = unitFilterTerm
-      ? `Showing ${filtered.length} of ${all.length} units matching "${unitFilterTerm}". ${data.units.length} selected.`
-      : `Choose from all available medical and health sciences units — ${all.length} units total. Alphabetical order (A to Z). ${data.units.length} selected.`;
+      ? `Showing ${visible.length} of ${filtered.length} matching units. ${data.units.length} selected.`
+      : `Showing up to 15 of ${all.length} units for ${courseName(data.courseId)} · ${data.year}. Search to find others. ${data.units.length} selected.`;
     const container = qs("#units-row");
     container.replaceChildren();
     if (!filtered.length) {
-      container.appendChild(el("div", { class: "faint", style: "padding:12px 0;" }, ["No units match your search. Try another keyword."]));
+      container.appendChild(el("div", { class: "faint", style: "padding:8px 0;" }, ["No current-year units match your search. Try another keyword."]));
     } else {
-      const row = el("div", { class: "wrap-gap" });
-      filtered.forEach(opt => {
+      const row = el("div", { class: "unit-choice-grid" });
+      visible.forEach(opt => {
         const on = data.units.includes(opt);
         row.appendChild(el("button", {
-          type: "button", class: "chip-toggle" + (on ? " on" : ""), "aria-pressed": String(on),
+          type: "button", class: "chip-toggle" + (on ? " on" : ""), "aria-pressed": String(on), title: opt,
           onclick: () => {
             const i = data.units.indexOf(opt);
             if (i === -1) data.units.push(opt); else data.units.splice(i, 1);
@@ -474,6 +503,7 @@ MedLink.run({ auth: "required", authPage: "sign-up.html", profile: "optional", s
   // ---- navigation ----
   const backBtn = qs("#backBtn"), nextBtn = qs("#nextBtn");
   function renderStep() {
+    qs("#page").classList.toggle("compact-units-step", step === 3);
     qsa(".onboard-step").forEach(s => s.classList.toggle("active", Number(s.dataset.step) === step));
     qsa(".seg", progressBar).forEach(s => s.classList.toggle("on", Number(s.dataset.seg) <= step));
     qs("#stepLabel").textContent = `Step ${step + 1} of ${STEPS.length}`;
