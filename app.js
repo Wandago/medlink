@@ -581,9 +581,9 @@
   // ---------------------------------------------------------------------
   // Data access — every Supabase query lives here
   // ---------------------------------------------------------------------
-  var PROFILE_COLS = "id,username,full_name,university_id,university_name,country,course_id,year,bio,interests,current_units,color,created_at";
+  var PROFILE_COLS = "id,username,full_name,university_id,university_name,country,course_id,year,bio,interests,current_units,color,is_verified,created_at";
   // "!author_id" names the foreign key: likes/saves/reports also link these tables to profiles.
-  var AUTHOR = "author:profiles!author_id(id,username,full_name,university_id,university_name,country,course_id,year,color)";
+  var AUTHOR = "author:profiles!author_id(id,username,full_name,university_id,university_name,country,course_id,year,color,is_verified)";
   var RES_SELECT = "*," + AUTHOR + ",saved_resources(count)";
   var POST_SELECT = "*," + AUTHOR + ",post_likes(count),post_comments(count),community:communities(id,name)";
   var BUCKET = "resources";
@@ -937,6 +937,9 @@
       must(await sb().rpc("set_user_suspended", { target: userId, suspend: !!on, reason: reason || "" }));
       track(on ? "admin_suspend" : "admin_unsuspend", { user_id: userId });
     },
+    setVerified: async function (userId, on) {
+      must(await sb().rpc("set_profile_verified", { target: userId, p_verified: !!on }));
+    },
     updateProfile: async function (userId, fields) {
       return must(await sb().from("profiles").update(fields).eq("id", userId).select(PROFILE_COLS).single());
     },
@@ -1082,6 +1085,11 @@
   var ICON_SEARCH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
   var ICON_THEME = '<svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
     + '<svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>';
+
+  function verifiedBadge() {
+    return el("span", { class: "verified-badge", title: "Verified account", "aria-label": "Verified account",
+      html: '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="currentColor"/><path d="m5.7 10.2 2.7 2.6 5.9-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' });
+  }
 
   function avatarNode(p, size, asLink) {
     var node = el(asLink ? "a" : "div", {
@@ -1598,7 +1606,7 @@
   // ---------------------------------------------------------------------
   Object.assign(window, {
     el: el, qs: qs, qsa: qsa, escapeHtml: escapeHtml, safeColor: safeColor, param: param,
-    profileHref: profileHref, timeAgo: timeAgo, formatBytes: formatBytes, count: count, plural: plural,
+    profileHref: profileHref, timeAgo: timeAgo, formatBytes: formatBytes, count: count, plural: plural, verifiedBadge: verifiedBadge,
   });
   window.MedLink = {
     run: run,
@@ -1614,6 +1622,7 @@
     emptyState: emptyState,
     loadingState: loadingState,
     avatarNode: avatarNode,
+    verifiedBadge: verifiedBadge,
     metaLine: metaLine,
     resourceCardNode: resourceCardNode,
     feedPostNode: feedPostNode,
