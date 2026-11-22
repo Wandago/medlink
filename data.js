@@ -658,7 +658,7 @@ const INTEREST_CATALOG = {
 };
 const ALL_INTERESTS = Object.values(INTEREST_CATALOG).flat();
 
-const RESERVED_USERNAMES = ["admin", "medlink", "support", "root", "moderator", "help", "medlinkke", "official", "staff"];
+const RESERVED_USERNAMES = ["admin", "medlink", "support", "root", "moderator", "help", "official", "staff"];
 const AVATAR_COLORS = ["#1A56F0", "#FF7A1A", "#FF4F9A", "#10B39E", "#7B61FF", "#F5A300", "#0EA5E9", "#A66DF5"];
 
 function uniName(id) { const u = UNIVERSITIES.find(x => x.id === id); return u ? u.name : ""; }
