@@ -1437,6 +1437,7 @@
         avatarNode(author, "", true),
         el("div", { class: "post-name-row" }, [
           el("a", { href: author.username ? profileHref(author) : "#", class: "post-name" }, [author.full_name || "Unknown"]),
+          author.is_verified ? verifiedBadgeNode() : null,
           el("span", { class: "post-handle" }, [author.username ? "@" + author.username : ""]),
         ]),
       ]),

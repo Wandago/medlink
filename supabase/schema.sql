@@ -85,6 +85,25 @@ $$;
 create or replace function public.protect_profile_verification()
 returns trigger language plpgsql security definer set search_path = public as $
 begin
+  if tg_op = 'INSERT' then
+    if (new.is_verified or new.verified_by is not null or new.verified_at is not null)
+       and coalesce(public.my_role(), '') <> 'super_admin' then
+      raise exception 'Only a super admin can confer account verification' using errcode = '42501';
+    end if;
+    return new;
+  end if;
+  if (new.is_verified, new.verified_by, new.verified_at)
+      is distinct from (old.is_verified, old.verified_by, old.verified_at)
+     and coalesce(public.my_role(), '') <> 'super_admin' then
+    raise exception 'Only a super admin can change account verification' using errcode = '42501';
+  end if;
+  return new;
+end $;
+drop trigger if exists profiles_protect_verification on public.profiles;
+create trigger profiles_protect_verification
+  before insert or update on public.profiles
+  for each row execute function public.protect_profile_verification();
+begin
   if (new.is_verified, new.verified_by, new.verified_at)
       is distinct from (old.is_verified, old.verified_by, old.verified_at)
      and coalesce(public.my_role(), '') <> 'super_admin' then
@@ -1066,7 +1085,7 @@ begin
 end $$;
 
 create or replace function public.set_user_verified(target text, verified boolean)
-returns void language plpgsql security definer set search_path = public as $
+returns void language plpgsql security definer set search_path = public as $$
 declare me text := public.requesting_user_id();
 begin
   if public.my_role() is distinct from 'super_admin' then
@@ -1078,12 +1097,12 @@ begin
          verified_at = case when coalesce(verified, false) then now() else null end
    where id = target;
   if not found then raise exception 'User not found'; end if;
-end $;
+end $$;
 revoke all on function public.set_user_verified(text, boolean) from public, anon;
 grant execute on function public.set_user_verified(text, boolean) to authenticated;
 
 create or replace function public.provision_medlink_account(target text)
-returns void language plpgsql security definer set search_path = public as $
+returns void language plpgsql security definer set search_path = public as $$
 declare me text := public.requesting_user_id();
 begin
   if public.my_role() is distinct from 'super_admin' then
@@ -1108,7 +1127,7 @@ begin
   values (target, 'super_admin', me)
   on conflict (user_id) do update
     set role = excluded.role, granted_by = excluded.granted_by, granted_at = now();
-end $;
+end $$;
 revoke all on function public.provision_medlink_account(text) from public, anon;
 grant execute on function public.provision_medlink_account(text) to authenticated;
 
