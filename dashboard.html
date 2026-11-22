@@ -181,10 +181,9 @@
     <div class="grid grid-fill-230" style="margin-bottom:32px;" id="resGrid"></div>
 
     <div class="section-heading">
-      <h2>MedLink news</h2>
-      <a href="profile.html?u=medlinkke" class="btn btn-ghost btn-sm">MedLinkKE ›</a>
+      <h2>Latest discussions</h2>
+      <a href="communities.html" class="btn btn-ghost btn-sm">Communities ›</a>
     </div>
-    <p class="muted" style="font-size:13px;margin:-5px 0 12px;">Announcements and updates from the MedLink team.</p>
     <div id="composer" style="margin-bottom:12px;"></div>
     <div id="feedList" class="feed-list"></div>
   </div>
@@ -491,32 +490,23 @@ MedLink.run({ page: "dashboard" }, async ({ api, me }) => {
     activityHost.replaceChildren(MedLink.emptyState("Recent activity is unavailable right now."));
   }
 
-  // MedLink News is authored by the verified official account.
+  // Shared post composer and discussion renderer.
   const composer = qs("#composer");
   const feedList = qs("#feedList");
-  if (me.username === "medlinkke" && me.is_verified) {
-    composer.appendChild(MedLink.composerNode({
-      placeholder: "Share an official MedLink update…",
-      onPosted: post => {
-        const empty = qs(".empty-state", feedList);
-        if (empty) empty.remove();
-        feedList.prepend(MedLink.feedPostNode(post, { liked: new Set() }));
-      },
-    }));
-  } else {
-    composer.remove();
-  }
+  composer.appendChild(MedLink.composerNode({
+    placeholder: "Ask a medical question or share a clinical insight with your peers…",
+    onPosted: post => {
+      const empty = qs(".empty-state", feedList);
+      if (empty) empty.remove();
+      feedList.prepend(MedLink.feedPostNode(post, { liked: new Set() }));
+    },
+  }));
   feedList.appendChild(MedLink.loadingState());
   try {
-    const official = await api.profileByUsername("medlinkke");
-    if (!official || !official.is_verified) {
-      feedList.replaceChildren(MedLink.emptyState("MedLink updates will appear here soon."));
-    } else {
-      const posts = await api.posts({ authorId: official.id, limit: 8 });
-      await MedLink.renderPosts(feedList, posts, "MedLink hasn't shared an update yet.");
-    }
+    const posts = await api.posts({ limit: 8 });
+    await MedLink.renderPosts(feedList, posts, "No discussions yet. Start the conversation.");
   } catch (err) {
-    feedList.replaceChildren(MedLink.emptyState("MedLink news couldn't load. Please try again later."));
+    feedList.replaceChildren(MedLink.emptyState("Discussions couldn't load. Please try again later."));
   }
 });
 </script>
