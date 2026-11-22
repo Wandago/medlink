@@ -35,7 +35,6 @@ create table if not exists public.profiles (
   color          text not null default '#A66DF5' check (color ~ '^#[0-9A-Fa-f]{6}$'),
   created_at     timestamptz not null default now()
 );
-alter table public.profiles add column if not exists is_verified boolean not null default false;
 alter table public.profiles enable row level security;
 
 drop policy if exists "profiles: readable by signed-in users" on public.profiles;
@@ -106,32 +105,6 @@ create policy "profiles: update own" on public.profiles
 drop policy if exists "profiles: admins edit anyone" on public.profiles;
 create policy "profiles: admins edit anyone" on public.profiles
   for update to authenticated using (public.is_admin()) with check (public.is_admin());
-
--- Only super admins may confer or remove the trial verification badge.
-create or replace function public.guard_profile_verification()
-returns trigger language plpgsql security definer set search_path = public as $$
-begin
-  if new.is_verified is distinct from old.is_verified
-     and public.my_role() is distinct from 'super_admin' then
-    raise exception 'Only a super admin can change account verification' using errcode = '42501';
-  end if;
-  return new;
-end $$;
-drop trigger if exists profiles_guard_verification on public.profiles;
-create trigger profiles_guard_verification before update of is_verified on public.profiles
-  for each row execute function public.guard_profile_verification();
-
-create or replace function public.set_profile_verified(target text, p_verified boolean)
-returns void language plpgsql security definer set search_path = public as $$
-begin
-  if public.my_role() is distinct from 'super_admin' then
-    raise exception 'Only a super admin can change account verification' using errcode = '42501';
-  end if;
-  update public.profiles set is_verified = p_verified where id = target;
-  if not found then raise exception 'User not found'; end if;
-end $$;
-revoke all on function public.set_profile_verified(text, boolean) from public, anon;
-grant execute on function public.set_profile_verified(text, boolean) to authenticated;
 
 -- Private per-user details (email as reported by Clerk). Visible to the user and admins only.
 create table if not exists public.user_private (
@@ -1850,7 +1823,7 @@ end $$;
 drop function if exists public.admin_users(text, text, integer, integer);
 create function public.admin_users(p_q text default '', p_filter text default '', p_limit integer default 50, p_offset integer default 0)
 returns table (
-  id text, username text, full_name text, university_id text, university_name text, country text, course_id text, year text, color text, is_verified boolean,
+  id text, username text, full_name text, university_id text, university_name text, country text, course_id text, year text, color text,
   bio text, created_at timestamptz, email text, role text, suspended boolean, suspension_reason text,
   last_seen timestamptz, events bigint, posts bigint, resources bigint, total bigint
 )
@@ -1871,7 +1844,7 @@ language sql stable security definer set search_path = public as $$
            or (p_filter = 'suspended' and s.user_id is not null)
            or (p_filter = r.role))
   )
-  select b.id, b.username, b.full_name, b.university_id, b.university_name, b.country, b.course_id, b.year, b.color, b.is_verified, b.bio, b.created_at,
+  select b.id, b.username, b.full_name, b.university_id, b.university_name, b.country, b.course_id, b.year, b.color, b.bio, b.created_at,
          case when public.is_admin() then (select up.email from public.user_private up where up.user_id = b.id) end,
          r.role, s.user_id is not null, s.reason,
          (select max(e.created_at) from public.events e where e.user_id = b.id),
